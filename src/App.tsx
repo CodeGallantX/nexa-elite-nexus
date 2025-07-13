@@ -12,8 +12,14 @@ import { Layout } from "@/components/Layout";
 import { Landing } from "@/pages/Landing";
 import { Login } from "@/pages/auth/Login";
 import { Signup } from "@/pages/auth/Signup";
+import { ForgotPassword } from "@/pages/auth/ForgotPassword";
+import { ResetPassword } from "@/pages/auth/ResetPassword";
+import { Onboarding } from "@/pages/auth/Onboarding";
 import { Dashboard } from "@/pages/Dashboard";
 import { AdminDashboard } from "@/pages/AdminDashboard";
+import { AdminPlayers } from "@/pages/admin/Players";
+import { AdminProfiles } from "@/pages/admin/Profiles";
+import { AdminStats } from "@/pages/admin/Stats";
 import { Profile } from "@/pages/Profile";
 import { Chat } from "@/pages/Chat";
 import { Announcements } from "@/pages/Announcements";
@@ -62,6 +68,15 @@ const AppRoutes = () => {
         <Navigate to={user?.role === 'admin' ? '/admin' : '/dashboard'} replace /> : 
         <Layout><Signup /></Layout>
       } />
+      <Route path="/auth/forgot-password" element={<Layout><ForgotPassword /></Layout>} />
+      <Route path="/auth/reset-password" element={<Layout><ResetPassword /></Layout>} />
+      
+      {/* Onboarding Route */}
+      <Route path="/auth/onboarding" element={
+        <ProtectedRoute>
+          <Layout><Onboarding /></Layout>
+        </ProtectedRoute>
+      } />
 
       {/* Protected Player Routes */}
       <Route path="/dashboard" element={
@@ -74,6 +89,21 @@ const AppRoutes = () => {
       <Route path="/admin" element={
         <ProtectedRoute requiredRole="admin">
           <Layout showSidebar><AdminDashboard /></Layout>
+        </ProtectedRoute>
+      } />
+      <Route path="/admin/players" element={
+        <ProtectedRoute requiredRole="admin">
+          <Layout showSidebar><AdminPlayers /></Layout>
+        </ProtectedRoute>
+      } />
+      <Route path="/admin/profiles" element={
+        <ProtectedRoute requiredRole="admin">
+          <Layout showSidebar><AdminProfiles /></Layout>
+        </ProtectedRoute>
+      } />
+      <Route path="/admin/stats" element={
+        <ProtectedRoute requiredRole="admin">
+          <Layout showSidebar><AdminStats /></Layout>
         </ProtectedRoute>
       } />
 
