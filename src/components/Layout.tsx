@@ -14,14 +14,14 @@ export const Layout: React.FC<LayoutProps> = ({ children, showSidebar = false })
 
   if (!isAuthenticated || !showSidebar) {
     return (
-      <div className="min-h-screen bg-[#0E0E0E] text-white">
+      <div className="min-h-screen bg-background text-foreground">
         {children}
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#0E0E0E] text-white flex">
+    <div className="min-h-screen bg-background text-foreground flex">
       <Sidebar />
       <div className="flex-1 flex flex-col">
         <Header />
