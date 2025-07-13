@@ -248,7 +248,7 @@ export const AdminStats: React.FC = () => {
                     </SelectContent>
                   </Select>
                   <div className="text-xs text-gray-400 mt-1">
-                    Current: <Badge className={getGradeColor(selectedPlayer.grade)} size="sm">
+                    Current: <Badge className={getGradeColor(selectedPlayer.grade)}>
                       {selectedPlayer.grade}
                     </Badge>
                   </div>
