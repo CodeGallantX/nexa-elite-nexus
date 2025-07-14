@@ -1,0 +1,338 @@
+
+import React, { useState } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { 
+  Bell, 
+  Copy, 
+  Eye, 
+  Search,
+  UserPlus,
+  Key,
+  Clock,
+  CheckCircle,
+  AlertCircle
+} from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+
+// Mock notifications data
+const mockNotifications = [
+  {
+    id: '1',
+    type: 'access_code_request',
+    message: 'Player newPlayer123 is requesting access code ABC123',
+    playerName: 'newPlayer123',
+    accessCode: 'ABC123',
+    timestamp: '2024-07-14T15:30:00Z',
+    status: 'unread',
+    action: 'copy_code'
+  },
+  {
+    id: '2',
+    type: 'new_player_joined',
+    message: 'New player TacticalSniper joined the clan',
+    playerName: 'TacticalSniper',
+    timestamp: '2024-07-14T14:20:00Z',
+    status: 'read',
+    action: 'view_player'
+  },
+  {
+    id: '3',
+    type: 'access_code_request',
+    message: 'Player EliteGamer is requesting access code DEF456',
+    playerName: 'EliteGamer',
+    accessCode: 'DEF456',
+    timestamp: '2024-07-14T13:15:00Z',
+    status: 'responded',
+    action: 'copy_code'
+  },
+  {
+    id: '4',
+    type: 'new_player_joined',
+    message: 'New player ProSniper joined the clan',
+    playerName: 'ProSniper',
+    timestamp: '2024-07-14T12:45:00Z',
+    status: 'read',
+    action: 'view_player'
+  },
+  {
+    id: '5',
+    type: 'access_code_request',
+    message: 'Player RapidFire is requesting access code GHI789',
+    playerName: 'RapidFire',
+    accessCode: 'GHI789',
+    timestamp: '2024-07-14T11:30:00Z',
+    status: 'unread',
+    action: 'copy_code'
+  }
+];
+
+export const AdminNotifications: React.FC = () => {
+  const { toast } = useToast();
+  const [notifications, setNotifications] = useState(mockNotifications);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filter, setFilter] = useState('all');
+
+  const getNotificationIcon = (type: string) => {
+    switch (type) {
+      case 'access_code_request':
+        return <Key className="w-5 h-5 text-yellow-400" />;
+      case 'new_player_joined':
+        return <UserPlus className="w-5 h-5 text-green-400" />;
+      default:
+        return <Bell className="w-5 h-5 text-primary" />;
+    }
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'unread':
+        return 'bg-blue-500/20 text-blue-400 border-blue-500/50';
+      case 'read':
+        return 'bg-gray-500/20 text-gray-400 border-gray-500/50';
+      case 'responded':
+        return 'bg-green-500/20 text-green-400 border-green-500/50';
+      default:
+        return 'bg-gray-500/20 text-gray-400 border-gray-500/50';
+    }
+  };
+
+  const handleCopyCode = (code: string, notificationId: string) => {
+    navigator.clipboard.writeText(code);
+    
+    // Mark as responded
+    setNotifications(prev =>
+      prev.map(n => n.id === notificationId ? { ...n, status: 'responded' } : n)
+    );
+
+    toast({
+      title: "Code Copied",
+      description: `Access code ${code} copied to clipboard`,
+    });
+  };
+
+  const handleViewPlayer = (playerName: string, notificationId: string) => {
+    // Mark as read
+    setNotifications(prev =>
+      prev.map(n => n.id === notificationId ? { ...n, status: 'read' } : n)
+    );
+
+    toast({
+      title: "Player Profile",
+      description: `Viewing profile for ${playerName}`,
+    });
+  };
+
+  const markAsRead = (notificationId: string) => {
+    setNotifications(prev =>
+      prev.map(n => n.id === notificationId ? { ...n, status: 'read' } : n)
+    );
+  };
+
+  const markAllAsRead = () => {
+    setNotifications(prev =>
+      prev.map(n => ({ ...n, status: 'read' }))
+    );
+    toast({
+      title: "All Marked as Read",
+      description: "All notifications have been marked as read",
+    });
+  };
+
+  const filteredNotifications = notifications.filter(notification => {
+    const matchesSearch = notification.message.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         notification.playerName.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    const matchesFilter = filter === 'all' || notification.status === filter;
+    
+    return matchesSearch && matchesFilter;
+  });
+
+  const unreadCount = notifications.filter(n => n.status === 'unread').length;
+  const totalNotifications = notifications.length;
+
+  const formatTimeAgo = (timestamp: string) => {
+    const now = new Date();
+    const time = new Date(timestamp);
+    const diffInMinutes = Math.floor((now.getTime() - time.getTime()) / (1000 * 60));
+    
+    if (diffInMinutes < 60) return `${diffInMinutes}m ago`;
+    if (diffInMinutes < 1440) return `${Math.floor(diffInMinutes / 60)}h ago`;
+    return `${Math.floor(diffInMinutes / 1440)}d ago`;
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-foreground font-orbitron mb-2">Notifications</h1>
+          <p className="text-muted-foreground font-rajdhani">Manage clan notifications and requests</p>
+        </div>
+        <Button 
+          onClick={markAllAsRead}
+          variant="outline"
+          className="font-rajdhani"
+        >
+          <CheckCircle className="w-4 h-4 mr-2" />
+          Mark All Read
+        </Button>
+      </div>
+
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <Card className="bg-card/50 border-border/30">
+          <CardContent className="p-4 text-center">
+            <div className="text-2xl font-bold text-primary mb-1 font-orbitron">{totalNotifications}</div>
+            <div className="text-sm text-muted-foreground font-rajdhani">Total Notifications</div>
+          </CardContent>
+        </Card>
+        <Card className="bg-card/50 border-border/30">
+          <CardContent className="p-4 text-center">
+            <div className="text-2xl font-bold text-blue-400 mb-1 font-orbitron">{unreadCount}</div>
+            <div className="text-sm text-muted-foreground font-rajdhani">Unread</div>
+          </CardContent>
+        </Card>
+        <Card className="bg-card/50 border-border/30">
+          <CardContent className="p-4 text-center">
+            <div className="text-2xl font-bold text-yellow-400 mb-1 font-orbitron">
+              {notifications.filter(n => n.type === 'access_code_request').length}
+            </div>
+            <div className="text-sm text-muted-foreground font-rajdhani">Access Requests</div>
+          </CardContent>
+        </Card>
+        <Card className="bg-card/50 border-border/30">
+          <CardContent className="p-4 text-center">
+            <div className="text-2xl font-bold text-green-400 mb-1 font-orbitron">
+              {notifications.filter(n => n.type === 'new_player_joined').length}
+            </div>
+            <div className="text-sm text-muted-foreground font-rajdhani">New Joins</div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Filters */}
+      <Card className="bg-card/50 border-border/30">
+        <CardContent className="p-4">
+          <div className="flex flex-col md:flex-row gap-4">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+              <Input
+                placeholder="Search notifications..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10 bg-background/50 border-border/50 font-rajdhani"
+              />
+            </div>
+            
+            <div className="flex space-x-2">
+              {['all', 'unread', 'read', 'responded'].map(status => (
+                <Button
+                  key={status}
+                  variant={filter === status ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setFilter(status)}
+                  className="font-rajdhani capitalize"
+                >
+                  {status}
+                </Button>
+              ))}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Notifications List */}
+      <Card className="bg-card/50 border-border/30">
+        <CardHeader>
+          <CardTitle className="text-foreground font-orbitron flex items-center">
+            <Bell className="w-5 h-5 mr-2 text-primary" />
+            Recent Notifications
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            {filteredNotifications.length > 0 ? (
+              filteredNotifications.map(notification => (
+                <div 
+                  key={notification.id} 
+                  className={`p-4 rounded-lg border transition-all duration-200 ${
+                    notification.status === 'unread' 
+                      ? 'bg-primary/5 border-primary/30' 
+                      : 'bg-background/30 border-border/30'
+                  }`}
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-start space-x-3 flex-1">
+                      <div className="mt-1">
+                        {getNotificationIcon(notification.type)}
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex items-center space-x-2 mb-1">
+                          <p className="text-foreground font-rajdhani">{notification.message}</p>
+                          <Badge className={getStatusColor(notification.status)}>
+                            {notification.status}
+                          </Badge>
+                        </div>
+                        <div className="flex items-center space-x-2 text-sm text-muted-foreground">
+                          <Clock className="w-3 h-3" />
+                          <span className="font-rajdhani">{formatTimeAgo(notification.timestamp)}</span>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center space-x-2 ml-4">
+                      {notification.action === 'copy_code' && notification.accessCode && (
+                        <Button
+                          size="sm"
+                          onClick={() => handleCopyCode(notification.accessCode!, notification.id)}
+                          className="bg-yellow-600 hover:bg-yellow-700 font-rajdhani"
+                        >
+                          <Copy className="w-4 h-4 mr-1" />
+                          Copy Code
+                        </Button>
+                      )}
+                      
+                      {notification.action === 'view_player' && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleViewPlayer(notification.playerName, notification.id)}
+                          className="font-rajdhani"
+                        >
+                          <Eye className="w-4 h-4 mr-1" />
+                          View Player
+                        </Button>
+                      )}
+                      
+                      {notification.status === 'unread' && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => markAsRead(notification.id)}
+                          className="text-muted-foreground hover:text-foreground font-rajdhani"
+                        >
+                          Mark Read
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="text-center py-12">
+                <AlertCircle className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                <h3 className="text-lg font-semibold text-foreground font-orbitron mb-2">No Notifications Found</h3>
+                <p className="text-muted-foreground font-rajdhani">
+                  {searchTerm || filter !== 'all' ? 'Try adjusting your search or filter.' : 'No notifications to display.'}
+                </p>
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+};

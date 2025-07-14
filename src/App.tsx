@@ -27,6 +27,11 @@ import NotFound from "./pages/NotFound";
 import { Loadouts } from "@/pages/Loadouts";
 import { Scrims } from "@/pages/Scrims";
 import { PublicProfile } from "@/pages/PublicProfile";
+import { AdminLoadouts } from "@/pages/admin/Loadouts";
+import { AdminScrimsManagement } from "@/pages/admin/ScrimsManagement";
+import { AdminAttendance } from "@/pages/admin/Attendance";
+import { AdminNotifications } from "@/pages/admin/Notifications";
+import { AdminAnnouncementsManagement } from "@/pages/admin/AnnouncementsManagement";
 
 const queryClient = new QueryClient();
 
@@ -117,6 +122,31 @@ const AppRoutes = () => {
       <Route path="/admin/stats" element={
         <ProtectedRoute requiredRole="admin">
           <Layout showSidebar><AdminStats /></Layout>
+        </ProtectedRoute>
+      } />
+      <Route path="/admin/loadouts" element={
+        <ProtectedRoute requiredRole="admin">
+          <Layout showSidebar><AdminLoadouts /></Layout>
+        </ProtectedRoute>
+      } />
+      <Route path="/admin/scrims" element={
+        <ProtectedRoute requiredRole="admin">
+          <Layout showSidebar><AdminScrimsManagement /></Layout>
+        </ProtectedRoute>
+      } />
+      <Route path="/admin/attendance" element={
+        <ProtectedRoute requiredRole="admin">
+          <Layout showSidebar><AdminAttendance /></Layout>
+        </ProtectedRoute>
+      } />
+      <Route path="/admin/notifications" element={
+        <ProtectedRoute requiredRole="admin">
+          <Layout showSidebar><AdminNotifications /></Layout>
+        </ProtectedRoute>
+      } />
+      <Route path="/admin/announcements" element={
+        <ProtectedRoute requiredRole="admin">
+          <Layout showSidebar><AdminAnnouncementsManagement /></Layout>
         </ProtectedRoute>
       } />
 

@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -62,7 +61,7 @@ export const Dashboard: React.FC = () => {
             <div className="text-2xl font-bold text-white">{user?.profile?.kills?.toLocaleString()}</div>
             <p className="text-xs text-gray-400">
               <TrendingUp className="inline w-3 h-3 mr-1" />
-              +12% from last week
+              Managed by admin
             </p>
           </CardContent>
         </Card>

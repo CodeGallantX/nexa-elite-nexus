@@ -14,7 +14,11 @@ import {
   Edit,
   BarChart,
   Target,
-  Swords
+  Swords,
+  Calendar,
+  Bell,
+  Trophy,
+  UserCheck
 } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 
@@ -43,6 +47,10 @@ export const Sidebar: React.FC = () => {
     { icon: Users, label: 'Manage Players', path: '/admin/players' },
     { icon: Edit, label: 'Edit Profiles', path: '/admin/profiles' },
     { icon: BarChart, label: 'Stats Input', path: '/admin/stats' },
+    { icon: Target, label: 'Loadouts', path: '/admin/loadouts' },
+    { icon: Trophy, label: 'Scrims', path: '/admin/scrims' },
+    { icon: UserCheck, label: 'Attendance', path: '/admin/attendance' },
+    { icon: Bell, label: 'Notifications', path: '/admin/notifications' },
     { icon: Megaphone, label: 'Announcements', path: '/admin/announcements' },
     { icon: MessageCircle, label: 'Chat Room', path: '/chat' },
     { icon: Settings, label: 'Settings', path: '/settings' }
@@ -72,7 +80,7 @@ export const Sidebar: React.FC = () => {
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 p-4">
+      <nav className="flex-1 p-4 overflow-y-auto">
         <ul className="space-y-2">
           {navItems.map((item) => (
             <li key={item.path}>
