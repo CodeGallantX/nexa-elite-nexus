@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -25,6 +24,9 @@ import { Chat } from "@/pages/Chat";
 import { Announcements } from "@/pages/Announcements";
 import { Settings } from "@/pages/Settings";
 import NotFound from "./pages/NotFound";
+import { Loadouts } from "@/pages/Loadouts";
+import { Scrims } from "@/pages/Scrims";
+import { PublicProfile } from "@/pages/PublicProfile";
 
 const queryClient = new QueryClient();
 
@@ -58,6 +60,7 @@ const AppRoutes = () => {
     <Routes>
       {/* Public Routes */}
       <Route path="/" element={<Layout><Landing /></Layout>} />
+      <Route path="/user/:ign" element={<Layout><PublicProfile /></Layout>} />
       <Route path="/auth/login" element={
         isAuthenticated ? 
         <Navigate to={user?.role === 'admin' ? '/admin' : '/dashboard'} replace /> : 
@@ -82,6 +85,16 @@ const AppRoutes = () => {
       <Route path="/dashboard" element={
         <ProtectedRoute requiredRole="player">
           <Layout showSidebar><Dashboard /></Layout>
+        </ProtectedRoute>
+      } />
+      <Route path="/loadouts" element={
+        <ProtectedRoute requiredRole="player">
+          <Layout showSidebar><Loadouts /></Layout>
+        </ProtectedRoute>
+      } />
+      <Route path="/scrims" element={
+        <ProtectedRoute requiredRole="player">
+          <Layout showSidebar><Scrims /></Layout>
         </ProtectedRoute>
       } />
 
