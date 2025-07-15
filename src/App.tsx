@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -29,6 +30,7 @@ import { Scrims } from "@/pages/Scrims";
 import { PublicProfile } from "@/pages/PublicProfile";
 import { AdminLoadouts } from "@/pages/admin/Loadouts";
 import { AdminScrimsManagement } from "@/pages/admin/ScrimsManagement";
+import { AdminEventsManagement } from "@/pages/admin/EventsManagement";
 import { AdminAttendance } from "@/pages/admin/Attendance";
 import { AdminNotifications } from "@/pages/admin/Notifications";
 import { AdminAnnouncementsManagement } from "@/pages/admin/AnnouncementsManagement";
@@ -132,6 +134,11 @@ const AppRoutes = () => {
       <Route path="/admin/scrims" element={
         <ProtectedRoute requiredRole="admin">
           <Layout showSidebar><AdminScrimsManagement /></Layout>
+        </ProtectedRoute>
+      } />
+      <Route path="/admin/events" element={
+        <ProtectedRoute requiredRole="admin">
+          <Layout showSidebar><AdminEventsManagement /></Layout>
         </ProtectedRoute>
       } />
       <Route path="/admin/attendance" element={

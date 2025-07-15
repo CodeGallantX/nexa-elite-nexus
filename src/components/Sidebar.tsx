@@ -14,11 +14,11 @@ import {
   Edit,
   BarChart,
   Target,
-  Swords,
   Calendar,
   Bell,
   Trophy,
-  UserCheck
+  UserCheck,
+  CalendarDays
 } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 
@@ -36,7 +36,7 @@ export const Sidebar: React.FC = () => {
     { icon: Home, label: 'Dashboard', path: '/dashboard' },
     { icon: User, label: 'Profile', path: '/profile' },
     { icon: Target, label: 'Loadouts', path: '/loadouts' },
-    { icon: Swords, label: 'Scrims', path: '/scrims' },
+    { icon: Calendar, label: 'Events', path: '/scrims' },
     { icon: MessageCircle, label: 'Chat Room', path: '/chat' },
     { icon: Megaphone, label: 'Announcements', path: '/announcements' },
     { icon: Settings, label: 'Settings', path: '/settings' }
@@ -48,7 +48,8 @@ export const Sidebar: React.FC = () => {
     { icon: Edit, label: 'Edit Profiles', path: '/admin/profiles' },
     { icon: BarChart, label: 'Stats Input', path: '/admin/stats' },
     { icon: Target, label: 'Loadouts', path: '/admin/loadouts' },
-    { icon: Trophy, label: 'Scrims', path: '/admin/scrims' },
+    { icon: Calendar, label: 'Events', path: '/admin/scrims' },
+    { icon: CalendarDays, label: 'Events Manager', path: '/admin/events' },
     { icon: UserCheck, label: 'Attendance', path: '/admin/attendance' },
     { icon: Bell, label: 'Notifications', path: '/admin/notifications' },
     { icon: Megaphone, label: 'Announcements', path: '/admin/announcements' },
@@ -59,11 +60,11 @@ export const Sidebar: React.FC = () => {
   const navItems = user?.role === 'admin' ? adminNavItems : playerNavItems;
 
   return (
-    <div className={`bg-sidebar-background border-r border-sidebar-border backdrop-blur-sm ${
-      isMobile ? 'w-64 fixed left-0 top-0 h-full z-40' : 'w-64'
+    <div className={`bg-sidebar-background border-r border-sidebar-border backdrop-blur-sm flex flex-col h-full ${
+      isMobile ? 'w-64 fixed left-0 top-0 z-40' : 'w-64'
     }`}>
       {/* Logo */}
-      <div className="p-6 border-b border-sidebar-border">
+      <div className="p-6 border-b border-sidebar-border flex-shrink-0">
         <div className="flex items-center space-x-3">
           <div className="w-16 h-16 rounded-lg flex items-center justify-center">
             <img src="/nexa-logo.jpg" alt="logo" className="object-cover w-full h-full rounded-lg" />
@@ -79,7 +80,7 @@ export const Sidebar: React.FC = () => {
         </div>
       </div>
 
-      {/* Navigation */}
+      {/* Navigation - Scrollable */}
       <nav className="flex-1 p-4 overflow-y-auto">
         <ul className="space-y-2">
           {navItems.map((item) => (
@@ -103,7 +104,7 @@ export const Sidebar: React.FC = () => {
       </nav>
 
       {/* User Info & Logout */}
-      <div className="p-4 border-t border-sidebar-border">
+      <div className="p-4 border-t border-sidebar-border flex-shrink-0">
         <div className="flex items-center space-x-3 mb-4">
           <img
             src={user?.profile?.avatar || '/placeholder.svg'}

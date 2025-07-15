@@ -135,9 +135,18 @@ export const Chat: React.FC = () => {
       </div>
 
       {/* Chat Area */}
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 flex flex-col relative">
+        {/* Logo Watermark */}
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-0">
+          <img 
+            src="/nexa-logo.jpg" 
+            alt="NeXa Esports Watermark" 
+            className="w-96 h-96 object-contain opacity-5"
+          />
+        </div>
+
         {/* Chat Header */}
-        <div className="p-4 bg-white/5 border-b border-white/10 backdrop-blur-sm">
+        <div className="p-4 bg-white/5 border-b border-white/10 backdrop-blur-sm relative z-10">
           <div className="flex items-center space-x-3">
             <Hash className="w-5 h-5 text-[#FF1F44]" />
             <h1 className="text-xl font-bold text-white">
@@ -152,7 +161,7 @@ export const Chat: React.FC = () => {
         </div>
 
         {/* Messages */}
-        <div className="flex-1 p-4 overflow-y-auto space-y-4">
+        <div className="flex-1 p-4 overflow-y-auto space-y-4 relative z-10">
           {filteredMessages.map(msg => (
             <div key={msg.id} className="flex space-x-3">
               <img
@@ -168,14 +177,16 @@ export const Chat: React.FC = () => {
                   )}
                   <span className="text-xs text-gray-400">{msg.timestamp}</span>
                 </div>
-                <p className="text-gray-300">{msg.message}</p>
+                <div className="bg-white/10 backdrop-blur-sm rounded-lg px-3 py-2 border border-white/20">
+                  <p className="text-gray-300">{msg.message}</p>
+                </div>
               </div>
             </div>
           ))}
         </div>
 
         {/* Message Input */}
-        <div className="p-4 bg-white/5 border-t border-white/10 backdrop-blur-sm">
+        <div className="p-4 bg-white/5 border-t border-white/10 backdrop-blur-sm relative z-10">
           <div className="flex space-x-4">
             <Input
               value={message}
