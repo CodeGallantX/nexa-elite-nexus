@@ -6,11 +6,12 @@ import { useAuth } from '@/contexts/AuthContext';
 
 interface ChatNotification {
   hasUnread: boolean;
+  hasUnreadMessages: boolean; // Added for compatibility
   unreadCount: number;
   lastMessageTime?: string;
 }
 
-export const useChatNotifications = (): ChatNotification => {
+export const useChatNotifications = (): ChatNotification & { markChatAsSeen: () => void } => {
   const { user } = useAuth();
   const [lastSeenTimestamp, setLastSeenTimestamp] = useState<string | null>(null);
 
@@ -80,14 +81,28 @@ export const useChatNotifications = (): ChatNotification => {
   const unreadCount = unreadMessages.length;
   const lastMessageTime = chatMessages.length > 0 ? chatMessages[0].created_at : undefined;
 
+  const markChatAsSeen = () => {
+    if (!user) return;
+    const timestamp = new Date().toISOString();
+    localStorage.setItem(`chat-last-seen-${user.id}`, timestamp);
+    setLastSeenTimestamp(timestamp);
+    
+    // Trigger a custom event to update other components
+    window.dispatchEvent(new CustomEvent('chat-seen-updated', { 
+      detail: { userId: user.id, timestamp } 
+    }));
+  };
+
   return {
     hasUnread,
+    hasUnreadMessages: hasUnread, // Added for compatibility
     unreadCount,
-    lastMessageTime
+    lastMessageTime,
+    markChatAsSeen
   };
 };
 
-// Function to mark chat as seen
+// Function to mark chat as seen (standalone version)
 export const markChatAsSeen = (userId: string) => {
   const timestamp = new Date().toISOString();
   localStorage.setItem(`chat-last-seen-${userId}`, timestamp);
