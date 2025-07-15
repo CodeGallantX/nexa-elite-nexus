@@ -66,7 +66,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .eq('id', userId)
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Profile fetch error:', error);
+        return;
+      }
+      
       setProfile(data);
     } catch (error) {
       console.error('Error fetching profile:', error);
@@ -77,10 +81,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        console.log('Auth state changed:', event, session?.user?.email);
         setSession(session);
         setUser(session?.user ?? null);
         
         if (session?.user) {
+          // Use setTimeout to avoid blocking the auth state change
           setTimeout(() => {
             fetchProfile(session.user.id);
           }, 0);
@@ -93,6 +99,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     // Check for existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
+      console.log('Initial session check:', session?.user?.email);
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
@@ -106,17 +113,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const login = async (email: string, password: string): Promise<boolean> => {
     try {
+      console.log('Attempting login for:', email);
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Login error:', error);
+        toast({
+          title: "Login Failed",
+          description: error.message,
+          variant: "destructive",
+        });
+        return false;
+      }
+
+      console.log('Login successful for:', data.user?.email);
       return true;
     } catch (error: any) {
+      console.error('Login exception:', error);
       toast({
         title: "Login Failed",
-        description: error.message,
+        description: error.message || "An unexpected error occurred",
         variant: "destructive",
       });
       return false;
@@ -125,6 +144,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signup = async (signupData: SignupData): Promise<boolean> => {
     try {
+      console.log('Attempting signup for:', signupData.email);
       const redirectUrl = `${window.location.origin}/`;
       
       const { data, error } = await supabase.auth.signUp({
@@ -140,12 +160,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Signup error:', error);
+        toast({
+          title: "Signup Failed",
+          description: error.message,
+          variant: "destructive",
+        });
+        return false;
+      }
+
+      console.log('Signup successful for:', data.user?.email);
+      
+      // Show success message
+      if (data.user && !data.session) {
+        toast({
+          title: "Check Your Email",
+          description: "Please check your email to confirm your account.",
+        });
+      }
+      
       return true;
     } catch (error: any) {
+      console.error('Signup exception:', error);
       toast({
         title: "Signup Failed",
-        description: error.message,
+        description: error.message || "An unexpected error occurred",
         variant: "destructive",
       });
       return false;
@@ -154,12 +194,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const logout = async (): Promise<void> => {
     try {
+      console.log('Attempting logout');
       const { error } = await supabase.auth.signOut();
-      if (error) throw error;
+      if (error) {
+        console.error('Logout error:', error);
+        throw error;
+      }
+      console.log('Logout successful');
     } catch (error: any) {
+      console.error('Logout exception:', error);
       toast({
         title: "Logout Failed",
-        description: error.message,
+        description: error.message || "An unexpected error occurred",
         variant: "destructive",
       });
     }
@@ -167,16 +213,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const resetPassword = async (email: string): Promise<boolean> => {
     try {
+      console.log('Attempting password reset for:', email);
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: `${window.location.origin}/auth/reset-password`,
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Reset password error:', error);
+        toast({
+          title: "Password Reset Failed",
+          description: error.message,
+          variant: "destructive",
+        });
+        return false;
+      }
+
+      toast({
+        title: "Password Reset Email Sent",
+        description: "Check your email for password reset instructions.",
+      });
       return true;
     } catch (error: any) {
+      console.error('Reset password exception:', error);
       toast({
         title: "Password Reset Failed",
-        description: error.message,
+        description: error.message || "An unexpected error occurred",
         variant: "destructive",
       });
       return false;
@@ -185,22 +246,39 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const updateProfile = async (updates: Partial<UserProfile>): Promise<boolean> => {
     try {
-      if (!user) return false;
+      if (!user) {
+        console.error('No user logged in');
+        return false;
+      }
 
+      console.log('Updating profile for:', user.email, updates);
       const { error } = await supabase
         .from('profiles')
         .update(updates)
         .eq('id', user.id);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Update profile error:', error);
+        toast({
+          title: "Profile Update Failed",
+          description: error.message,
+          variant: "destructive",
+        });
+        return false;
+      }
       
       // Refresh profile data
       await fetchProfile(user.id);
+      toast({
+        title: "Profile Updated",
+        description: "Your profile has been updated successfully.",
+      });
       return true;
     } catch (error: any) {
+      console.error('Update profile exception:', error);
       toast({
         title: "Profile Update Failed",
-        description: error.message,
+        description: error.message || "An unexpected error occurred",
         variant: "destructive",
       });
       return false;

@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Shield, Mail, Lock, User, Key, Clock } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 export const Signup: React.FC = () => {
   const [formData, setFormData] = useState({
@@ -42,19 +43,41 @@ export const Signup: React.FC = () => {
     return code;
   };
 
-  const handleRequestCode = () => {
+  const handleRequestCode = async () => {
     const code = generateAccessCode();
     setGeneratedCode(code);
     setCodeRequested(true);
     setCountdown(60);
     
-    // Mock sending code to admin email
+    // In a real app, you would insert this into the database
+    // For demo purposes, we'll just show it in the toast
     console.log(`Access code ${code} sent to admin@nexa.gg`);
     
     toast({
       title: "Access Code Requested",
       description: `Code ${code} sent to admin. Check console for demo.`,
     });
+  };
+
+  const validateAccessCode = async (code: string): Promise<boolean> => {
+    try {
+      const { data, error } = await supabase
+        .from('access_codes')
+        .select('code')
+        .eq('code', code)
+        .eq('is_active', true)
+        .single();
+
+      if (error) {
+        console.error('Error validating access code:', error);
+        return false;
+      }
+
+      return !!data;
+    } catch (error) {
+      console.error('Error validating access code:', error);
+      return false;
+    }
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -79,12 +102,13 @@ export const Signup: React.FC = () => {
       return;
     }
 
-    // Check access code
-    const validCodes = ['NEXA24', generatedCode];
-    if (!validCodes.includes(formData.accessCode)) {
+    // Validate access code against database
+    const isValidCode = await validateAccessCode(formData.accessCode) || formData.accessCode === generatedCode;
+    
+    if (!isValidCode) {
       toast({
         title: "Invalid Access Code",
-        description: "Use NEXA24 or request a new code",
+        description: "Please use a valid access code or request a new one",
         variant: "destructive",
       });
       setLoading(false);
@@ -92,7 +116,13 @@ export const Signup: React.FC = () => {
     }
 
     try {
-      const success = await signup(formData);
+      const success = await signup({
+        username: formData.username,
+        email: formData.email,
+        password: formData.password,
+        ign: formData.username // Default IGN to username
+      });
+      
       if (success) {
         toast({
           title: "Welcome to NeXa_Esports!",

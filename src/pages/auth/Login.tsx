@@ -5,15 +5,14 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Shield, Mail, Lock, Eye, EyeOff, User } from 'lucide-react';
+import { Shield, Mail, Lock, Eye, EyeOff } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 export const Login: React.FC = () => {
-  const [usernameOrEmail, setUsernameOrEmail] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [loginMode, setLoginMode] = useState<'email' | 'username'>('email');
   
   const { login } = useAuth();
   const navigate = useNavigate();
@@ -24,21 +23,16 @@ export const Login: React.FC = () => {
     setLoading(true);
 
     try {
-      const success = await login(usernameOrEmail, password);
+      const success = await login(email, password);
       if (success) {
         toast({
           title: "Welcome back, warrior!",
           description: "Successfully logged into NeXa_Esports",
         });
         navigate('/dashboard');
-      } else {
-        toast({
-          title: "Authentication Failed",
-          description: "Invalid credentials. Try: slayer@nexa.gg / 12345678 or admin@nexa.gg / adminmode123",
-          variant: "destructive",
-        });
       }
     } catch (error) {
+      console.error('Login error:', error);
       toast({
         title: "Login Error",
         description: "Something went wrong. Please try again.",
@@ -76,48 +70,18 @@ export const Login: React.FC = () => {
         {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="p-8 bg-card/50 backdrop-blur-sm rounded-xl border border-border/30">
-            {/* Login Mode Toggle */}
-            <div className="flex mb-6">
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={() => setLoginMode('email')}
-                className={`flex-1 ${loginMode === 'email' ? 'bg-primary/20 text-primary' : 'text-muted-foreground'}`}
-              >
-                <Mail className="w-4 h-4 mr-2" />
-                Login with Email
-              </Button>
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={() => setLoginMode('username')}
-                className={`flex-1 ${loginMode === 'username' ? 'bg-primary/20 text-primary' : 'text-muted-foreground'}`}
-              >
-                <User className="w-4 h-4 mr-2" />
-                Login with Username
-              </Button>
-            </div>
-
             <div className="space-y-4">
               <div>
-                <Label htmlFor="usernameOrEmail" className="text-foreground mb-2 block font-rajdhani">
-                  {loginMode === 'email' ? 'Email' : 'Username'}
-                </Label>
+                <Label htmlFor="email" className="text-foreground mb-2 block font-rajdhani">Email</Label>
                 <div className="relative">
-                  {loginMode === 'email' ? (
-                    <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-5 h-5" />
-                  ) : (
-                    <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-5 h-5" />
-                  )}
+                  <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-5 h-5" />
                   <Input
-                    id="usernameOrEmail"
-                    type={loginMode === 'email' ? 'email' : 'text'}
-                    value={usernameOrEmail}
-                    onChange={(e) => setUsernameOrEmail(e.target.value)}
+                    id="email"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
                     className="pl-10 bg-background/50 border-border/50 text-foreground focus:border-primary/50 font-rajdhani"
-                    placeholder={loginMode === 'email' ? 'warrior@nexa.gg' : 'slayerX'}
+                    placeholder="warrior@nexa.gg"
                     required
                   />
                 </div>
