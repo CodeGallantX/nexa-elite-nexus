@@ -26,7 +26,7 @@ interface Player {
   id: string;
   username: string;
   ign: string;
-  role: 'admin' | 'player' | 'moderator';
+  role: string;
   grade: string;
   tier: string;
   kills: number;
@@ -67,16 +67,9 @@ export const AdminPlayers: React.FC = () => {
   // Update player mutation
   const updatePlayerMutation = useMutation({
     mutationFn: async ({ playerId, updates }: { playerId: string; updates: Partial<Player> }) => {
-      // Convert role to proper type if provided
-      const updateData: any = { ...updates };
-      if (updates.role && typeof updates.role === 'string') {
-        const validRoles = ['admin', 'player', 'moderator'] as const;
-        updateData.role = validRoles.includes(updates.role as any) ? updates.role : 'player';
-      }
-
       const { error } = await supabase
         .from('profiles')
-        .update(updateData)
+        .update(updates)
         .eq('id', playerId);
 
       if (error) throw error;
@@ -170,7 +163,7 @@ export const AdminPlayers: React.FC = () => {
     const newRole = currentRole === 'player' ? 'admin' : 'player';
     updatePlayerMutation.mutate({
       playerId,
-      updates: { role: newRole as 'admin' | 'player' | 'moderator' }
+      updates: { role: newRole }
     });
   };
 
@@ -418,7 +411,7 @@ export const AdminPlayers: React.FC = () => {
                   <Label htmlFor="role" className="font-rajdhani">Role</Label>
                   <Select 
                     value={editingPlayer.role} 
-                    onValueChange={(value: 'admin' | 'player' | 'moderator') => setEditingPlayer(prev => prev ? { ...prev, role: value } : null)}
+                    onValueChange={(value) => setEditingPlayer(prev => prev ? { ...prev, role: value } : null)}
                   >
                     <SelectTrigger className="bg-background/50 border-border/50">
                       <SelectValue />

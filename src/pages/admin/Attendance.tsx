@@ -23,7 +23,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 
-type AttendanceMode = 'MP' | 'BR' | 'Mixed';
+type AttendanceMode = 'MP' | 'BR' | 'Event';
 
 interface Player {
   id: string;
@@ -108,13 +108,12 @@ export const AdminAttendance: React.FC = () => {
         .from('attendance')
         .select(`
           *,
-          profiles!attendance_player_id_fkey (username, ign),
+          profiles (username, ign),
           events (name, type)
         `)
         .eq('date', selectedDate);
 
-      // Only filter by attendance_type if it's not "Mixed" (Event mode)
-      if (attendanceMode !== 'Mixed') {
+      if (attendanceMode !== 'Event') {
         query = query.eq('attendance_type', attendanceMode);
       }
 
@@ -124,7 +123,7 @@ export const AdminAttendance: React.FC = () => {
         console.error('Error fetching attendance records:', error);
         throw error;
       }
-      return (data || []) as AttendanceRecord[];
+      return data as AttendanceRecord[];
     },
   });
 
@@ -142,26 +141,20 @@ export const AdminAttendance: React.FC = () => {
       const attendanceData = {
         player_id: playerId,
         status,
-        attendance_type: attendanceMode === 'Mixed' ? 'Mixed' as const : attendanceMode as AttendanceMode,
+        attendance_type: attendanceMode,
         date: selectedDate,
         event_id: eventId || null
       };
 
       // Check if attendance already exists for this player/date/event
-      let existingQuery = supabase
+      const { data: existing } = await supabase
         .from('attendance')
         .select('id')
         .eq('player_id', playerId)
         .eq('date', selectedDate)
-        .eq('attendance_type', attendanceData.attendance_type);
-
-      if (eventId) {
-        existingQuery = existingQuery.eq('event_id', eventId);
-      } else {
-        existingQuery = existingQuery.is('event_id', null);
-      }
-
-      const { data: existing } = await existingQuery.single();
+        .eq('attendance_type', attendanceMode)
+        .eq('event_id', eventId || null)
+        .single();
 
       if (existing) {
         // Update existing record
@@ -195,48 +188,6 @@ export const AdminAttendance: React.FC = () => {
       toast({
         title: "Error",
         description: "Failed to mark attendance. Please try again.",
-        variant: "destructive",
-      });
-    }
-  });
-
-  // Bulk attendance mutation
-  const bulkAttendanceMutation = useMutation({
-    mutationFn: async (attendanceRecords: Array<{
-      player_id: string;
-      status: 'present' | 'absent';
-      attendance_type: AttendanceMode;
-      date: string;
-      event_id?: string;
-    }>) => {
-      // Insert each record individually to avoid type issues
-      for (const record of attendanceRecords) {
-        const { error } = await supabase
-          .from('attendance')
-          .insert({
-            player_id: record.player_id,
-            status: record.status,
-            attendance_type: record.attendance_type,
-            date: record.date,
-            event_id: record.event_id || null
-          });
-        
-        if (error) throw error;
-      }
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin-attendance-records'] });
-      queryClient.invalidateQueries({ queryKey: ['admin-attendance-players'] });
-      toast({
-        title: "Bulk Attendance Updated",
-        description: "All attendance records have been updated successfully.",
-      });
-    },
-    onError: (error) => {
-      console.error('Error with bulk attendance:', error);
-      toast({
-        title: "Error",
-        description: "Failed to update attendance records. Please try again.",
         variant: "destructive",
       });
     }
@@ -366,7 +317,7 @@ export const AdminAttendance: React.FC = () => {
                 <SelectContent>
                   <SelectItem value="MP">Multiplayer</SelectItem>
                   <SelectItem value="BR">Battle Royale</SelectItem>
-                  <SelectItem value="Mixed">Event/Scrim</SelectItem>
+                  <SelectItem value="Event">Event/Scrim</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -386,7 +337,7 @@ export const AdminAttendance: React.FC = () => {
               </div>
             </div>
 
-            {attendanceMode === 'Mixed' && (
+            {attendanceMode === 'Event' && (
               <div>
                 <Label className="text-gray-300 mb-2 block">Event</Label>
                 <Select value={selectedEventId} onValueChange={setSelectedEventId}>
