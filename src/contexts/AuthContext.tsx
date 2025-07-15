@@ -17,6 +17,7 @@ interface UserProfile {
   tier: string;
   grade: string;
   date_joined: string;
+  updated_at?: string;
 }
 
 interface AuthContextType {
