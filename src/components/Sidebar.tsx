@@ -1,112 +1,181 @@
-import React from 'react';
-import { Link, useLocation } from 'react-router-dom';
+
+import React, { useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { Button } from '@/components/ui/button';
 import {
-  Home,
   LayoutDashboard,
-  Calendar,
-  Users,
-  UserCheck,
-  Megaphone,
-  BarChart3,
-  Target,
-  Bell,
+  User,
+  MessageSquare,
+  Crosshair,
+  Package,
   Settings,
-  MessageSquare
+  Shield,
+  Users,
+  BarChart3,
+  UserCog,
+  Calendar,
+  UserPlus,
+  Clock,
+  Megaphone,
+  Bell,
+  ChevronLeft,
+  ChevronRight,
+  LogOut,
+  Target,
 } from 'lucide-react';
-import { useChatNotifications } from '@/hooks/useChatNotifications';
+import { NavItem } from '@/components/NavItem';
+
+interface MenuItem {
+  icon: React.ComponentType<any>;
+  label: string;
+  path: string;
+}
 
 export const Sidebar: React.FC = () => {
-  const { profile } = useAuth();
+  const { profile, logout } = useAuth();
   const location = useLocation();
-  const { hasUnread } = useChatNotifications();
+  const navigate = useNavigate();
+  const [isCollapsed, setIsCollapsed] = useState(false);
 
-  const getNavItems = () => {
-    if (profile?.role === 'admin') {
-      return [
-        { name: 'Dashboard', href: '/admin', icon: LayoutDashboard },
-        { name: 'Players', href: '/admin/players', icon: Users },
-        { name: 'Events', href: '/admin/events', icon: Calendar },
-        { name: 'Attendance', href: '/admin/attendance', icon: UserCheck },
-        { name: 'Announcements', href: '/admin/announcements', icon: Megaphone },
-        { name: 'Statistics', href: '/admin/stats', icon: BarChart3 },
-        { name: 'Loadouts', href: '/admin/loadouts', icon: Target },
-        { name: 'Notifications', href: '/admin/notifications', icon: Bell },
-        { 
-          name: 'Chat', 
-          href: '/chat', 
-          icon: MessageSquare,
-          badge: hasUnread
-        },
-      ];
+  const isAdmin = profile?.role === 'admin';
+  const isPlayer = profile?.role === 'player';
+
+  const playerMenuItems = [
+    { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
+    { icon: User, label: 'Profile', path: '/profile' },
+    { icon: MessageSquare, label: 'Chat', path: '/chat' },
+    { icon: Crosshair, label: 'Scrims', path: '/scrims' },
+    { icon: Package, label: 'My Loadouts', path: '/loadouts' },
+    { icon: Target, label: 'Weapon Layouts', path: '/weapon-layouts' },
+    { icon: Megaphone, label: 'Announcements', path: '/announcements' },
+    { icon: Settings, label: 'Settings', path: '/settings' },
+  ];
+
+  const adminMenuItems = [
+    { icon: Shield, label: 'Admin Dashboard', path: '/admin' },
+    { icon: Users, label: 'Players', path: '/admin/players' },
+    { icon: BarChart3, label: 'Statistics', path: '/admin/stats' },
+    { icon: UserCog, label: 'Profiles', path: '/admin/profiles' },
+    { icon: Package, label: 'Loadouts', path: '/admin/loadouts' },
+    { icon: Target, label: 'Weapon Layouts', path: '/admin/weapon-layouts' },
+    { icon: Crosshair, label: 'Scrims', path: '/admin/scrims' },
+    { icon: Calendar, label: 'Events', path: '/admin/events' },
+    { icon: UserPlus, label: 'Assignments', path: '/admin/event-assignment' },
+    { icon: Clock, label: 'Attendance', path: '/admin/attendance' },
+    { icon: Megaphone, label: 'Announcements', path: '/admin/announcements' },
+    { icon: Bell, label: 'Notifications', path: '/admin/notifications' },
+  ];
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+      navigate('/auth/login');
+    } catch (error) {
+      console.error('Logout failed', error);
     }
-
-    return [
-      { name: 'Dashboard', href: '/', icon: Home },
-      { name: 'Loadouts', href: '/loadouts', icon: Target },
-      { name: 'Scrims', href: '/scrims', icon: Calendar },
-      { name: 'Announcements', href: '/announcements', icon: Megaphone },
-      { 
-        name: 'Chat', 
-        href: '/chat', 
-        icon: MessageSquare,
-        badge: hasUnread
-      },
-      { name: 'Settings', href: '/settings', icon: Settings },
-    ];
   };
 
-  const navItems = getNavItems();
+  if (!profile) {
+    return <div>Loading...</div>;
+  }
 
   return (
-    <div className="flex h-full flex-col bg-card/50 border-r border-border/30 backdrop-blur-sm">
-      <div className="flex h-14 items-center justify-center bg-background/50 border-b border-border/30">
-        <Link to="/" className="flex items-center space-x-2 font-bold text-xl text-white">
-          <img src="/logo.svg" alt="NeXa Esports Logo" className="h-8 w-8" />
-          <span>NeXa Esports</span>
-        </Link>
+    <div className={`bg-card border-r border-border transition-all duration-300 ${
+      isCollapsed ? 'w-16' : 'w-64'
+    } min-h-screen flex flex-col`}>
+      {/* Header */}
+      <div className="p-4 border-b border-border">
+        <div className="flex items-center justify-between">
+          {!isCollapsed && (
+            <div className="flex items-center space-x-3">
+              <img
+                src={profile?.avatar_url || '/placeholder.svg'}
+                alt="Avatar"
+                className="w-8 h-8 rounded-full object-cover"
+              />
+              <div>
+                <p className="text-sm font-medium text-foreground">{profile?.ign}</p>
+                <p className="text-xs text-muted-foreground capitalize">{profile?.role}</p>
+              </div>
+            </div>
+          )}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setIsCollapsed(!isCollapsed)}
+            className="text-muted-foreground hover:text-foreground"
+          >
+            {isCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
+          </Button>
+        </div>
       </div>
-      
-      <nav className="flex-1 px-4 py-4">
-        <ul className="space-y-2">
-          {navItems.map((item) => {
-            const isActive = location.pathname === item.href;
-            return (
-              <li key={item.name}>
-                <Link
-                  to={item.href}
-                  className={`group flex items-center justify-between rounded-lg px-3 py-2 text-sm font-medium font-rajdhani transition-all duration-200 ${
-                    isActive
-                      ? 'bg-primary/20 text-primary border border-primary/30'
-                      : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
-                  }`}
-                  onClick={() => {
-                    if (item.href === '/chat' && profile?.id) {
-                      import('@/hooks/useChatNotifications').then(({ markChatAsSeen }) => {
-                        markChatAsSeen(profile.id);
-                      });
-                    }
-                  }}
-                >
-                  <div className="flex items-center">
-                    <item.icon className="mr-3 h-5 w-5 shrink-0" />
-                    <span>{item.name}</span>
-                  </div>
-                  
-                  {item.badge && (
-                    <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
-                  )}
-                </Link>
-              </li>
-            );
-          })}
-        </ul>
+
+      {/* Navigation */}
+      <nav className="flex-1 p-4">
+        <div className="space-y-2">
+          {/* Player Menu - Only show for players */}
+          {isPlayer && (
+            <>
+              {!isCollapsed && (
+                <div className="pb-2">
+                  <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                    Player Menu
+                  </h3>
+                </div>
+              )}
+              {playerMenuItems.map((item) => (
+                <NavItem
+                  key={item.path}
+                  icon={item.icon}
+                  label={item.label}
+                  path={item.path}
+                  isActive={location.pathname === item.path}
+                  isCollapsed={isCollapsed}
+                  onClick={() => navigate(item.path)}
+                />
+              ))}
+            </>
+          )}
+
+          {/* Admin Menu - Only show for admins */}
+          {isAdmin && (
+            <>
+              {!isCollapsed && (
+                <div className="pb-2">
+                  <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                    Admin Menu
+                  </h3>
+                </div>
+              )}
+              {adminMenuItems.map((item) => (
+                <NavItem
+                  key={item.path}
+                  icon={item.icon}
+                  label={item.label}
+                  path={item.path}
+                  isActive={location.pathname === item.path}
+                  isCollapsed={isCollapsed}
+                  onClick={() => navigate(item.path)}
+                />
+              ))}
+            </>
+          )}
+        </div>
       </nav>
 
-      <div className="p-4 border-t border-border/30">
-        <p className="text-xs text-muted-foreground">
-          Logged in as <span className="font-medium text-primary">{profile?.username}</span>
-        </p>
+      {/* Footer */}
+      <div className="p-4 border-t border-border">
+        <Button
+          variant="ghost"
+          onClick={handleLogout}
+          className={`w-full justify-start text-muted-foreground hover:text-foreground ${
+            isCollapsed ? 'px-0 justify-center' : ''
+          }`}
+        >
+          <LogOut className="w-4 h-4" />
+          {!isCollapsed && <span className="ml-2">Logout</span>}
+        </Button>
       </div>
     </div>
   );
