@@ -79,6 +79,7 @@ function App() {
             <Route path="/admin/weapon-layouts" element={<Layout showSidebar><AdminWeaponLayouts /></Layout>} />
             <Route path="/admin/scrims" element={<Layout showSidebar><AdminScrimsManagement /></Layout>} />
             <Route path="/admin/events" element={<Layout showSidebar><AdminEventsManagement /></Layout>} />
+            <Route path="/admin/events/:eventId/assign" element={<Layout showSidebar><EventAssignment /></Layout>} />
             <Route path="/admin/event-assignment" element={<Layout showSidebar><EventAssignment /></Layout>} />
             <Route path="/admin/attendance" element={<Layout showSidebar><AdminAttendance /></Layout>} />
             <Route path="/admin/announcements" element={<Layout showSidebar><AdminAnnouncementsManagement /></Layout>} />

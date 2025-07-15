@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -54,17 +55,34 @@ export const EventAssignment: React.FC = () => {
   const [selectedPlayers, setSelectedPlayers] = useState<string[]>([]);
   const [newGroupName, setNewGroupName] = useState('');
 
+  // Use eventId from URL params, fallback to a default if not provided
+  const currentEventId = eventId || 'default-event';
+
   // Fetch event details
   const { data: event } = useQuery({
-    queryKey: ['event', eventId],
+    queryKey: ['event', currentEventId],
     queryFn: async () => {
+      if (currentEventId === 'default-event') {
+        // Return mock data for default route
+        return {
+          id: 'default-event',
+          name: 'General Event Assignment',
+          type: 'Scrim',
+          date: new Date().toISOString().split('T')[0],
+          time: '20:00'
+        } as Event;
+      }
+
       const { data, error } = await supabase
         .from('events')
         .select('*')
-        .eq('id', eventId)
+        .eq('id', currentEventId)
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching event:', error);
+        throw error;
+      }
       return data as Event;
     },
   });
@@ -78,14 +96,17 @@ export const EventAssignment: React.FC = () => {
         .select('id, username, ign, role')
         .eq('role', 'player');
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching players:', error);
+        return [];
+      }
       return data as Player[];
     },
   });
 
   // Fetch event groups
   const { data: groups = [] } = useQuery({
-    queryKey: ['event-groups', eventId],
+    queryKey: ['event-groups', currentEventId],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('event_groups')
@@ -103,9 +124,12 @@ export const EventAssignment: React.FC = () => {
             )
           )
         `)
-        .eq('event_id', eventId);
+        .eq('event_id', currentEventId);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching event groups:', error);
+        return [];
+      }
       return data.map(group => ({
         ...group,
         participants: group.event_participants || []
@@ -119,7 +143,7 @@ export const EventAssignment: React.FC = () => {
       const { data, error } = await supabase
         .from('event_groups')
         .insert([{
-          event_id: eventId,
+          event_id: currentEventId,
           name: groupName,
           max_players: 4
         }])
@@ -137,6 +161,14 @@ export const EventAssignment: React.FC = () => {
         description: "New group has been created successfully.",
       });
     },
+    onError: (error) => {
+      console.error('Error creating group:', error);
+      toast({
+        title: "Error",
+        description: "Failed to create group. Please try again.",
+        variant: "destructive",
+      });
+    }
   });
 
   // Add player to group mutation
@@ -145,7 +177,7 @@ export const EventAssignment: React.FC = () => {
       const { error } = await supabase
         .from('event_participants')
         .insert([{
-          event_id: eventId,
+          event_id: currentEventId,
           player_id: playerId,
           group_id: groupId
         }]);
@@ -159,6 +191,14 @@ export const EventAssignment: React.FC = () => {
         description: "Player has been added to the group.",
       });
     },
+    onError: (error) => {
+      console.error('Error adding player:', error);
+      toast({
+        title: "Error",
+        description: "Failed to add player. Please try again.",
+        variant: "destructive",
+      });
+    }
   });
 
   // Remove player from group mutation
@@ -178,6 +218,14 @@ export const EventAssignment: React.FC = () => {
         description: "Player has been removed from the group.",
       });
     },
+    onError: (error) => {
+      console.error('Error removing player:', error);
+      toast({
+        title: "Error",
+        description: "Failed to remove player. Please try again.",
+        variant: "destructive",
+      });
+    }
   });
 
   const filteredPlayers = players.filter(player =>

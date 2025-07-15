@@ -11,17 +11,10 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useNotifications } from '@/hooks/useNotifications';
-import { useAuth } from '@/contexts/AuthContext';
 
 export const NotificationBell: React.FC = () => {
-  const { profile } = useAuth();
   const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications();
   const [isOpen, setIsOpen] = useState(false);
-
-  // Only show for admins
-  if (!profile || profile.role !== 'admin') {
-    return null;
-  }
 
   const handleNotificationClick = (notificationId: string) => {
     markAsRead(notificationId);

@@ -3,7 +3,7 @@ import React from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Navigate } from 'react-router-dom';
 import { Sidebar } from '@/components/Sidebar';
-import { NotificationBell } from '@/components/NotificationBell';
+import { Header } from '@/components/Header';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -33,15 +33,10 @@ export const Layout: React.FC<LayoutProps> = ({ children, showSidebar = false })
   }
 
   return (
-    <div className="min-h-screen bg-background flex">
+    <div className="min-h-screen bg-background flex w-full">
       <Sidebar />
       <div className="flex-1 flex flex-col">
-        {/* Top header with notification bell */}
-        <header className="h-14 border-b border-border flex items-center justify-end px-4 bg-card/50">
-          <NotificationBell />
-        </header>
-        
-        {/* Main content */}
+        <Header />
         <main className="flex-1 p-6 overflow-auto">
           {children}
         </main>

@@ -20,11 +20,41 @@ export const useNotifications = () => {
   const queryClient = useQueryClient();
   const [unreadCount, setUnreadCount] = useState(0);
 
-  // Mock notifications for now - replace with real Supabase queries
-  const { data: notifications = [], isLoading } = useQuery({
-    queryKey: ['notifications', profile?.id],
+  // Fetch announcements as notifications for all users
+  const { data: announcements = [] } = useQuery({
+    queryKey: ['announcements-notifications'],
     queryFn: async () => {
-      // This would be a real Supabase query when notifications table is created
+      const { data, error } = await supabase
+        .from('announcements')
+        .select('*')
+        .eq('is_published', true)
+        .order('created_at', { ascending: false })
+        .limit(10);
+
+      if (error) {
+        console.error('Error fetching announcements:', error);
+        return [];
+      }
+
+      return data.map(announcement => ({
+        id: announcement.id,
+        type: 'announcement',
+        message: announcement.title,
+        timestamp: announcement.created_at,
+        status: 'unread' as const,
+        action: 'view_announcement'
+      }));
+    },
+    enabled: !!profile,
+  });
+
+  // Mock admin notifications (replace with real Supabase queries when table is created)
+  const { data: adminNotifications = [] } = useQuery({
+    queryKey: ['admin-notifications', profile?.id],
+    queryFn: async () => {
+      if (profile?.role !== 'admin') return [];
+      
+      // Mock notifications for admin - replace with real Supabase query
       const mockNotifications: Notification[] = [
         {
           id: '1',
@@ -41,7 +71,7 @@ export const useNotifications = () => {
           type: 'new_player_joined',
           message: 'New player TacticalSniper joined the clan',
           player_name: 'TacticalSniper',
-          timestamp: new Date().toISOString(),
+          timestamp: new Date(Date.now() - 86400000).toISOString(),
           status: 'read',
           action: 'view_player'
         }
@@ -51,25 +81,33 @@ export const useNotifications = () => {
     enabled: !!profile && profile.role === 'admin',
   });
 
+  // Combine all notifications
+  const notifications = [
+    ...announcements,
+    ...(profile?.role === 'admin' ? adminNotifications : [])
+  ];
+
   // Mark notification as read
   const markAsReadMutation = useMutation({
     mutationFn: async (notificationId: string) => {
-      // This would update the notification in Supabase
+      // For announcements, we could track read status in a separate table
+      // For now, just log the action
       console.log('Marking notification as read:', notificationId);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['notifications'] });
+      queryClient.invalidateQueries({ queryKey: ['announcements-notifications'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-notifications'] });
     },
   });
 
   // Mark all as read
   const markAllAsReadMutation = useMutation({
     mutationFn: async () => {
-      // This would update all notifications in Supabase
       console.log('Marking all notifications as read');
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['notifications'] });
+      queryClient.invalidateQueries({ queryKey: ['announcements-notifications'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-notifications'] });
     },
   });
 
@@ -79,24 +117,33 @@ export const useNotifications = () => {
     setUnreadCount(unread);
   }, [notifications]);
 
-  // Real-time subscription (mock for now)
+  // Real-time subscription for announcements
   useEffect(() => {
-    if (!profile || profile.role !== 'admin') return;
+    if (!profile) return;
 
-    // This would be a real Supabase subscription
-    const mockSubscription = {
-      unsubscribe: () => console.log('Unsubscribed from notifications')
-    };
+    const channel = supabase
+      .channel('announcements')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'announcements'
+        },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ['announcements-notifications'] });
+        }
+      )
+      .subscribe();
 
     return () => {
-      mockSubscription.unsubscribe();
+      supabase.removeChannel(channel);
     };
-  }, [profile]);
+  }, [profile, queryClient]);
 
   return {
     notifications,
     unreadCount,
-    isLoading,
     markAsRead: markAsReadMutation.mutate,
     markAllAsRead: markAllAsReadMutation.mutate,
   };
