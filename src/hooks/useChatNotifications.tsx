@@ -32,7 +32,7 @@ export const useChatNotifications = () => {
     enabled: !!user,
   });
 
-  // Get user's last seen timestamp (mock for now - would be stored in user preferences)
+  // Get user's last seen timestamp from localStorage
   useEffect(() => {
     const getLastSeen = () => {
       const stored = localStorage.getItem(`chat_last_seen_${user?.id}`);
@@ -40,7 +40,15 @@ export const useChatNotifications = () => {
     };
 
     if (user) {
-      setLastSeenTimestamp(getLastSeen());
+      const lastSeen = getLastSeen();
+      setLastSeenTimestamp(lastSeen);
+      
+      // If no last seen timestamp, set it to now to avoid showing old messages as unread
+      if (!lastSeen) {
+        const now = new Date().toISOString();
+        localStorage.setItem(`chat_last_seen_${user.id}`, now);
+        setLastSeenTimestamp(now);
+      }
     }
   }, [user]);
 

@@ -5,6 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { KillPerformanceTracker } from '@/components/KillPerformanceTracker';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 import { 
   Trophy, 
   Target, 
@@ -17,7 +19,57 @@ import {
 } from 'lucide-react';
 
 export const Dashboard: React.FC = () => {
-  const { profile } = useAuth();
+  const { profile, user } = useAuth();
+
+  // Fetch user's scrims/events
+  const { data: userEvents = [] } = useQuery({
+    queryKey: ['user-events', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return [];
+      
+      const { data, error } = await supabase
+        .from('event_participants')
+        .select(`
+          *,
+          events (
+            id,
+            name,
+            type,
+            date,
+            time
+          )
+        `)
+        .eq('player_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(5);
+
+      if (error) {
+        console.error('Error fetching user events:', error);
+        return [];
+      }
+      return data || [];
+    },
+    enabled: !!user?.id,
+  });
+
+  // Fetch recent announcements
+  const { data: announcements = [] } = useQuery({
+    queryKey: ['recent-announcements'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('announcements')
+        .select('*')
+        .eq('is_published', true)
+        .order('created_at', { ascending: false })
+        .limit(1);
+
+      if (error) {
+        console.error('Error fetching announcements:', error);
+        return [];
+      }
+      return data || [];
+    },
+  });
 
   const getGradeColor = (grade: string) => {
     const colors = {
@@ -29,6 +81,8 @@ export const Dashboard: React.FC = () => {
     };
     return colors[grade as keyof typeof colors] || 'text-gray-400';
   };
+
+  const featuredAnnouncement = announcements[0];
 
   return (
     <div className="space-y-6">
@@ -60,7 +114,7 @@ export const Dashboard: React.FC = () => {
             <Target className="h-4 w-4 text-[#FF1F44]" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-white">{profile?.kills?.toLocaleString()}</div>
+            <div className="text-2xl font-bold text-white">{profile?.kills?.toLocaleString() || 0}</div>
             <p className="text-xs text-gray-400">
               <TrendingUp className="inline w-3 h-3 mr-1" />
               Managed by admin
@@ -74,19 +128,19 @@ export const Dashboard: React.FC = () => {
             <Calendar className="h-4 w-4 text-[#FF1F44]" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-white">{profile?.attendance}%</div>
+            <div className="text-2xl font-bold text-white">{profile?.attendance || 0}%</div>
             <Progress value={profile?.attendance || 0} className="mt-2" />
           </CardContent>
         </Card>
 
         <Card className="bg-white/5 border-white/10 backdrop-blur-sm">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-gray-300">Clan Rank</CardTitle>
+            <CardTitle className="text-sm font-medium text-gray-300">Events Participated</CardTitle>
             <Trophy className="h-4 w-4 text-[#FF1F44]" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-white">#7</div>
-            <p className="text-xs text-gray-400">out of 250 members</p>
+            <div className="text-2xl font-bold text-white">{userEvents.length}</div>
+            <p className="text-xs text-gray-400">total events</p>
           </CardContent>
         </Card>
 
@@ -96,7 +150,7 @@ export const Dashboard: React.FC = () => {
             <Award className="h-4 w-4 text-[#FF1F44]" />
           </CardHeader>
           <CardContent>
-            <div className="text-lg font-bold text-white">{profile?.tier}</div>
+            <div className="text-lg font-bold text-white">{profile?.tier || 'Rookie'}</div>
             <p className="text-xs text-gray-400">Since {profile?.date_joined}</p>
           </CardContent>
         </Card>
@@ -107,7 +161,41 @@ export const Dashboard: React.FC = () => {
 
       {/* Performance & Activity */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Performance Chart */}
+        {/* Recent Events */}
+        <Card className="bg-white/5 border-white/10 backdrop-blur-sm">
+          <CardHeader>
+            <CardTitle className="text-white flex items-center">
+              <Calendar className="w-5 h-5 mr-2 text-[#FF1F44]" />
+              Recent Events
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {userEvents.length > 0 ? userEvents.map((participation) => (
+                <div key={participation.id} className="flex items-center space-x-3 p-3 bg-white/5 rounded-lg">
+                  <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
+                  <div className="flex-1">
+                    <p className="text-white text-sm">{participation.events?.name}</p>
+                    <p className="text-gray-400 text-xs">
+                      {participation.events?.date} • {participation.events?.type}
+                    </p>
+                  </div>
+                  {participation.kills && (
+                    <div className="text-green-400 text-sm font-medium">
+                      {participation.kills} kills
+                    </div>
+                  )}
+                </div>
+              )) : (
+                <div className="text-center py-4 text-muted-foreground">
+                  No recent events
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Weekly Performance */}
         <Card className="bg-white/5 border-white/10 backdrop-blur-sm">
           <CardHeader>
             <CardTitle className="text-white flex items-center">
@@ -131,100 +219,71 @@ export const Dashboard: React.FC = () => {
             </div>
           </CardContent>
         </Card>
+      </div>
 
-        {/* Recent Activity */}
-        <Card className="bg-white/5 border-white/10 backdrop-blur-sm">
+      {/* Featured Announcement */}
+      {featuredAnnouncement && (
+        <Card className="bg-gradient-to-r from-[#FF1F44]/10 to-red-600/5 border-[#FF1F44]/30 backdrop-blur-sm">
           <CardHeader>
             <CardTitle className="text-white flex items-center">
-              <Clock className="w-5 h-5 mr-2 text-[#FF1F44]" />
-              Recent Activity
+              <Zap className="w-5 h-5 mr-2 text-[#FF1F44]" />
+              Featured Announcement
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              <div className="flex items-center space-x-3 p-3 bg-white/5 rounded-lg">
-                <div className="w-2 h-2 bg-green-400 rounded-full"></div>
-                <div className="flex-1">
-                  <p className="text-white text-sm">Completed Battle Royale match</p>
-                  <p className="text-gray-400 text-xs">2 hours ago</p>
+              <h3 className="text-xl font-bold text-white">{featuredAnnouncement.title}</h3>
+              <p className="text-gray-300">
+                {featuredAnnouncement.content}
+              </p>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-4 text-sm text-gray-400">
+                  <span>📅 {new Date(featuredAnnouncement.created_at).toLocaleDateString()}</span>
                 </div>
-                <div className="text-green-400 text-sm font-medium">+250 XP</div>
-              </div>
-              
-              <div className="flex items-center space-x-3 p-3 bg-white/5 rounded-lg">
-                <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
-                <div className="flex-1">
-                  <p className="text-white text-sm">Participated in clan war</p>
-                  <p className="text-gray-400 text-xs">1 day ago</p>
-                </div>
-                <div className="text-blue-400 text-sm font-medium">+500 XP</div>
-              </div>
-
-              <div className="flex items-center space-x-3 p-3 bg-white/5 rounded-lg">
-                <div className="w-2 h-2 bg-[#FF1F44] rounded-full"></div>
-                <div className="flex-1">
-                  <p className="text-white text-sm">Achieved new kill record</p>
-                  <p className="text-gray-400 text-xs">3 days ago</p>
-                </div>
-                <div className="text-[#FF1F44] text-sm font-medium">Achievement</div>
+                <Button 
+                  onClick={() => window.location.href = '/announcements'}
+                  className="bg-[#FF1F44] hover:bg-red-600 text-white"
+                >
+                  View All
+                </Button>
               </div>
             </div>
           </CardContent>
         </Card>
-      </div>
-
-      {/* Featured Announcement */}
-      <Card className="bg-gradient-to-r from-[#FF1F44]/10 to-red-600/5 border-[#FF1F44]/30 backdrop-blur-sm">
-        <CardHeader>
-          <CardTitle className="text-white flex items-center">
-            <Zap className="w-5 h-5 mr-2 text-[#FF1F44]" />
-            Featured Announcement
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <h3 className="text-xl font-bold text-white">🏆 Championship Tournament Starting Soon!</h3>
-            <p className="text-gray-300">
-              Get ready for the ultimate battle! Our clan championship tournament begins this weekend. 
-              Top 10 players will receive exclusive rewards and recognition.
-            </p>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-4 text-sm text-gray-400">
-                <span>📅 This Weekend</span>
-                <span>⏰ 8:00 PM EST</span>
-                <span>🎯 Battle Royale Mode</span>
-              </div>
-              <Button className="bg-[#FF1F44] hover:bg-red-600 text-white">
-                Register Now
-              </Button>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      )}
 
       {/* Quick Actions */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Button className="p-6 h-auto bg-white/5 hover:bg-white/10 border border-white/10 text-white">
+        <Button 
+          onClick={() => window.location.href = '/chat'}
+          className="p-6 h-auto bg-white/5 hover:bg-white/10 border border-white/10 text-white"
+        >
           <div className="flex flex-col items-center space-y-2">
             <Users className="w-8 h-8 text-[#FF1F44]" />
-            <span className="font-medium">Find Teammates</span>
-            <span className="text-xs text-gray-400">Join active squads</span>
+            <span className="font-medium">Team Chat</span>
+            <span className="text-xs text-gray-400">Join active discussions</span>
           </div>
         </Button>
 
-        <Button className="p-6 h-auto bg-white/5 hover:bg-white/10 border border-white/10 text-white">
+        <Button 
+          onClick={() => window.location.href = '/loadouts'}
+          className="p-6 h-auto bg-white/5 hover:bg-white/10 border border-white/10 text-white"
+        >
           <div className="flex flex-col items-center space-y-2">
             <Target className="w-8 h-8 text-[#FF1F44]" />
-            <span className="font-medium">Practice Range</span>
-            <span className="text-xs text-gray-400">Improve your skills</span>
+            <span className="font-medium">My Loadouts</span>
+            <span className="text-xs text-gray-400">Manage your gear</span>
           </div>
         </Button>
 
-        <Button className="p-6 h-auto bg-white/5 hover:bg-white/10 border border-white/10 text-white">
+        <Button 
+          onClick={() => window.location.href = '/scrims'}
+          className="p-6 h-auto bg-white/5 hover:bg-white/10 border border-white/10 text-white"
+        >
           <div className="flex flex-col items-center space-y-2">
             <Trophy className="w-8 h-8 text-[#FF1F44]" />
-            <span className="font-medium">Leaderboard</span>
-            <span className="text-xs text-gray-400">View rankings</span>
+            <span className="font-medium">View Scrims</span>
+            <span className="text-xs text-gray-400">Check schedules</span>
           </div>
         </Button>
       </div>

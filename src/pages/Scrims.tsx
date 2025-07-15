@@ -1,329 +1,366 @@
 
 import React, { useState } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Label } from '@/components/ui/label';
-import { Calendar, Clock, Users, Target, Trophy, Plus } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { 
+  Crosshair, 
+  Calendar, 
+  Clock, 
+  Users, 
+  Trophy, 
+  Target,
+  Search,
+  Filter,
+  MapPin,
+  Zap
+} from 'lucide-react';
 
-interface Scrim {
+interface Event {
   id: string;
-  title: string;
+  name: string;
+  type: 'MP' | 'BR' | 'Mixed';
   date: string;
   time: string;
-  mode: 'BR' | 'MP';
-  status: 'upcoming' | 'ongoing' | 'completed';
-  playerAssignment: {
-    squad: string;
+  description?: string;
+  status: string;
+  created_at: string;
+  created_by: string;
+  profiles?: {
+    username: string;
+    ign: string;
     role: string;
   };
-  kills?: number;
-  placement?: number;
-  teamScore?: number;
+  event_participants: Array<{
+    id: string;
+    player_id: string;
+    kills?: number;
+    verified: boolean;
+    profiles: {
+      username: string;
+      ign: string;
+    };
+  }>;
+  event_groups: Array<{
+    id: string;
+    name: string;
+    max_players: number;
+  }>;
 }
 
 export const Scrims: React.FC = () => {
-  const { toast } = useToast();
-  const [scrims, setScrims] = useState<Scrim[]>([
-    {
-      id: '1',
-      title: 'Clan War vs Thunder',
-      date: '2024-07-15',
-      time: '20:00',
-      mode: 'BR',
-      status: 'upcoming',
-      playerAssignment: {
-        squad: 'Alpha Squad',
-        role: 'Assault'
-      }
-    },
-    {
-      id: '2',
-      title: 'Training Scrim - Hardpoint',
-      date: '2024-07-14',
-      time: '19:00',
-      mode: 'MP',
-      status: 'completed',
-      playerAssignment: {
-        squad: 'Beta Squad',
-        role: 'Objective'
-      },
-      kills: 18,
-      teamScore: 150
-    },
-    {
-      id: '3',
-      title: 'Championship Qualifier',
-      date: '2024-07-13',
-      time: '21:00',
-      mode: 'BR',
-      status: 'completed',
-      playerAssignment: {
-        squad: 'Alpha Squad',
-        role: 'Support'
-      },
-      kills: 12,
-      placement: 3
-    }
-  ]);
+  const { user, profile } = useAuth();
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterType, setFilterType] = useState('all');
+  const [filterStatus, setFilterStatus] = useState('all');
 
-  const [isKillTrackerOpen, setIsKillTrackerOpen] = useState(false);
-  const [selectedScrim, setSelectedScrim] = useState<Scrim | null>(null);
-  const [killCount, setKillCount] = useState('');
+  // Fetch events/scrims
+  const { data: events = [], isLoading } = useQuery({
+    queryKey: ['events'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('events')
+        .select(`
+          *,
+          profiles (
+            username,
+            ign,
+            role
+          ),
+          event_participants (
+            id,
+            player_id,
+            kills,
+            verified,
+            profiles (
+              username,
+              ign
+            )
+          ),
+          event_groups (
+            id,
+            name,
+            max_players
+          )
+        `)
+        .order('date', { ascending: true })
+        .order('time', { ascending: true });
+
+      if (error) {
+        console.error('Error fetching events:', error);
+        return [];
+      }
+      return data as Event[];
+    },
+  });
+
+  // Fetch user's participation
+  const { data: userParticipation = [] } = useQuery({
+    queryKey: ['user-participation', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return [];
+      
+      const { data, error } = await supabase
+        .from('event_participants')
+        .select(`
+          *,
+          events (
+            id,
+            name,
+            type,
+            date,
+            time
+          )
+        `)
+        .eq('player_id', user.id)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching user participation:', error);
+        return [];
+      }
+      return data || [];
+    },
+    enabled: !!user?.id,
+  });
+
+  const filteredEvents = events.filter(event => {
+    const matchesSearch = event.name.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesType = filterType === 'all' || event.type === filterType;
+    const matchesStatus = filterStatus === 'all' || event.status === filterStatus;
+    return matchesSearch && matchesType && matchesStatus;
+  });
+
+  const getEventStatus = (event: Event) => {
+    const eventDate = new Date(`${event.date} ${event.time}`);
+    const now = new Date();
+    
+    if (eventDate > now) return 'upcoming';
+    if (eventDate.toDateString() === now.toDateString()) return 'ongoing';
+    return 'completed';
+  };
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'upcoming':
-        return 'bg-blue-500/20 text-blue-400 border-blue-500/50';
-      case 'ongoing':
-        return 'bg-green-500/20 text-green-400 border-green-500/50';
-      case 'completed':
-        return 'bg-gray-500/20 text-gray-400 border-gray-500/50';
-      default:
-        return 'bg-gray-500/20 text-gray-400 border-gray-500/50';
+      case 'upcoming': return 'bg-blue-500/20 border-blue-500/50 text-blue-300';
+      case 'ongoing': return 'bg-green-500/20 border-green-500/50 text-green-300';
+      case 'completed': return 'bg-gray-500/20 border-gray-500/50 text-gray-300';
+      default: return 'bg-gray-500/20 border-gray-500/50 text-gray-300';
     }
   };
 
-  const getModeColor = (mode: string) => {
-    return mode === 'BR' 
-      ? 'bg-green-500/20 text-green-400 border-green-500/50' 
-      : 'bg-purple-500/20 text-purple-400 border-purple-500/50';
+  const getTypeIcon = (type: string) => {
+    switch (type) {
+      case 'MP': return Target;
+      case 'BR': return Trophy;
+      case 'Mixed': return Zap;
+      default: return Crosshair;
+    }
   };
 
-  const handleUpdateKills = () => {
-    if (!selectedScrim || !killCount) return;
-
-    setScrims(prev => prev.map(scrim => 
-      scrim.id === selectedScrim.id 
-        ? { ...scrim, kills: parseInt(killCount) }
-        : scrim
-    ));
-
-    toast({
-      title: "Kills Updated",
-      description: `Updated kills for ${selectedScrim.title}`,
-    });
-
-    setIsKillTrackerOpen(false);
-    setSelectedScrim(null);
-    setKillCount('');
+  const isUserParticipating = (eventId: string) => {
+    return events.find(e => e.id === eventId)?.event_participants.some(p => p.player_id === user?.id);
   };
 
-  const openKillTracker = (scrim: Scrim) => {
-    setSelectedScrim(scrim);
-    setKillCount(scrim.kills?.toString() || '');
-    setIsKillTrackerOpen(true);
+  const getUserKills = (eventId: string) => {
+    const event = events.find(e => e.id === eventId);
+    const participation = event?.event_participants.find(p => p.player_id === user?.id);
+    return participation?.kills || 0;
   };
 
-  const upcomingScrims = scrims.filter(s => s.status === 'upcoming');
-  const completedScrims = scrims.filter(s => s.status === 'completed');
-  const totalKills = completedScrims.reduce((sum, scrim) => sum + (scrim.kills || 0), 0);
-  const avgKills = completedScrims.length > 0 ? (totalKills / completedScrims.length).toFixed(1) : '0';
+  const upcomingEvents = filteredEvents.filter(event => getEventStatus(event) === 'upcoming').length;
+  const completedEvents = filteredEvents.filter(event => getEventStatus(event) === 'completed').length;
+  const totalKills = userParticipation.reduce((acc, p) => acc + (p.kills || 0), 0);
 
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-foreground font-orbitron mb-2">Scrims</h1>
-          <p className="text-muted-foreground font-rajdhani">Track your performance and upcoming matches</p>
+          <h1 className="text-3xl font-bold text-white mb-2">Scrimmages & Events</h1>
+          <p className="text-gray-400">Track your performance and upcoming matches</p>
         </div>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <Card className="bg-card/50 border-border/30">
+      {/* Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <Card className="bg-card/50 border-border/30 backdrop-blur-sm">
           <CardContent className="p-4 text-center">
-            <div className="text-2xl font-bold text-blue-400 mb-1 font-orbitron">{upcomingScrims.length}</div>
-            <div className="text-sm text-muted-foreground font-rajdhani">Upcoming</div>
+            <div className="text-2xl font-bold text-blue-400 mb-1">{upcomingEvents}</div>
+            <div className="text-sm text-gray-400">Upcoming Events</div>
           </CardContent>
         </Card>
-        <Card className="bg-card/50 border-border/30">
+        <Card className="bg-card/50 border-border/30 backdrop-blur-sm">
           <CardContent className="p-4 text-center">
-            <div className="text-2xl font-bold text-gray-400 mb-1 font-orbitron">{completedScrims.length}</div>
-            <div className="text-sm text-muted-foreground font-rajdhani">Completed</div>
+            <div className="text-2xl font-bold text-gray-400 mb-1">{completedEvents}</div>
+            <div className="text-sm text-gray-400">Completed</div>
           </CardContent>
         </Card>
-        <Card className="bg-card/50 border-border/30">
+        <Card className="bg-card/50 border-border/30 backdrop-blur-sm">
           <CardContent className="p-4 text-center">
-            <div className="text-2xl font-bold text-primary mb-1 font-orbitron">{totalKills}</div>
-            <div className="text-sm text-muted-foreground font-rajdhani">Total Kills</div>
+            <div className="text-2xl font-bold text-[#FF1F44] mb-1">{userParticipation.length}</div>
+            <div className="text-sm text-gray-400">Participated</div>
           </CardContent>
         </Card>
-        <Card className="bg-card/50 border-border/30">
+        <Card className="bg-card/50 border-border/30 backdrop-blur-sm">
           <CardContent className="p-4 text-center">
-            <div className="text-2xl font-bold text-green-400 mb-1 font-orbitron">{avgKills}</div>
-            <div className="text-sm text-muted-foreground font-rajdhani">Avg Kills</div>
+            <div className="text-2xl font-bold text-green-400 mb-1">{totalKills}</div>
+            <div className="text-sm text-gray-400">Total Kills</div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Upcoming Scrims */}
-      {upcomingScrims.length > 0 && (
-        <div>
-          <h2 className="text-xl font-orbitron text-foreground mb-4">Upcoming Scrims</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {upcomingScrims.map(scrim => (
-              <Card key={scrim.id} className="bg-card/50 border-border/30 hover:border-primary/30 transition-all duration-300">
-                <CardHeader className="pb-3">
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="font-orbitron text-lg">{scrim.title}</CardTitle>
-                    <div className="flex space-x-2">
-                      <Badge className={getModeColor(scrim.mode)}>{scrim.mode}</Badge>
-                      <Badge className={getStatusColor(scrim.status)}>{scrim.status}</Badge>
+      {/* Filters */}
+      <div className="flex flex-col md:flex-row gap-4">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+          <Input
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder="Search events..."
+            className="pl-10 bg-background/50 border-border text-white"
+          />
+        </div>
+        
+        <Select value={filterType} onValueChange={setFilterType}>
+          <SelectTrigger className="w-48 bg-background/50 border-border text-white">
+            <Filter className="w-4 h-4 mr-2" />
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Types</SelectItem>
+            <SelectItem value="MP">Multiplayer</SelectItem>
+            <SelectItem value="BR">Battle Royale</SelectItem>
+            <SelectItem value="Mixed">Mixed</SelectItem>
+          </SelectContent>
+        </Select>
+
+        <Select value={filterStatus} onValueChange={setFilterStatus}>
+          <SelectTrigger className="w-48 bg-background/50 border-border text-white">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Status</SelectItem>
+            <SelectItem value="upcoming">Upcoming</SelectItem>
+            <SelectItem value="ongoing">Ongoing</SelectItem>
+            <SelectItem value="completed">Completed</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      {/* Events List */}
+      {isLoading ? (
+        <div className="text-center py-8">
+          <div className="text-muted-foreground">Loading events...</div>
+        </div>
+      ) : filteredEvents.length === 0 ? (
+        <Card className="bg-card/50 border-border/30 backdrop-blur-sm">
+          <CardContent className="text-center py-12">
+            <Crosshair className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-white mb-2">No events found</h3>
+            <p className="text-muted-foreground">
+              {searchTerm || filterType !== 'all' || filterStatus !== 'all'
+                ? 'Try adjusting your search or filters'
+                : 'No events scheduled at the moment'
+              }
+            </p>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {filteredEvents.map((event) => {
+            const TypeIcon = getTypeIcon(event.type);
+            const status = getEventStatus(event);
+            const isParticipating = isUserParticipating(event.id);
+            const userKills = getUserKills(event.id);
+            
+            return (
+              <Card key={event.id} className="bg-card/50 border-border/30 backdrop-blur-sm hover:border-[#FF1F44]/30 transition-colors">
+                <CardHeader>
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-start space-x-3 flex-1">
+                      <div className="p-2 bg-[#FF1F44]/20 rounded-lg">
+                        <TypeIcon className="w-5 h-5 text-[#FF1F44]" />
+                      </div>
+                      <div className="flex-1">
+                        <CardTitle className="text-white text-lg mb-2">
+                          {event.name}
+                        </CardTitle>
+                        <div className="flex items-center space-x-4 text-sm text-gray-400">
+                          <span className="flex items-center">
+                            <Calendar className="w-4 h-4 mr-1" />
+                            {new Date(event.date).toLocaleDateString()}
+                          </span>
+                          <span className="flex items-center">
+                            <Clock className="w-4 h-4 mr-1" />
+                            {event.time}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="flex flex-col items-end space-y-2">
+                      <Badge className={getStatusColor(status)}>
+                        {status.toUpperCase()}
+                      </Badge>
+                      <Badge variant="outline" className="border-border text-muted-foreground">
+                        {event.type}
+                      </Badge>
                     </div>
                   </div>
                 </CardHeader>
                 
-                <CardContent className="space-y-3">
-                  <div className="flex items-center text-muted-foreground">
-                    <Calendar className="w-4 h-4 mr-2" />
-                    <span className="font-rajdhani">{new Date(scrim.date).toLocaleDateString()}</span>
-                    <Clock className="w-4 h-4 ml-4 mr-2" />
-                    <span className="font-rajdhani">{scrim.time}</span>
-                  </div>
+                <CardContent>
+                  {event.description && (
+                    <p className="text-gray-300 text-sm mb-4">{event.description}</p>
+                  )}
                   
-                  <div className="flex items-center text-muted-foreground">
-                    <Users className="w-4 h-4 mr-2" />
-                    <span className="font-rajdhani">{scrim.playerAssignment.squad} - {scrim.playerAssignment.role}</span>
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="flex items-center text-sm text-gray-400">
+                        <Users className="w-4 h-4 mr-1" />
+                        {event.event_participants.length} participants
+                      </span>
+                      <span className="flex items-center text-sm text-gray-400">
+                        <MapPin className="w-4 h-4 mr-1" />
+                        {event.event_groups.length} groups
+                      </span>
+                    </div>
+                    
+                    {isParticipating && (
+                      <div className="p-3 bg-green-500/10 border border-green-500/30 rounded-lg">
+                        <div className="flex items-center justify-between">
+                          <span className="text-green-300 text-sm font-medium">You're participating!</span>
+                          {userKills > 0 && (
+                            <span className="text-green-300 text-sm">
+                              {userKills} kills recorded
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                    
+                    <div className="flex items-center justify-between pt-2">
+                      <span className="text-xs text-gray-500">
+                        Created by {event.profiles?.ign || 'Admin'}
+                      </span>
+                      {status === 'upcoming' && !isParticipating && (
+                        <Button size="sm" variant="outline" className="border-[#FF1F44] text-[#FF1F44] hover:bg-[#FF1F44] hover:text-white">
+                          Request to Join
+                        </Button>
+                      )}
+                    </div>
                   </div>
                 </CardContent>
               </Card>
-            ))}
-          </div>
+            );
+          })}
         </div>
-      )}
-
-      {/* Completed Scrims */}
-      <div>
-        <h2 className="text-xl font-orbitron text-foreground mb-4">Match History</h2>
-        <div className="space-y-4">
-          {completedScrims.map(scrim => (
-            <Card key={scrim.id} className="bg-card/50 border-border/30">
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center space-x-4 mb-2">
-                      <h3 className="font-orbitron text-foreground text-lg">{scrim.title}</h3>
-                      <Badge className={getModeColor(scrim.mode)}>{scrim.mode}</Badge>
-                      <Badge className={getStatusColor(scrim.status)}>{scrim.status}</Badge>
-                    </div>
-                    
-                    <div className="flex items-center text-muted-foreground space-x-6">
-                      <div className="flex items-center">
-                        <Calendar className="w-4 h-4 mr-1" />
-                        <span className="font-rajdhani">{new Date(scrim.date).toLocaleDateString()}</span>
-                      </div>
-                      <div className="flex items-center">
-                        <Users className="w-4 h-4 mr-1" />
-                        <span className="font-rajdhani">{scrim.playerAssignment.squad}</span>
-                      </div>
-                      <div className="flex items-center">
-                        <Target className="w-4 h-4 mr-1" />
-                        <span className="font-rajdhani">{scrim.playerAssignment.role}</span>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-center space-x-6">
-                    {scrim.kills !== undefined && (
-                      <div className="text-center">
-                        <div className="text-xl font-bold text-primary font-orbitron">{scrim.kills}</div>
-                        <div className="text-xs text-muted-foreground font-rajdhani">Kills</div>
-                      </div>
-                    )}
-                    
-                    {scrim.placement && (
-                      <div className="text-center">
-                        <div className="text-xl font-bold text-yellow-400 font-orbitron">#{scrim.placement}</div>
-                        <div className="text-xs text-muted-foreground font-rajdhani">Place</div>
-                      </div>
-                    )}
-                    
-                    {scrim.teamScore && (
-                      <div className="text-center">
-                        <div className="text-xl font-bold text-green-400 font-orbitron">{scrim.teamScore}</div>
-                        <div className="text-xs text-muted-foreground font-rajdhani">Score</div>
-                      </div>
-                    )}
-                    
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => openKillTracker(scrim)}
-                      className="border-border/50 hover:bg-muted/50 font-rajdhani"
-                    >
-                      <Target className="w-4 h-4 mr-1" />
-                      Update
-                    </Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      </div>
-
-      {/* Kill Tracker Dialog */}
-      <Dialog open={isKillTrackerOpen} onOpenChange={setIsKillTrackerOpen}>
-        <DialogContent className="bg-card border-border/50">
-          <DialogHeader>
-            <DialogTitle className="font-orbitron">Update Kill Count</DialogTitle>
-          </DialogHeader>
-          
-          {selectedScrim && (
-            <div className="space-y-4">
-              <div>
-                <p className="text-muted-foreground font-rajdhani mb-2">Match: {selectedScrim.title}</p>
-                <p className="text-muted-foreground font-rajdhani">Date: {new Date(selectedScrim.date).toLocaleDateString()}</p>
-              </div>
-              
-              <div>
-                <Label htmlFor="killCount" className="font-rajdhani">Number of Kills</Label>
-                <Input
-                  id="killCount"
-                  type="number"
-                  value={killCount}
-                  onChange={(e) => setKillCount(e.target.value)}
-                  className="bg-background/50 border-border/50 font-rajdhani"
-                  placeholder="Enter kill count"
-                  min="0"
-                />
-              </div>
-              
-              <div className="flex justify-end space-x-2 pt-4">
-                <Button
-                  variant="outline"
-                  onClick={() => setIsKillTrackerOpen(false)}
-                  className="font-rajdhani"
-                >
-                  Cancel
-                </Button>
-                <Button
-                  onClick={handleUpdateKills}
-                  className="bg-primary hover:bg-primary/90 font-rajdhani"
-                >
-                  Update Kills
-                </Button>
-              </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
-
-      {scrims.length === 0 && (
-        <Card className="bg-card/50 border-border/30">
-          <CardContent className="p-12 text-center">
-            <Trophy className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-            <h3 className="text-xl font-orbitron text-foreground mb-2">No Scrims Available</h3>
-            <p className="text-muted-foreground font-rajdhani">
-              Scrims will appear here when they are scheduled by the admin.
-            </p>
-          </CardContent>
-        </Card>
       )}
     </div>
   );
