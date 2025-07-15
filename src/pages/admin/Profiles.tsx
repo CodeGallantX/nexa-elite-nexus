@@ -3,386 +3,287 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea';
-import { 
-  Search, 
-  Edit, 
-  Save, 
-  X, 
-  User,
-  Gamepad2,
-  Trophy,
-  Calendar,
-  Target
-} from 'lucide-react';
-
-// Mock player profiles
-const mockProfiles = [
-  {
-    id: '1',
-    username: 'slayerX',
-    ign: 'slayerX',
-    uid: 'CDM001234567',
-    realName: 'Alex Mitchell',
-    email: 'slayer@nexa.gg',
-    grade: 'S',
-    tier: 'Elite Slayer',
-    kills: 15420,
-    attendance: 85,
-    device: 'Phone',
-    mode: 'Both',
-    class: 'Ninja',
-    bestGun: 'AK-47',
-    favoriteLoadout: 'Assault + SMG',
-    bankName: 'GameBank',
-    accountNumber: '1234567890',
-    tiktok: '@slayerx_gaming',
-    instagram: '@slayerx_codm',
-    youtube: 'SlayerX Gaming',
-    discord: 'slayerx#1337',
-    dateJoined: '2024-01-15'
-  }
-];
+import { useAdminPlayers } from '@/hooks/useAdminPlayers';
+import { Search, Eye, ExternalLink, Calendar, Trophy, Target, TrendingUp } from 'lucide-react';
 
 export const AdminProfiles: React.FC = () => {
-  const [profiles, setProfiles] = useState(mockProfiles);
+  const { data: players, isLoading } = useAdminPlayers();
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedProfile, setSelectedProfile] = useState<typeof mockProfiles[0] | null>(null);
-  const [isEditing, setIsEditing] = useState(false);
-  const [editedProfile, setEditedProfile] = useState<typeof mockProfiles[0] | null>(null);
+  const [selectedPlayer, setSelectedPlayer] = useState<any>(null);
 
-  const filteredProfiles = profiles.filter(profile =>
-    profile.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    profile.ign.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    profile.realName.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredPlayers = players?.filter(player => 
+    player.username?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    player.ign?.toLowerCase().includes(searchTerm.toLowerCase())
+  ) || [];
 
-  const handleEditProfile = (profile: typeof mockProfiles[0]) => {
-    setSelectedProfile(profile);
-    setEditedProfile({ ...profile });
-    setIsEditing(true);
-  };
-
-  const handleSaveProfile = () => {
-    if (editedProfile) {
-      setProfiles(prev => prev.map(p => p.id === editedProfile.id ? editedProfile : p));
-      setSelectedProfile(editedProfile);
-      setIsEditing(false);
+  const formatSocialLinks = (socialLinks: any) => {
+    if (!socialLinks) return [];
+    
+    try {
+      const links = typeof socialLinks === 'string' ? JSON.parse(socialLinks) : socialLinks;
+      return Object.entries(links).map(([platform, url]) => ({
+        platform,
+        url: url as string
+      }));
+    } catch {
+      return [];
     }
   };
 
-  const handleCancelEdit = () => {
-    setEditedProfile(selectedProfile);
-    setIsEditing(false);
-  };
-
-  const updateEditedProfile = (field: string, value: string) => {
-    if (editedProfile) {
-      setEditedProfile({ ...editedProfile, [field]: value });
+  const formatBankingInfo = (bankingInfo: any) => {
+    if (!bankingInfo) return null;
+    
+    try {
+      return typeof bankingInfo === 'string' ? JSON.parse(bankingInfo) : bankingInfo;
+    } catch {
+      return null;
     }
   };
 
-  const getGradeColor = (grade: string) => {
-    const colors = {
-      'S': 'bg-yellow-500/20 text-yellow-400 border-yellow-500/50',
-      'A': 'bg-green-500/20 text-green-400 border-green-500/50',
-      'B': 'bg-blue-500/20 text-blue-400 border-blue-500/50',
-      'C': 'bg-orange-500/20 text-orange-400 border-orange-500/50',
-      'D': 'bg-red-500/20 text-red-400 border-red-500/50'
-    };
-    return colors[grade as keyof typeof colors] || 'bg-gray-500/20 text-gray-400 border-gray-500/50';
-  };
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-96">
+        <div className="text-white">Loading profiles...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold text-white font-orbitron mb-2">Player Profiles</h1>
-        <p className="text-gray-400">View and edit detailed player information</p>
+      <div className="flex items-center justify-between">
+        <h1 className="text-3xl font-bold text-white">Player Profiles</h1>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Player List */}
-        <div className="lg:col-span-1">
-          <Card className="bg-white/5 border-white/10 backdrop-blur-sm">
-            <CardHeader>
-              <CardTitle className="text-white font-orbitron">Players</CardTitle>
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                <Input
-                  placeholder="Search players..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 bg-background/50 border-border/50 text-foreground"
-                />
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              {filteredProfiles.map(profile => (
-                <div
-                  key={profile.id}
-                  onClick={() => setSelectedProfile(profile)}
-                  className={`p-3 rounded-lg cursor-pointer transition-colors ${
-                    selectedProfile?.id === profile.id
-                      ? 'bg-primary/20 border border-primary/30'
-                      : 'bg-white/5 hover:bg-white/10 border border-transparent'
-                  }`}
-                >
-                  <div className="flex items-center space-x-3">
-                    <img
-                      src="/placeholder.svg"
-                      alt={profile.username}
-                      className="w-10 h-10 rounded-full border border-primary/30"
-                    />
-                    <div className="flex-1">
-                      <div className="text-white font-medium">{profile.username}</div>
-                      <div className="text-gray-400 text-sm">{profile.ign}</div>
-                    </div>
-                    <Badge className={getGradeColor(profile.grade)}>
-                      {profile.grade}
-                    </Badge>
-                  </div>
-                </div>
-              ))}
-            </CardContent>
-          </Card>
-        </div>
+      {/* Search */}
+      <Card className="bg-white/5 border-white/10 backdrop-blur-sm">
+        <CardContent className="pt-6">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+            <Input
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10 bg-gray-800 border-gray-600 text-white"
+              placeholder="Search by username or IGN..."
+            />
+          </div>
+        </CardContent>
+      </Card>
 
-        {/* Profile Details */}
-        <div className="lg:col-span-2">
-          {selectedProfile ? (
-            <Card className="bg-white/5 border-white/10 backdrop-blur-sm">
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-white font-orbitron flex items-center">
-                    <User className="w-5 h-5 mr-2 text-primary" />
-                    {selectedProfile.username}'s Profile
-                  </CardTitle>
-                  {!isEditing ? (
-                    <Button 
-                      onClick={() => handleEditProfile(selectedProfile)}
-                      className="bg-primary hover:bg-primary/90"
-                    >
-                      <Edit className="w-4 h-4 mr-2" />
-                      Edit Profile
-                    </Button>
+      {/* Players Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {filteredPlayers.map((player) => (
+          <Card key={player.id} className="bg-white/5 border-white/10 backdrop-blur-sm hover:bg-white/10 transition-colors">
+            <CardHeader>
+              <div className="flex items-center space-x-3">
+                <div className="w-12 h-12 bg-gray-600 rounded-full flex items-center justify-center">
+                  {player.avatar_url ? (
+                    <img src={player.avatar_url} alt={player.username} className="w-12 h-12 rounded-full object-cover" />
                   ) : (
-                    <div className="flex space-x-2">
-                      <Button onClick={handleSaveProfile} className="bg-green-500 hover:bg-green-600">
-                        <Save className="w-4 h-4 mr-2" />
-                        Save
-                      </Button>
-                      <Button onClick={handleCancelEdit} variant="outline" className="border-red-500/30 text-red-400 hover:bg-red-500/10">
-                        <X className="w-4 h-4 mr-2" />
-                        Cancel
-                      </Button>
-                    </div>
+                    <span className="text-lg font-bold text-white">{player.username?.[0]?.toUpperCase()}</span>
                   )}
                 </div>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                {/* Basic Info */}
-                <div>
-                  <h3 className="text-lg font-orbitron text-white mb-4 flex items-center">
-                    <User className="w-5 h-5 mr-2 text-primary" />
-                    Basic Information
-                  </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <Label className="text-gray-300">Real Name</Label>
-                      {isEditing ? (
-                        <Input
-                          value={editedProfile?.realName || ''}
-                          onChange={(e) => updateEditedProfile('realName', e.target.value)}
-                          className="bg-background/50 border-border/50 text-foreground"
-                        />
-                      ) : (
-                        <div className="text-white p-2 bg-background/30 rounded">{selectedProfile.realName}</div>
-                      )}
-                    </div>
-                    <div>
-                      <Label className="text-gray-300">Email</Label>
-                      <div className="text-white p-2 bg-background/30 rounded">{selectedProfile.email}</div>
-                    </div>
-                    <div>
-                      <Label className="text-gray-300">Grade</Label>
-                      {isEditing ? (
-                        <Select 
-                          value={editedProfile?.grade} 
-                          onValueChange={(value) => updateEditedProfile('grade', value)}
-                        >
-                          <SelectTrigger className="bg-background/50 border-border/50">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="S">S Grade</SelectItem>
-                            <SelectItem value="A">A Grade</SelectItem>
-                            <SelectItem value="B">B Grade</SelectItem>
-                            <SelectItem value="C">C Grade</SelectItem>
-                            <SelectItem value="D">D Grade</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      ) : (
-                        <div className="flex">
-                          <Badge className={getGradeColor(selectedProfile.grade)}>
-                            {selectedProfile.grade}
-                          </Badge>
+                <div className="flex-1">
+                  <h3 className="text-white font-semibold">{player.ign}</h3>
+                  <p className="text-gray-400 text-sm">@{player.username}</p>
+                </div>
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <Button 
+                      size="sm" 
+                      variant="ghost" 
+                      className="text-gray-400 hover:text-white"
+                      onClick={() => setSelectedPlayer(player)}
+                    >
+                      <Eye className="w-4 h-4" />
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+                    <DialogHeader>
+                      <DialogTitle className="text-white flex items-center space-x-3">
+                        <div className="w-10 h-10 bg-gray-600 rounded-full flex items-center justify-center">
+                          {selectedPlayer?.avatar_url ? (
+                            <img src={selectedPlayer.avatar_url} alt={selectedPlayer.username} className="w-10 h-10 rounded-full object-cover" />
+                          ) : (
+                            <span className="text-sm font-bold text-white">{selectedPlayer?.username?.[0]?.toUpperCase()}</span>
+                          )}
                         </div>
-                      )}
-                    </div>
-                    <div>
-                      <Label className="text-gray-300">Tier</Label>
-                      {isEditing ? (
-                        <Input
-                          value={editedProfile?.tier || ''}
-                          onChange={(e) => updateEditedProfile('tier', e.target.value)}
-                          className="bg-background/50 border-border/50 text-foreground"
-                        />
-                      ) : (
-                        <div className="text-white p-2 bg-background/30 rounded">{selectedProfile.tier}</div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Game Info */}
-                <div>
-                  <h3 className="text-lg font-orbitron text-white mb-4 flex items-center">
-                    <Gamepad2 className="w-5 h-5 mr-2 text-primary" />
-                    Game Information
-                  </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <Label className="text-gray-300">IGN</Label>
-                      <div className="text-white p-2 bg-background/30 rounded">{selectedProfile.ign}</div>
-                    </div>
-                    <div>
-                      <Label className="text-gray-300">UID</Label>
-                      <div className="text-white p-2 bg-background/30 rounded font-mono">{selectedProfile.uid}</div>
-                    </div>
-                    <div>
-                      <Label className="text-gray-300">Device</Label>
-                      {isEditing ? (
-                        <Select 
-                          value={editedProfile?.device} 
-                          onValueChange={(value) => updateEditedProfile('device', value)}
-                        >
-                          <SelectTrigger className="bg-background/50 border-border/50">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="Phone">Phone</SelectItem>
-                            <SelectItem value="iPad">iPad</SelectItem>
-                            <SelectItem value="PC">PC/Emulator</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      ) : (
-                        <div className="text-white p-2 bg-background/30 rounded">{selectedProfile.device}</div>
-                      )}
-                    </div>
-                    <div>
-                      <Label className="text-gray-300">Mode</Label>
-                      <div className="text-white p-2 bg-background/30 rounded">{selectedProfile.mode}</div>
-                    </div>
-                    <div>
-                      <Label className="text-gray-300">Class</Label>
-                      <div className="text-white p-2 bg-background/30 rounded">{selectedProfile.class}</div>
-                    </div>
-                    <div>
-                      <Label className="text-gray-300">Best Gun</Label>
-                      {isEditing ? (
-                        <Input
-                          value={editedProfile?.bestGun || ''}
-                          onChange={(e) => updateEditedProfile('bestGun', e.target.value)}
-                          className="bg-background/50 border-border/50 text-foreground"
-                        />
-                      ) : (
-                        <div className="text-white p-2 bg-background/30 rounded">{selectedProfile.bestGun}</div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Stats */}
-                <div>
-                  <h3 className="text-lg font-orbitron text-white mb-4 flex items-center">
-                    <Trophy className="w-5 h-5 mr-2 text-primary" />
-                    Performance Stats
-                  </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <Label className="text-gray-300">Total Kills</Label>
-                      {isEditing ? (
-                        <Input
-                          type="number"
-                          value={editedProfile?.kills || 0}
-                          onChange={(e) => updateEditedProfile('kills', e.target.value)}
-                          className="bg-background/50 border-border/50 text-foreground"
-                        />
-                      ) : (
-                        <div className="text-white p-2 bg-background/30 rounded font-mono">
-                          {selectedProfile.kills.toLocaleString()}
+                        <div>
+                          <div>{selectedPlayer?.ign}</div>
+                          <div className="text-sm text-gray-400 font-normal">@{selectedPlayer?.username}</div>
                         </div>
-                      )}
-                    </div>
-                    <div>
-                      <Label className="text-gray-300">Attendance</Label>
-                      {isEditing ? (
-                        <Input
-                          type="number"
-                          min="0"
-                          max="100"
-                          value={editedProfile?.attendance || 0}
-                          onChange={(e) => updateEditedProfile('attendance', e.target.value)}
-                          className="bg-background/50 border-border/50 text-foreground"
-                        />
-                      ) : (
-                        <div className="text-white p-2 bg-background/30 rounded">{selectedProfile.attendance}%</div>
-                      )}
-                    </div>
-                  </div>
-                </div>
+                      </DialogTitle>
+                    </DialogHeader>
+                    
+                    {selectedPlayer && (
+                      <div className="space-y-6">
+                        {/* Basic Info */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          <Card className="bg-white/5 border-white/10">
+                            <CardHeader>
+                              <CardTitle className="text-white text-lg flex items-center">
+                                <Trophy className="w-5 h-5 mr-2 text-yellow-400" />
+                                Game Details
+                              </CardTitle>
+                            </CardHeader>
+                            <CardContent className="space-y-3">
+                              <div>
+                                <label className="text-gray-300 text-sm">Role</label>
+                                <Badge className="ml-2 bg-blue-100 text-blue-800">{selectedPlayer.role}</Badge>
+                              </div>
+                              <div>
+                                <label className="text-gray-300 text-sm">Tier</label>
+                                <Badge className="ml-2 bg-purple-100 text-purple-800">{selectedPlayer.tier || 'Rookie'}</Badge>
+                              </div>
+                              <div>
+                                <label className="text-gray-300 text-sm">Device</label>
+                                <p className="text-white">{selectedPlayer.device || 'Not specified'}</p>
+                              </div>
+                              <div>
+                                <label className="text-gray-300 text-sm">Preferred Mode</label>
+                                <p className="text-white">{selectedPlayer.preferred_mode || 'Not specified'}</p>
+                              </div>
+                              <div>
+                                <label className="text-gray-300 text-sm">Grade</label>
+                                <Badge className="ml-2 bg-green-100 text-green-800">{selectedPlayer.grade || 'D'}</Badge>
+                              </div>
+                            </CardContent>
+                          </Card>
 
-                {/* Social Media */}
-                <div>
-                  <h3 className="text-lg font-orbitron text-white mb-4">Social Media Links</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {['tiktok', 'instagram', 'youtube', 'discord'].map(platform => (
-                      <div key={platform}>
-                        <Label className="text-gray-300 capitalize">{platform}</Label>
-                        {isEditing ? (
-                          <Input
-                            value={editedProfile?.[platform as keyof typeof editedProfile] as string || ''}
-                            onChange={(e) => updateEditedProfile(platform, e.target.value)}
-                            className="bg-background/50 border-border/50 text-foreground"
-                            placeholder={`@username`}
-                          />
-                        ) : (
-                          <div className="text-white p-2 bg-background/30 rounded">
-                            {selectedProfile[platform as keyof typeof selectedProfile] as string || 'Not provided'}
-                          </div>
+                          <Card className="bg-white/5 border-white/10">
+                            <CardHeader>
+                              <CardTitle className="text-white text-lg flex items-center">
+                                <Target className="w-5 h-5 mr-2 text-red-400" />
+                                Performance Stats
+                              </CardTitle>
+                            </CardHeader>
+                            <CardContent className="space-y-3">
+                              <div className="flex justify-between">
+                                <span className="text-gray-300">Total Kills</span>
+                                <span className="text-white font-semibold">{selectedPlayer.kills || 0}</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-gray-300">Attendance</span>
+                                <span className="text-white font-semibold">{selectedPlayer.attendance || 0}%</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-gray-300">Date Joined</span>
+                                <span className="text-white">{selectedPlayer.date_joined ? new Date(selectedPlayer.date_joined).toLocaleDateString() : 'N/A'}</span>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        </div>
+
+                        {/* Social Links */}
+                        <Card className="bg-white/5 border-white/10">
+                          <CardHeader>
+                            <CardTitle className="text-white text-lg flex items-center">
+                              <ExternalLink className="w-5 h-5 mr-2 text-blue-400" />
+                              Social Links
+                            </CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            <div className="space-y-3">
+                              {selectedPlayer.tiktok_handle && (
+                                <div className="flex items-center justify-between">
+                                  <span className="text-gray-300">TikTok</span>
+                                  <a 
+                                    href={`https://tiktok.com/@${selectedPlayer.tiktok_handle}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-blue-400 hover:text-blue-300 flex items-center"
+                                  >
+                                    @{selectedPlayer.tiktok_handle}
+                                    <ExternalLink className="w-3 h-3 ml-1" />
+                                  </a>
+                                </div>
+                              )}
+                              
+                              {formatSocialLinks(selectedPlayer.social_links).map((link, index) => (
+                                <div key={index} className="flex items-center justify-between">
+                                  <span className="text-gray-300 capitalize">{link.platform}</span>
+                                  <a 
+                                    href={link.url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-blue-400 hover:text-blue-300 flex items-center"
+                                  >
+                                    View Profile
+                                    <ExternalLink className="w-3 h-3 ml-1" />
+                                  </a>
+                                </div>
+                              ))}
+                              
+                              {!selectedPlayer.tiktok_handle && formatSocialLinks(selectedPlayer.social_links).length === 0 && (
+                                <p className="text-gray-400 text-sm">No social links provided</p>
+                              )}
+                            </div>
+                          </CardContent>
+                        </Card>
+
+                        {/* Banking Info */}
+                        {formatBankingInfo(selectedPlayer.banking_info) && (
+                          <Card className="bg-white/5 border-white/10">
+                            <CardHeader>
+                              <CardTitle className="text-white text-lg flex items-center">
+                                <TrendingUp className="w-5 h-5 mr-2 text-green-400" />
+                                Banking Information
+                              </CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                              <div className="space-y-2">
+                                {Object.entries(formatBankingInfo(selectedPlayer.banking_info) || {}).map(([key, value]) => (
+                                  <div key={key} className="flex justify-between">
+                                    <span className="text-gray-300 capitalize">{key.replace(/([A-Z])/g, ' $1').trim()}</span>
+                                    <span className="text-white">{value as string}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            </CardContent>
+                          </Card>
                         )}
                       </div>
-                    ))}
-                  </div>
+                    )}
+                  </DialogContent>
+                </Dialog>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-gray-300 text-sm">Role</span>
+                  <Badge className="bg-blue-100 text-blue-800">{player.role}</Badge>
                 </div>
-              </CardContent>
-            </Card>
-          ) : (
-            <Card className="bg-white/5 border-white/10 backdrop-blur-sm">
-              <CardContent className="flex items-center justify-center h-64">
-                <div className="text-center">
-                  <User className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                  <p className="text-gray-400">Select a player to view their profile</p>
+                <div className="flex items-center justify-between">
+                  <span className="text-gray-300 text-sm">Tier</span>
+                  <Badge className="bg-purple-100 text-purple-800">{player.tier || 'Rookie'}</Badge>
                 </div>
-              </CardContent>
-            </Card>
-          )}
-        </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-gray-300 text-sm">Kills</span>
+                  <span className="text-white font-semibold">{player.kills || 0}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-gray-300 text-sm">Attendance</span>
+                  <span className="text-white font-semibold">{player.attendance || 0}%</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-gray-300 text-sm">Joined</span>
+                  <span className="text-white text-sm">
+                    {player.date_joined ? new Date(player.date_joined).toLocaleDateString() : 'N/A'}
+                  </span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
       </div>
+
+      {filteredPlayers.length === 0 && (
+        <div className="text-center py-12">
+          <p className="text-gray-400">No players found</p>
+        </div>
+      )}
     </div>
   );
 };

@@ -3,343 +3,269 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { 
-  Search, 
-  Edit, 
-  Trash2, 
-  Target,
-  Filter,
-  Plus,
-  ExternalLink
-} from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
-
-// Mock loadouts data
-const mockLoadouts = [
-  {
-    id: '1',
-    playerName: 'slayerX',
-    title: 'Assault Domination',
-    description: 'High damage assault rifle setup for MP matches',
-    mode: 'MP',
-    primaryWeapon: 'AK-47',
-    attachments: 'Red Dot, Extended Mag, Compensator',
-    secondaryWeapon: 'MW11',
-    lethal: 'Frag Grenade',
-    tactical: 'Smoke Grenade',
-    dateCreated: '2024-07-10',
-    assignedScrims: ['Championship Qualifier', 'Training Match']
-  },
-  {
-    id: '2',
-    playerName: 'TacticalSniper',
-    title: 'BR Ninja Setup',
-    description: 'Stealth-focused loadout for Battle Royale',
-    mode: 'BR',
-    primaryWeapon: 'M4',
-    attachments: 'Holographic Sight, Foregrip, Extended Mag',
-    secondaryWeapon: 'J358',
-    lethal: 'Trip Mine',
-    tactical: 'Smoke Bomb',
-    dateCreated: '2024-07-12',
-    assignedScrims: ['Clan War vs Thunder']
-  }
-];
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { Badge } from '@/components/ui/badge';
+import { usePlayerLoadouts, useDeleteLoadout } from '@/hooks/usePlayerLoadouts';
+import { Search, Eye, Trash2, Star, StarOff, Download } from 'lucide-react';
 
 export const AdminLoadouts: React.FC = () => {
-  const { toast } = useToast();
-  const [loadouts, setLoadouts] = useState(mockLoadouts);
+  const { data: loadouts, isLoading } = usePlayerLoadouts();
+  const deleteLoadout = useDeleteLoadout();
+  
   const [searchTerm, setSearchTerm] = useState('');
-  const [modeFilter, setModeFilter] = useState('all');
-  const [editingLoadout, setEditingLoadout] = useState<any>(null);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [filterMode, setFilterMode] = useState('all');
+  const [filterWeaponType, setFilterWeaponType] = useState('all');
+  const [selectedLoadout, setSelectedLoadout] = useState<any>(null);
+
+  const weaponTypes = ['AR', 'SMG', 'Sniper', 'LMG', 'Shotgun', 'Pistol', 'Marksman'];
+  const modes = ['BR', 'MP', 'Both'];
+
+  const filteredLoadouts = loadouts?.filter(loadout => {
+    const matchesSearch = loadout.weapon_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         loadout.profiles?.username?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         loadout.profiles?.ign?.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesMode = filterMode === 'all' || loadout.mode === filterMode;
+    const matchesWeaponType = filterWeaponType === 'all' || loadout.weapon_type === filterWeaponType;
+    return matchesSearch && matchesMode && matchesWeaponType;
+  }) || [];
+
+  const handleDeleteLoadout = async (loadoutId: string) => {
+    await deleteLoadout.mutateAsync(loadoutId);
+  };
+
+  const downloadImage = async (imageUrl: string, imageName: string) => {
+    try {
+      const response = await fetch(imageUrl);
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = imageName || 'weapon-layout.jpg';
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (error) {
+      console.error('Error downloading image:', error);
+    }
+  };
 
   const getModeColor = (mode: string) => {
-    return mode === 'BR' 
-      ? 'bg-green-500/20 text-green-400 border-green-500/50' 
-      : 'bg-purple-500/20 text-purple-400 border-purple-500/50';
-  };
-
-  const filteredLoadouts = loadouts.filter(loadout => {
-    const matchesSearch = loadout.playerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         loadout.title.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesMode = modeFilter === 'all' || loadout.mode === modeFilter;
-    
-    return matchesSearch && matchesMode;
-  });
-
-  const handleDelete = (loadoutId: string) => {
-    setLoadouts(prev => prev.filter(l => l.id !== loadoutId));
-    toast({
-      title: "Loadout Deleted",
-      description: "The loadout has been removed successfully.",
-    });
-  };
-
-  const handleEdit = (loadout: any) => {
-    setEditingLoadout(loadout);
-    setIsDialogOpen(true);
-  };
-
-  const handleSave = () => {
-    if (editingLoadout) {
-      setLoadouts(prev => prev.map(l => 
-        l.id === editingLoadout.id ? editingLoadout : l
-      ));
-      toast({
-        title: "Loadout Updated",
-        description: "Changes have been saved successfully.",
-      });
+    switch (mode) {
+      case 'BR': return 'bg-green-100 text-green-800';
+      case 'MP': return 'bg-blue-100 text-blue-800';
+      case 'Both': return 'bg-purple-100 text-purple-800';
+      default: return 'bg-gray-100 text-gray-800';
     }
-    setIsDialogOpen(false);
-    setEditingLoadout(null);
   };
+
+  const getWeaponTypeColor = (type: string) => {
+    switch (type) {
+      case 'AR': return 'bg-red-100 text-red-800';
+      case 'SMG': return 'bg-yellow-100 text-yellow-800';
+      case 'Sniper': return 'bg-purple-100 text-purple-800';
+      case 'LMG': return 'bg-orange-100 text-orange-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-96">
+        <div className="text-white">Loading loadouts...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground font-orbitron mb-2">Loadouts Management</h1>
-          <p className="text-muted-foreground font-rajdhani">Manage all player loadout configurations</p>
-        </div>
-      </div>
-
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <Card className="bg-card/50 border-border/30">
-          <CardContent className="p-4 text-center">
-            <div className="text-2xl font-bold text-primary mb-1 font-orbitron">{loadouts.length}</div>
-            <div className="text-sm text-muted-foreground font-rajdhani">Total Loadouts</div>
-          </CardContent>
-        </Card>
-        <Card className="bg-card/50 border-border/30">
-          <CardContent className="p-4 text-center">
-            <div className="text-2xl font-bold text-green-400 mb-1 font-orbitron">
-              {loadouts.filter(l => l.mode === 'BR').length}
-            </div>
-            <div className="text-sm text-muted-foreground font-rajdhani">BR Loadouts</div>
-          </CardContent>
-        </Card>
-        <Card className="bg-card/50 border-border/30">
-          <CardContent className="p-4 text-center">
-            <div className="text-2xl font-bold text-purple-400 mb-1 font-orbitron">
-              {loadouts.filter(l => l.mode === 'MP').length}
-            </div>
-            <div className="text-sm text-muted-foreground font-rajdhani">MP Loadouts</div>
-          </CardContent>
-        </Card>
-        <Card className="bg-card/50 border-border/30">
-          <CardContent className="p-4 text-center">
-            <div className="text-2xl font-bold text-yellow-400 mb-1 font-orbitron">
-              {loadouts.filter(l => l.assignedScrims.length > 0).length}
-            </div>
-            <div className="text-sm text-muted-foreground font-rajdhani">Assigned</div>
-          </CardContent>
-        </Card>
+        <h1 className="text-3xl font-bold text-white">Player Loadouts</h1>
       </div>
 
       {/* Filters */}
-      <Card className="bg-card/50 border-border/30">
-        <CardContent className="p-4">
-          <div className="flex flex-col md:flex-row gap-4">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+      <Card className="bg-white/5 border-white/10 backdrop-blur-sm">
+        <CardHeader>
+          <CardTitle className="text-white">Search & Filter</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
               <Input
-                placeholder="Search by player or loadout name..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 bg-background/50 border-border/50 font-rajdhani"
+                className="pl-10 bg-gray-800 border-gray-600 text-white"
+                placeholder="Search by player or weapon name..."
               />
             </div>
             
-            <Select value={modeFilter} onValueChange={setModeFilter}>
-              <SelectTrigger className="w-40 bg-background/50 border-border/50">
-                <Filter className="w-4 h-4 mr-2" />
-                <SelectValue placeholder="Mode" />
+            <Select value={filterMode} onValueChange={setFilterMode}>
+              <SelectTrigger className="bg-gray-800 border-gray-600 text-white">
+                <SelectValue placeholder="Filter by mode" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Modes</SelectItem>
-                <SelectItem value="BR">Battle Royale</SelectItem>
-                <SelectItem value="MP">Multiplayer</SelectItem>
+                {modes.map(mode => (
+                  <SelectItem key={mode} value={mode}>{mode}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Select value={filterWeaponType} onValueChange={setFilterWeaponType}>
+              <SelectTrigger className="bg-gray-800 border-gray-600 text-white">
+                <SelectValue placeholder="Filter by weapon type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Types</SelectItem>
+                {weaponTypes.map(type => (
+                  <SelectItem key={type} value={type}>{type}</SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
         </CardContent>
       </Card>
 
-      {/* Loadouts Table */}
-      <Card className="bg-card/50 border-border/30">
-        <CardHeader>
-          <CardTitle className="text-foreground font-orbitron flex items-center">
-            <Target className="w-5 h-5 mr-2 text-primary" />
-            Player Loadouts
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow className="border-border/30">
-                <TableHead className="text-muted-foreground font-rajdhani">Player</TableHead>
-                <TableHead className="text-muted-foreground font-rajdhani">Loadout</TableHead>
-                <TableHead className="text-muted-foreground font-rajdhani">Mode</TableHead>
-                <TableHead className="text-muted-foreground font-rajdhani">Primary</TableHead>
-                <TableHead className="text-muted-foreground font-rajdhani">Assigned Scrims</TableHead>
-                <TableHead className="text-muted-foreground font-rajdhani">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredLoadouts.map(loadout => (
-                <TableRow key={loadout.id} className="border-border/30 hover:bg-muted/20">
-                  <TableCell>
-                    <div className="font-medium text-foreground font-rajdhani">{loadout.playerName}</div>
-                    <div className="text-sm text-muted-foreground font-rajdhani">
-                      {new Date(loadout.dateCreated).toLocaleDateString()}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="font-medium text-foreground font-rajdhani">{loadout.title}</div>
-                    <div className="text-sm text-muted-foreground font-rajdhani max-w-xs truncate">
-                      {loadout.description}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <Badge className={getModeColor(loadout.mode)}>
-                      {loadout.mode}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <div className="font-medium text-foreground font-rajdhani">{loadout.primaryWeapon}</div>
-                    <div className="text-sm text-muted-foreground font-rajdhani">{loadout.attachments}</div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="space-y-1">
-                      {loadout.assignedScrims.map((scrim, index) => (
-                        <Badge key={index} variant="outline" className="text-xs border-border/50">
-                          {scrim}
-                        </Badge>
-                      ))}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center space-x-2">
+      {/* Loadouts Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {filteredLoadouts.map((loadout) => (
+          <Card key={loadout.id} className="bg-white/5 border-white/10 backdrop-blur-sm hover:bg-white/10 transition-colors">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  {loadout.is_featured && <Star className="w-4 h-4 text-yellow-400" />}
+                  <h3 className="text-white font-semibold">{loadout.weapon_name}</h3>
+                </div>
+                <div className="flex space-x-1">
+                  {loadout.image_url && (
+                    <Dialog>
+                      <DialogTrigger asChild>
+                        <Button 
+                          size="sm" 
+                          variant="ghost" 
+                          className="text-gray-400 hover:text-white"
+                          onClick={() => setSelectedLoadout(loadout)}
+                        >
+                          <Eye className="w-4 h-4" />
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="max-w-4xl">
+                        <DialogHeader>
+                          <DialogTitle className="text-white">
+                            {selectedLoadout?.weapon_name} - {selectedLoadout?.profiles?.ign}
+                          </DialogTitle>
+                        </DialogHeader>
+                        {selectedLoadout && (
+                          <div className="space-y-4">
+                            <div className="flex flex-col items-center space-y-4">
+                              <img
+                                src={selectedLoadout.image_url}
+                                alt={selectedLoadout.weapon_name}
+                                className="max-w-full max-h-96 object-contain rounded-lg"
+                              />
+                              <div className="flex space-x-4">
+                                <Button
+                                  onClick={() => downloadImage(selectedLoadout.image_url, selectedLoadout.image_name || 'weapon-layout.jpg')}
+                                  className="bg-[#FF1F44] hover:bg-red-600 text-white"
+                                >
+                                  <Download className="w-4 h-4 mr-2" />
+                                  Download
+                                </Button>
+                              </div>
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                              <div>
+                                <label className="text-gray-300 text-sm">Player</label>
+                                <p className="text-white">{selectedLoadout.profiles?.ign} (@{selectedLoadout.profiles?.username})</p>
+                              </div>
+                              <div>
+                                <label className="text-gray-300 text-sm">Mode</label>
+                                <Badge className={getModeColor(selectedLoadout.mode)}>{selectedLoadout.mode}</Badge>
+                              </div>
+                              <div>
+                                <label className="text-gray-300 text-sm">Weapon Type</label>
+                                <Badge className={getWeaponTypeColor(selectedLoadout.weapon_type)}>{selectedLoadout.weapon_type}</Badge>
+                              </div>
+                              <div>
+                                <label className="text-gray-300 text-sm">Views</label>
+                                <p className="text-white">{selectedLoadout.view_count || 0}</p>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </DialogContent>
+                    </Dialog>
+                  )}
+                  
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
                       <Button 
                         size="sm" 
                         variant="ghost" 
-                        onClick={() => handleEdit(loadout)}
-                        className="text-blue-400 hover:text-blue-300 hover:bg-blue-500/10"
-                      >
-                        <Edit className="w-4 h-4" />
-                      </Button>
-                      <Button 
-                        size="sm" 
-                        variant="ghost" 
-                        onClick={() => handleDelete(loadout.id)}
-                        className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
+                        className="text-gray-400 hover:text-red-400"
                       >
                         <Trash2 className="w-4 h-4" />
                       </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Delete Loadout</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Are you sure you want to delete this loadout? This action cannot be undone.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                          onClick={() => handleDeleteLoadout(loadout.id)}
+                          className="bg-red-600 hover:bg-red-700"
+                        >
+                          Delete
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-gray-300 text-sm">Player</span>
+                  <span className="text-white text-sm">{loadout.profiles?.ign}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-gray-300 text-sm">Mode</span>
+                  <Badge className={getModeColor(loadout.mode)}>{loadout.mode}</Badge>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-gray-300 text-sm">Type</span>
+                  <Badge className={getWeaponTypeColor(loadout.weapon_type)}>{loadout.weapon_type}</Badge>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-gray-300 text-sm">Views</span>
+                  <span className="text-white font-semibold">{loadout.view_count || 0}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-gray-300 text-sm">Created</span>
+                  <span className="text-white text-sm">
+                    {loadout.created_at ? new Date(loadout.created_at).toLocaleDateString() : 'N/A'}
+                  </span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
 
-      {/* Edit Dialog */}
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="bg-card border-border/50 max-w-2xl">
-          <DialogHeader>
-            <DialogTitle className="font-orbitron">Edit Loadout</DialogTitle>
-          </DialogHeader>
-          
-          {editingLoadout && (
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="title" className="font-rajdhani">Loadout Name</Label>
-                  <Input
-                    id="title"
-                    value={editingLoadout.title}
-                    onChange={(e) => setEditingLoadout(prev => ({ ...prev, title: e.target.value }))}
-                    className="bg-background/50 border-border/50 font-rajdhani"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="mode" className="font-rajdhani">Game Mode</Label>
-                  <Select 
-                    value={editingLoadout.mode} 
-                    onValueChange={(value) => setEditingLoadout(prev => ({ ...prev, mode: value }))}
-                  >
-                    <SelectTrigger className="bg-background/50 border-border/50">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="MP">Multiplayer</SelectItem>
-                      <SelectItem value="BR">Battle Royale</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              
-              <div>
-                <Label htmlFor="description" className="font-rajdhani">Description</Label>
-                <Textarea
-                  id="description"
-                  value={editingLoadout.description}
-                  onChange={(e) => setEditingLoadout(prev => ({ ...prev, description: e.target.value }))}
-                  className="bg-background/50 border-border/50 font-rajdhani"
-                />
-              </div>
-              
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="primaryWeapon" className="font-rajdhani">Primary Weapon</Label>
-                  <Input
-                    id="primaryWeapon"
-                    value={editingLoadout.primaryWeapon}
-                    onChange={(e) => setEditingLoadout(prev => ({ ...prev, primaryWeapon: e.target.value }))}
-                    className="bg-background/50 border-border/50 font-rajdhani"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="attachments" className="font-rajdhani">Attachments</Label>
-                  <Input
-                    id="attachments"
-                    value={editingLoadout.attachments}
-                    onChange={(e) => setEditingLoadout(prev => ({ ...prev, attachments: e.target.value }))}
-                    className="bg-background/50 border-border/50 font-rajdhani"
-                  />
-                </div>
-              </div>
-              
-              <div className="flex justify-end space-x-2 pt-4">
-                <Button
-                  variant="outline"
-                  onClick={() => setIsDialogOpen(false)}
-                  className="font-rajdhani"
-                >
-                  Cancel
-                </Button>
-                <Button
-                  onClick={handleSave}
-                  className="bg-primary hover:bg-primary/90 font-rajdhani"
-                >
-                  Save Changes
-                </Button>
-              </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
+      {filteredLoadouts.length === 0 && (
+        <div className="text-center py-12">
+          <p className="text-gray-400">No loadouts found</p>
+        </div>
+      )}
     </div>
   );
 };

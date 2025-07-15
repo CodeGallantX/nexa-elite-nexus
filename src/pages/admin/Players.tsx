@@ -3,205 +3,106 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { 
-  Search, 
-  UserPlus, 
-  Edit, 
-  Trash2, 
-  Shield, 
-  Filter,
-  MoreHorizontal,
-  Crown
-} from 'lucide-react';
-
-// Mock player data
-const mockPlayers = [
-  {
-    id: '1',
-    username: 'slayerX',
-    ign: 'slayerX',
-    email: 'slayer@nexa.gg',
-    role: 'player',
-    grade: 'S',
-    tier: 'Elite Slayer',
-    kills: 15420,
-    attendance: 85,
-    device: 'Phone',
-    dateJoined: '2024-01-15',
-    status: 'active'
-  },
-  {
-    id: '2',
-    username: 'ghost_alpha',
-    ign: 'GhostAlpha',
-    email: 'admin@nexa.gg',
-    role: 'admin',
-    grade: 'S',
-    tier: 'Clan Commander',
-    kills: 28750,
-    attendance: 95,
-    device: 'iPad',
-    dateJoined: '2023-08-10',
-    status: 'active'
-  },
-  {
-    id: '3',
-    username: 'tactical_sniper',
-    ign: 'TacticalSniper',
-    email: 'sniper@nexa.gg',
-    role: 'player',
-    grade: 'A',
-    tier: 'Veteran',
-    kills: 12890,
-    attendance: 78,
-    device: 'Phone',
-    dateJoined: '2024-02-20',
-    status: 'active'
-  },
-  {
-    id: '4',
-    username: 'elite_warrior',
-    ign: 'EliteWarrior',
-    email: 'warrior@nexa.gg',
-    role: 'player',
-    grade: 'B',
-    tier: 'Soldier',
-    kills: 8950,
-    attendance: 65,
-    device: 'iPad',
-    dateJoined: '2024-03-05',
-    status: 'inactive'
-  }
-];
+import { Badge } from '@/components/ui/badge';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { useAdminPlayers, useUpdatePlayer, useDeletePlayer } from '@/hooks/useAdminPlayers';
+import { Search, Edit, Trash2, Eye, UserPlus } from 'lucide-react';
 
 export const AdminPlayers: React.FC = () => {
-  const [players, setPlayers] = useState(mockPlayers);
+  const { data: players, isLoading } = useAdminPlayers();
+  const updatePlayer = useUpdatePlayer();
+  const deletePlayer = useDeletePlayer();
+  
   const [searchTerm, setSearchTerm] = useState('');
-  const [gradeFilter, setGradeFilter] = useState('all');
-  const [roleFilter, setRoleFilter] = useState('all');
+  const [filterRole, setFilterRole] = useState('all');
+  const [selectedPlayer, setSelectedPlayer] = useState<any>(null);
+  const [editingPlayer, setEditingPlayer] = useState<any>(null);
 
-  const getGradeColor = (grade: string) => {
-    const colors = {
-      'S': 'bg-yellow-500/20 text-yellow-400 border-yellow-500/50',
-      'A': 'bg-green-500/20 text-green-400 border-green-500/50',
-      'B': 'bg-blue-500/20 text-blue-400 border-blue-500/50',
-      'C': 'bg-orange-500/20 text-orange-400 border-orange-500/50',
-      'D': 'bg-red-500/20 text-red-400 border-red-500/50'
-    };
-    return colors[grade as keyof typeof colors] || 'bg-gray-500/20 text-gray-400 border-gray-500/50';
-  };
+  const filteredPlayers = players?.filter(player => {
+    const matchesSearch = player.username?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         player.ign?.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesRole = filterRole === 'all' || player.role === filterRole;
+    return matchesSearch && matchesRole;
+  }) || [];
 
-  const filteredPlayers = players.filter(player => {
-    const matchesSearch = player.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         player.ign.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         player.email.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesGrade = gradeFilter === 'all' || player.grade === gradeFilter;
-    const matchesRole = roleFilter === 'all' || player.role === roleFilter;
+  const handleUpdatePlayer = async (updates: any) => {
+    if (!editingPlayer) return;
     
-    return matchesSearch && matchesGrade && matchesRole;
-  });
-
-  const handlePromoteUser = (playerId: string) => {
-    setPlayers(prev => prev.map(player => 
-      player.id === playerId 
-        ? { ...player, role: player.role === 'player' ? 'admin' : 'player' }
-        : player
-    ));
+    await updatePlayer.mutateAsync({
+      id: editingPlayer.id,
+      updates
+    });
+    setEditingPlayer(null);
   };
 
-  const handleDeleteUser = (playerId: string) => {
-    setPlayers(prev => prev.filter(player => player.id !== playerId));
+  const handleDeletePlayer = async (playerId: string) => {
+    await deletePlayer.mutateAsync(playerId);
   };
+
+  const getRoleColor = (role: string) => {
+    switch (role) {
+      case 'admin': return 'bg-red-100 text-red-800';
+      case 'moderator': return 'bg-yellow-100 text-yellow-800';
+      case 'player': return 'bg-green-100 text-green-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const getTierColor = (tier: string) => {
+    switch (tier?.toLowerCase()) {
+      case 'elite': return 'bg-purple-100 text-purple-800';
+      case 'veteran': return 'bg-blue-100 text-blue-800';
+      case 'rookie': return 'bg-gray-100 text-gray-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-96">
+        <div className="text-white">Loading players...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-white font-orbitron mb-2">Player Management</h1>
-          <p className="text-gray-400">Manage clan members and their permissions</p>
-        </div>
-        <Button className="bg-primary hover:bg-primary/90">
+        <h1 className="text-3xl font-bold text-white">Players Management</h1>
+        <Button className="bg-[#FF1F44] hover:bg-red-600 text-white">
           <UserPlus className="w-4 h-4 mr-2" />
           Add Player
         </Button>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <Card className="bg-white/5 border-white/10 backdrop-blur-sm">
-          <CardContent className="p-4 text-center">
-            <div className="text-2xl font-bold text-primary mb-1">{players.length}</div>
-            <div className="text-sm text-gray-400">Total Players</div>
-          </CardContent>
-        </Card>
-        <Card className="bg-white/5 border-white/10 backdrop-blur-sm">
-          <CardContent className="p-4 text-center">
-            <div className="text-2xl font-bold text-green-400 mb-1">
-              {players.filter(p => p.status === 'active').length}
-            </div>
-            <div className="text-sm text-gray-400">Active</div>
-          </CardContent>
-        </Card>
-        <Card className="bg-white/5 border-white/10 backdrop-blur-sm">
-          <CardContent className="p-4 text-center">
-            <div className="text-2xl font-bold text-yellow-400 mb-1">
-              {players.filter(p => p.role === 'admin').length}
-            </div>
-            <div className="text-sm text-gray-400">Admins</div>
-          </CardContent>
-        </Card>
-        <Card className="bg-white/5 border-white/10 backdrop-blur-sm">
-          <CardContent className="p-4 text-center">
-            <div className="text-2xl font-bold text-purple-400 mb-1">
-              {players.filter(p => p.grade === 'S').length}
-            </div>
-            <div className="text-sm text-gray-400">S-Grade</div>
-          </CardContent>
-        </Card>
-      </div>
-
       {/* Filters */}
       <Card className="bg-white/5 border-white/10 backdrop-blur-sm">
-        <CardContent className="p-4">
-          <div className="flex flex-col md:flex-row gap-4">
-            <div className="relative flex-1">
+        <CardHeader>
+          <CardTitle className="text-white">Search & Filter</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
               <Input
-                placeholder="Search by username, IGN, or email..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 bg-background/50 border-border/50 text-foreground"
+                className="pl-10 bg-gray-800 border-gray-600 text-white"
+                placeholder="Search by username or IGN..."
               />
             </div>
-            
-            <Select value={gradeFilter} onValueChange={setGradeFilter}>
-              <SelectTrigger className="w-40 bg-background/50 border-border/50">
-                <Filter className="w-4 h-4 mr-2" />
-                <SelectValue placeholder="Grade" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Grades</SelectItem>
-                <SelectItem value="S">S Grade</SelectItem>
-                <SelectItem value="A">A Grade</SelectItem>
-                <SelectItem value="B">B Grade</SelectItem>
-                <SelectItem value="C">C Grade</SelectItem>
-                <SelectItem value="D">D Grade</SelectItem>
-              </SelectContent>
-            </Select>
-
-            <Select value={roleFilter} onValueChange={setRoleFilter}>
-              <SelectTrigger className="w-40 bg-background/50 border-border/50">
-                <Filter className="w-4 h-4 mr-2" />
-                <SelectValue placeholder="Role" />
+            <Select value={filterRole} onValueChange={setFilterRole}>
+              <SelectTrigger className="bg-gray-800 border-gray-600 text-white">
+                <SelectValue />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Roles</SelectItem>
-                <SelectItem value="player">Players</SelectItem>
-                <SelectItem value="admin">Admins</SelectItem>
+                <SelectItem value="player">Player</SelectItem>
+                <SelectItem value="moderator">Moderator</SelectItem>
+                <SelectItem value="admin">Admin</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -210,107 +111,139 @@ export const AdminPlayers: React.FC = () => {
 
       {/* Players Table */}
       <Card className="bg-white/5 border-white/10 backdrop-blur-sm">
-        <CardHeader>
-          <CardTitle className="text-white font-orbitron">Player Roster</CardTitle>
-        </CardHeader>
-        <CardContent>
+        <CardContent className="p-0">
           <Table>
             <TableHeader>
-              <TableRow className="border-white/10">
+              <TableRow className="border-gray-700">
                 <TableHead className="text-gray-300">Player</TableHead>
                 <TableHead className="text-gray-300">Role</TableHead>
-                <TableHead className="text-gray-300">Grade</TableHead>
                 <TableHead className="text-gray-300">Tier</TableHead>
                 <TableHead className="text-gray-300">Kills</TableHead>
                 <TableHead className="text-gray-300">Attendance</TableHead>
-                <TableHead className="text-gray-300">Status</TableHead>
+                <TableHead className="text-gray-300">Joined</TableHead>
                 <TableHead className="text-gray-300">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredPlayers.map(player => (
-                <TableRow key={player.id} className="border-white/10 hover:bg-white/5">
-                  <TableCell>
+              {filteredPlayers.map((player) => (
+                <TableRow key={player.id} className="border-gray-700">
+                  <TableCell className="text-white">
                     <div className="flex items-center space-x-3">
-                      <img
-                        src="/placeholder.svg"
-                        alt={player.username}
-                        className="w-8 h-8 rounded-full border border-primary/30"
-                      />
+                      <div className="w-8 h-8 bg-gray-600 rounded-full flex items-center justify-center">
+                        {player.avatar_url ? (
+                          <img src={player.avatar_url} alt={player.username} className="w-8 h-8 rounded-full" />
+                        ) : (
+                          <span className="text-sm">{player.username?.[0]?.toUpperCase()}</span>
+                        )}
+                      </div>
                       <div>
-                        <div className="text-white font-medium">{player.username}</div>
-                        <div className="text-gray-400 text-sm">{player.ign}</div>
+                        <div className="font-medium">{player.ign}</div>
+                        <div className="text-sm text-gray-400">@{player.username}</div>
                       </div>
                     </div>
                   </TableCell>
                   <TableCell>
-                    <div className="flex items-center">
-                      {player.role === 'admin' ? (
-                        <Badge className="bg-primary/20 text-primary border-primary/30">
-                          <Crown className="w-3 h-3 mr-1" />
-                          Admin
-                        </Badge>
-                      ) : (
-                        <Badge variant="outline" className="border-white/30 text-gray-300">
-                          Player
-                        </Badge>
-                      )}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <Badge className={getGradeColor(player.grade)}>
-                      {player.grade}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-gray-300">{player.tier}</TableCell>
-                  <TableCell className="text-white font-mono">{player.kills.toLocaleString()}</TableCell>
-                  <TableCell>
-                    <div className="flex items-center">
-                      <span className="text-white mr-2">{player.attendance}%</span>
-                      <div className="w-16 bg-gray-700 rounded-full h-2">
-                        <div 
-                          className="bg-primary h-2 rounded-full" 
-                          style={{ width: `${player.attendance}%` }}
-                        />
-                      </div>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <Badge 
-                      variant={player.status === 'active' ? 'default' : 'secondary'}
-                      className={player.status === 'active' 
-                        ? 'bg-green-500/20 text-green-400 border-green-500/50' 
-                        : 'bg-gray-500/20 text-gray-400 border-gray-500/50'
-                      }
-                    >
-                      {player.status}
+                    <Badge className={getRoleColor(player.role)}>
+                      {player.role}
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    <div className="flex items-center space-x-2">
+                    <Badge className={getTierColor(player.tier || 'rookie')}>
+                      {player.tier || 'Rookie'}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-white">{player.kills || 0}</TableCell>
+                  <TableCell className="text-white">{player.attendance || 0}%</TableCell>
+                  <TableCell className="text-white">
+                    {player.date_joined ? new Date(player.date_joined).toLocaleDateString() : 'N/A'}
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex space-x-2">
+                      <Dialog>
+                        <DialogTrigger asChild>
+                          <Button 
+                            size="sm" 
+                            variant="ghost" 
+                            className="text-gray-400 hover:text-white"
+                            onClick={() => setSelectedPlayer(player)}
+                          >
+                            <Eye className="w-4 h-4" />
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent className="max-w-2xl">
+                          <DialogHeader>
+                            <DialogTitle className="text-white">Player Details</DialogTitle>
+                          </DialogHeader>
+                          {selectedPlayer && (
+                            <div className="space-y-4">
+                              <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                  <label className="text-gray-300 text-sm">Username</label>
+                                  <p className="text-white">{selectedPlayer.username}</p>
+                                </div>
+                                <div>
+                                  <label className="text-gray-300 text-sm">IGN</label>
+                                  <p className="text-white">{selectedPlayer.ign}</p>
+                                </div>
+                                <div>
+                                  <label className="text-gray-300 text-sm">Device</label>
+                                  <p className="text-white">{selectedPlayer.device || 'N/A'}</p>
+                                </div>
+                                <div>
+                                  <label className="text-gray-300 text-sm">Preferred Mode</label>
+                                  <p className="text-white">{selectedPlayer.preferred_mode || 'N/A'}</p>
+                                </div>
+                                <div>
+                                  <label className="text-gray-300 text-sm">TikTok Handle</label>
+                                  <p className="text-white">{selectedPlayer.tiktok_handle || 'N/A'}</p>
+                                </div>
+                                <div>
+                                  <label className="text-gray-300 text-sm">Grade</label>
+                                  <p className="text-white">{selectedPlayer.grade || 'N/A'}</p>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                        </DialogContent>
+                      </Dialog>
+                      
                       <Button 
                         size="sm" 
                         variant="ghost" 
-                        className="text-blue-400 hover:text-blue-300 hover:bg-blue-500/10"
+                        className="text-gray-400 hover:text-white"
+                        onClick={() => setEditingPlayer(player)}
                       >
                         <Edit className="w-4 h-4" />
                       </Button>
-                      <Button 
-                        size="sm" 
-                        variant="ghost" 
-                        onClick={() => handlePromoteUser(player.id)}
-                        className="text-yellow-400 hover:text-yellow-300 hover:bg-yellow-500/10"
-                      >
-                        <Shield className="w-4 h-4" />
-                      </Button>
-                      <Button 
-                        size="sm" 
-                        variant="ghost" 
-                        onClick={() => handleDeleteUser(player.id)}
-                        className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
+                      
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button 
+                            size="sm" 
+                            variant="ghost" 
+                            className="text-gray-400 hover:text-red-400"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Delete Player</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Are you sure you want to delete {player.username}? This action cannot be undone.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={() => handleDeletePlayer(player.id)}
+                              className="bg-red-600 hover:bg-red-700"
+                            >
+                              Delete
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
                     </div>
                   </TableCell>
                 </TableRow>
@@ -319,6 +252,75 @@ export const AdminPlayers: React.FC = () => {
           </Table>
         </CardContent>
       </Card>
+
+      {/* Edit Player Dialog */}
+      {editingPlayer && (
+        <Dialog open={!!editingPlayer} onOpenChange={() => setEditingPlayer(null)}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle className="text-white">Edit Player</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-gray-300 text-sm">Tier</label>
+                  <Select 
+                    value={editingPlayer.tier} 
+                    onValueChange={(value) => setEditingPlayer({...editingPlayer, tier: value})}
+                  >
+                    <SelectTrigger className="bg-gray-800 border-gray-600 text-white">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Rookie">Rookie</SelectItem>
+                      <SelectItem value="Veteran">Veteran</SelectItem>
+                      <SelectItem value="Elite">Elite</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <label className="text-gray-300 text-sm">Grade</label>
+                  <Select 
+                    value={editingPlayer.grade} 
+                    onValueChange={(value) => setEditingPlayer({...editingPlayer, grade: value})}
+                  >
+                    <SelectTrigger className="bg-gray-800 border-gray-600 text-white">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="A">A</SelectItem>
+                      <SelectItem value="B">B</SelectItem>
+                      <SelectItem value="C">C</SelectItem>
+                      <SelectItem value="D">D</SelectItem>
+                      <SelectItem value="F">F</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div className="flex justify-end space-x-2">
+                <Button variant="outline" onClick={() => setEditingPlayer(null)}>
+                  Cancel
+                </Button>
+                <Button 
+                  onClick={() => handleUpdatePlayer({
+                    tier: editingPlayer.tier,
+                    grade: editingPlayer.grade
+                  })}
+                  className="bg-[#FF1F44] hover:bg-red-600"
+                >
+                  Save Changes
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {filteredPlayers.length === 0 && (
+        <div className="text-center py-12">
+          <p className="text-gray-400">No players found</p>
+        </div>
+      )}
     </div>
   );
 };

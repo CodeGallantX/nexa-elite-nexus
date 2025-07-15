@@ -1,293 +1,248 @@
 
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Label } from '@/components/ui/label';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { 
-  Search, 
-  TrendingUp, 
-  Target, 
-  Calendar,
-  Plus,
-  BarChart3,
-  Users
-} from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
-
-// Mock player data for stats input
-const mockPlayers = [
-  { id: '1', username: 'slayerX', ign: 'slayerX', kills: 15420, attendance: 85, grade: 'S' },
-  { id: '2', username: 'tactical_sniper', ign: 'TacticalSniper', kills: 12890, attendance: 78, grade: 'A' },
-  { id: '3', username: 'elite_warrior', ign: 'EliteWarrior', kills: 8950, attendance: 65, grade: 'B' },
-  { id: '4', username: 'combat_pro', ign: 'CombatPro', kills: 7650, attendance: 72, grade: 'B' }
-];
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { usePlayerStats } from '@/hooks/usePlayerStats';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import { Trophy, Target, TrendingUp, Users } from 'lucide-react';
 
 export const AdminStats: React.FC = () => {
-  const { toast } = useToast();
-  const [players, setPlayers] = useState(mockPlayers);
-  const [selectedPlayerId, setSelectedPlayerId] = useState('');
-  const [statsForm, setStatsForm] = useState({
-    kills: '',
-    attendance: '',
-    grade: ''
-  });
-  const [searchTerm, setSearchTerm] = useState('');
+  const { data: playerStats, isLoading } = usePlayerStats();
+  const [sortBy, setSortBy] = useState('totalEventKills');
 
-  const selectedPlayer = players.find(p => p.id === selectedPlayerId);
-  const filteredPlayers = players.filter(player =>
-    player.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    player.ign.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  const handlePlayerSelect = (playerId: string) => {
-    const player = players.find(p => p.id === playerId);
-    if (player) {
-      setSelectedPlayerId(playerId);
-      setStatsForm({
-        kills: player.kills.toString(),
-        attendance: player.attendance.toString(),
-        grade: player.grade
-      });
+  const sortedStats = playerStats?.sort((a, b) => {
+    switch (sortBy) {
+      case 'totalEventKills':
+        return (b.totalEventKills || 0) - (a.totalEventKills || 0);
+      case 'avgKillsPerEvent':
+        return (b.avgKillsPerEvent || 0) - (a.avgKillsPerEvent || 0);
+      case 'eventsParticipated':
+        return (b.eventsParticipated || 0) - (a.eventsParticipated || 0);
+      case 'attendance':
+        return (b.attendance || 0) - (a.attendance || 0);
+      default:
+        return 0;
     }
-  };
+  }) || [];
 
-  const handleStatsUpdate = () => {
-    if (!selectedPlayerId) return;
+  const chartData = sortedStats.slice(0, 10).map(player => ({
+    name: player.ign,
+    kills: player.totalEventKills || 0,
+    avgKills: player.avgKillsPerEvent || 0,
+    events: player.eventsParticipated || 0
+  }));
 
-    const updatedPlayers = players.map(player => 
-      player.id === selectedPlayerId 
-        ? {
-            ...player,
-            kills: parseInt(statsForm.kills) || player.kills,
-            attendance: parseInt(statsForm.attendance) || player.attendance,
-            grade: statsForm.grade as 'S' | 'A' | 'B' | 'C' | 'D' || player.grade
-          }
-        : player
+  const tierDistribution = playerStats?.reduce((acc, player) => {
+    const tier = player.tier || 'Rookie';
+    acc[tier] = (acc[tier] || 0) + 1;
+    return acc;
+  }, {} as Record<string, number>) || {};
+
+  const pieData = Object.entries(tierDistribution).map(([tier, count]) => ({
+    name: tier,
+    value: count
+  }));
+
+  const COLORS = ['#FF1F44', '#00C49F', '#FFBB28', '#FF8042', '#8884D8'];
+
+  const totalKills = playerStats?.reduce((sum, player) => sum + (player.totalEventKills || 0), 0) || 0;
+  const totalEvents = playerStats?.reduce((sum, player) => sum + (player.eventsParticipated || 0), 0) || 0;
+  const activePlayerCount = playerStats?.filter(p => (p.eventsParticipated || 0) > 0).length || 0;
+  const avgAttendance = playerStats?.reduce((sum, player) => sum + (player.attendance || 0), 0) / (playerStats?.length || 1) || 0;
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-96">
+        <div className="text-white">Loading statistics...</div>
+      </div>
     );
-
-    setPlayers(updatedPlayers);
-    toast({
-      title: "Stats Updated",
-      description: `${selectedPlayer?.username}'s stats have been updated successfully.`,
-    });
-  };
-
-  const getGradeColor = (grade: string) => {
-    const colors = {
-      'S': 'bg-yellow-500/20 text-yellow-400 border-yellow-500/50',
-      'A': 'bg-green-500/20 text-green-400 border-green-500/50',
-      'B': 'bg-blue-500/20 text-blue-400 border-blue-500/50',
-      'C': 'bg-orange-500/20 text-orange-400 border-orange-500/50',
-      'D': 'bg-red-500/20 text-red-400 border-red-500/50'
-    };
-    return colors[grade as keyof typeof colors] || 'bg-gray-500/20 text-gray-400 border-gray-500/50';
-  };
-
-  const totalKills = players.reduce((sum, player) => sum + player.kills, 0);
-  const averageAttendance = Math.round(players.reduce((sum, player) => sum + player.attendance, 0) / players.length);
+  }
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold text-white font-orbitron mb-2">Statistics Input</h1>
-        <p className="text-gray-400">Manually update player kill counts, attendance, and performance grades</p>
+      <div className="flex items-center justify-between">
+        <h1 className="text-3xl font-bold text-white">Player Statistics</h1>
       </div>
 
-      {/* Overview Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+      {/* Overview Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <Card className="bg-white/5 border-white/10 backdrop-blur-sm">
-          <CardContent className="p-4 text-center">
-            <div className="text-2xl font-bold text-primary mb-1">{totalKills.toLocaleString()}</div>
-            <div className="text-sm text-gray-400 flex items-center justify-center">
-              <Target className="w-4 h-4 mr-1" />
-              Total Kills
-            </div>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-gray-300">Total Kills</CardTitle>
+            <Target className="h-4 w-4 text-red-400" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-white">{totalKills}</div>
+            <p className="text-xs text-gray-400">Across all events</p>
           </CardContent>
         </Card>
+
         <Card className="bg-white/5 border-white/10 backdrop-blur-sm">
-          <CardContent className="p-4 text-center">
-            <div className="text-2xl font-bold text-green-400 mb-1">{averageAttendance}%</div>
-            <div className="text-sm text-gray-400 flex items-center justify-center">
-              <Calendar className="w-4 h-4 mr-1" />
-              Avg Attendance
-            </div>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-gray-300">Active Players</CardTitle>
+            <Users className="h-4 w-4 text-blue-400" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-white">{activePlayerCount}</div>
+            <p className="text-xs text-gray-400">With event participation</p>
           </CardContent>
         </Card>
+
         <Card className="bg-white/5 border-white/10 backdrop-blur-sm">
-          <CardContent className="p-4 text-center">
-            <div className="text-2xl font-bold text-yellow-400 mb-1">
-              {players.filter(p => p.grade === 'S').length}
-            </div>
-            <div className="text-sm text-gray-400">S-Grade Players</div>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-gray-300">Avg Attendance</CardTitle>
+            <TrendingUp className="h-4 w-4 text-green-400" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-white">{Math.round(avgAttendance)}%</div>
+            <p className="text-xs text-gray-400">Player participation rate</p>
           </CardContent>
         </Card>
+
         <Card className="bg-white/5 border-white/10 backdrop-blur-sm">
-          <CardContent className="p-4 text-center">
-            <div className="text-2xl font-bold text-blue-400 mb-1">{players.length}</div>
-            <div className="text-sm text-gray-400 flex items-center justify-center">
-              <Users className="w-4 h-4 mr-1" />
-              Active Players
-            </div>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-gray-300">Total Participations</CardTitle>
+            <Trophy className="h-4 w-4 text-yellow-400" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-white">{totalEvents}</div>
+            <p className="text-xs text-gray-400">Event participations</p>
           </CardContent>
         </Card>
       </div>
 
+      {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Player Selection */}
         <Card className="bg-white/5 border-white/10 backdrop-blur-sm">
           <CardHeader>
-            <CardTitle className="text-white font-orbitron flex items-center">
-              <Users className="w-5 h-5 mr-2 text-primary" />
-              Select Player
-            </CardTitle>
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-              <Input
-                placeholder="Search players..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 bg-background/50 border-border/50 text-foreground"
-              />
-            </div>
+            <CardTitle className="text-white">Top 10 Players - Kill Performance</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-2 max-h-96 overflow-y-auto">
-            {filteredPlayers.map(player => (
-              <div
-                key={player.id}
-                onClick={() => handlePlayerSelect(player.id)}
-                className={`p-3 rounded-lg cursor-pointer transition-colors ${
-                  selectedPlayerId === player.id
-                    ? 'bg-primary/20 border border-primary/30'
-                    : 'bg-white/5 hover:bg-white/10 border border-transparent'
-                }`}
-              >
-                <div className="flex items-center justify-between">
-                  <div>
-                    <div className="text-white font-medium">{player.username}</div>
-                    <div className="text-gray-400 text-sm">{player.ign}</div>
-                  </div>
-                  <div className="text-right">
-                    <Badge className={getGradeColor(player.grade)}>
-                      {player.grade}
-                    </Badge>
-                    <div className="text-xs text-gray-400 mt-1">
-                      {player.kills.toLocaleString()} kills
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ))}
+          <CardContent>
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={chartData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                <XAxis dataKey="name" stroke="#9CA3AF" />
+                <YAxis stroke="#9CA3AF" />
+                <Tooltip 
+                  contentStyle={{ 
+                    backgroundColor: '#1F2937', 
+                    border: '1px solid #374151',
+                    borderRadius: '8px',
+                    color: '#fff'
+                  }} 
+                />
+                <Bar dataKey="kills" fill="#FF1F44" />
+              </BarChart>
+            </ResponsiveContainer>
           </CardContent>
         </Card>
 
-        {/* Stats Input Form */}
         <Card className="bg-white/5 border-white/10 backdrop-blur-sm">
           <CardHeader>
-            <CardTitle className="text-white font-orbitron flex items-center">
-              <BarChart3 className="w-5 h-5 mr-2 text-primary" />
-              Update Statistics
-            </CardTitle>
-            {selectedPlayer && (
-              <p className="text-gray-400">
-                Editing stats for <span className="text-primary font-medium">{selectedPlayer.username}</span>
-              </p>
-            )}
+            <CardTitle className="text-white">Player Tier Distribution</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            {selectedPlayer ? (
-              <>
-                <div>
-                  <Label className="text-gray-300">Total Kills</Label>
-                  <Input
-                    type="number"
-                    value={statsForm.kills}
-                    onChange={(e) => setStatsForm(prev => ({ ...prev, kills: e.target.value }))}
-                    className="bg-background/50 border-border/50 text-foreground font-mono"
-                    placeholder="15420"
-                  />
-                  <div className="text-xs text-gray-400 mt-1">
-                    Current: {selectedPlayer.kills.toLocaleString()}
-                  </div>
-                </div>
-
-                <div>
-                  <Label className="text-gray-300">Attendance (%)</Label>
-                  <Input
-                    type="number"
-                    min="0"
-                    max="100"
-                    value={statsForm.attendance}
-                    onChange={(e) => setStatsForm(prev => ({ ...prev, attendance: e.target.value }))}
-                    className="bg-background/50 border-border/50 text-foreground"
-                    placeholder="85"
-                  />
-                  <div className="text-xs text-gray-400 mt-1">
-                    Current: {selectedPlayer.attendance}%
-                  </div>
-                </div>
-
-                <div>
-                  <Label className="text-gray-300">Performance Grade</Label>
-                  <Select 
-                    value={statsForm.grade} 
-                    onValueChange={(value) => setStatsForm(prev => ({ ...prev, grade: value }))}
-                  >
-                    <SelectTrigger className="bg-background/50 border-border/50">
-                      <SelectValue placeholder="Select grade" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="S">S - Elite</SelectItem>
-                      <SelectItem value="A">A - Veteran</SelectItem>
-                      <SelectItem value="B">B - Soldier</SelectItem>
-                      <SelectItem value="C">C - Recruit</SelectItem>
-                      <SelectItem value="D">D - Trainee</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <div className="text-xs text-gray-400 mt-1">
-                    Current: <Badge className={getGradeColor(selectedPlayer.grade)}>
-                      {selectedPlayer.grade}
-                    </Badge>
-                  </div>
-                </div>
-
-                <Button 
-                  onClick={handleStatsUpdate}
-                  className="w-full bg-primary hover:bg-primary/90 text-white font-rajdhani"
+          <CardContent>
+            <ResponsiveContainer width="100%" height={300}>
+              <PieChart>
+                <Pie
+                  data={pieData}
+                  cx="50%"
+                  cy="50%"
+                  labelLine={false}
+                  label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                  outerRadius={80}
+                  fill="#8884d8"
+                  dataKey="value"
                 >
-                  <TrendingUp className="w-4 h-4 mr-2" />
-                  Update Statistics
-                </Button>
-              </>
-            ) : (
-              <div className="text-center py-8">
-                <BarChart3 className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                <p className="text-gray-400">Select a player to update their statistics</p>
-              </div>
-            )}
+                  {pieData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip 
+                  contentStyle={{ 
+                    backgroundColor: '#1F2937', 
+                    border: '1px solid #374151',
+                    borderRadius: '8px',
+                    color: '#fff'
+                  }} 
+                />
+              </PieChart>
+            </ResponsiveContainer>
           </CardContent>
         </Card>
       </div>
 
-      {/* Kill Count Trends Chart Placeholder */}
+      {/* Detailed Stats Table */}
       <Card className="bg-white/5 border-white/10 backdrop-blur-sm">
         <CardHeader>
-          <CardTitle className="text-white font-orbitron flex items-center">
-            <TrendingUp className="w-5 h-5 mr-2 text-primary" />
-            Kill Count Trends
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="h-64 bg-background/30 rounded-lg flex items-center justify-center">
-            <div className="text-center">
-              <BarChart3 className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-              <p className="text-gray-400">Chart visualization would be implemented here</p>
-              <p className="text-sm text-gray-500">Integration with charting library needed</p>
-            </div>
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-white">Detailed Player Statistics</CardTitle>
+            <Select value={sortBy} onValueChange={setSortBy}>
+              <SelectTrigger className="w-48 bg-gray-800 border-gray-600 text-white">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="totalEventKills">Total Kills</SelectItem>
+                <SelectItem value="avgKillsPerEvent">Avg Kills/Event</SelectItem>
+                <SelectItem value="eventsParticipated">Events Participated</SelectItem>
+                <SelectItem value="attendance">Attendance %</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
+        </CardHeader>
+        <CardContent className="p-0">
+          <Table>
+            <TableHeader>
+              <TableRow className="border-gray-700">
+                <TableHead className="text-gray-300">Rank</TableHead>
+                <TableHead className="text-gray-300">Player</TableHead>
+                <TableHead className="text-gray-300">Tier</TableHead>
+                <TableHead className="text-gray-300">Total Kills</TableHead>
+                <TableHead className="text-gray-300">Avg Kills/Event</TableHead>
+                <TableHead className="text-gray-300">Events</TableHead>
+                <TableHead className="text-gray-300">Attendance</TableHead>
+                <TableHead className="text-gray-300">Grade</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {sortedStats.map((player, index) => (
+                <TableRow key={player.id} className="border-gray-700">
+                  <TableCell className="text-white font-medium">#{index + 1}</TableCell>
+                  <TableCell className="text-white">
+                    <div>
+                      <div className="font-medium">{player.ign}</div>
+                      <div className="text-sm text-gray-400">@{player.username}</div>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <Badge className={
+                      player.tier === 'Elite' ? 'bg-purple-100 text-purple-800' :
+                      player.tier === 'Veteran' ? 'bg-blue-100 text-blue-800' :
+                      'bg-gray-100 text-gray-800'
+                    }>
+                      {player.tier || 'Rookie'}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-white font-medium">{player.totalEventKills || 0}</TableCell>
+                  <TableCell className="text-white">{player.avgKillsPerEvent || 0}</TableCell>
+                  <TableCell className="text-white">{player.eventsParticipated || 0}</TableCell>
+                  <TableCell className="text-white">{player.attendance || 0}%</TableCell>
+                  <TableCell>
+                    <Badge className={
+                      player.grade === 'A' ? 'bg-green-100 text-green-800' :
+                      player.grade === 'B' ? 'bg-blue-100 text-blue-800' :
+                      player.grade === 'C' ? 'bg-yellow-100 text-yellow-800' :
+                      'bg-red-100 text-red-800'
+                    }>
+                      {player.grade || 'D'}
+                    </Badge>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
         </CardContent>
       </Card>
     </div>

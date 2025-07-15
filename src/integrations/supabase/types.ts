@@ -313,6 +313,7 @@ export type Database = {
         Row: {
           attendance: number | null
           avatar_url: string | null
+          banking_info: Json | null
           created_at: string | null
           date_joined: string | null
           device: string | null
@@ -322,6 +323,7 @@ export type Database = {
           kills: number | null
           preferred_mode: string | null
           role: Database["public"]["Enums"]["user_role"]
+          social_links: Json | null
           tier: string | null
           tiktok_handle: string | null
           updated_at: string | null
@@ -330,6 +332,7 @@ export type Database = {
         Insert: {
           attendance?: number | null
           avatar_url?: string | null
+          banking_info?: Json | null
           created_at?: string | null
           date_joined?: string | null
           device?: string | null
@@ -339,6 +342,7 @@ export type Database = {
           kills?: number | null
           preferred_mode?: string | null
           role?: Database["public"]["Enums"]["user_role"]
+          social_links?: Json | null
           tier?: string | null
           tiktok_handle?: string | null
           updated_at?: string | null
@@ -347,6 +351,7 @@ export type Database = {
         Update: {
           attendance?: number | null
           avatar_url?: string | null
+          banking_info?: Json | null
           created_at?: string | null
           date_joined?: string | null
           device?: string | null
@@ -356,6 +361,7 @@ export type Database = {
           kills?: number | null
           preferred_mode?: string | null
           role?: Database["public"]["Enums"]["user_role"]
+          social_links?: Json | null
           tier?: string | null
           tiktok_handle?: string | null
           updated_at?: string | null
@@ -415,7 +421,16 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      admin_dashboard_stats: {
+        Row: {
+          avg_attendance: number | null
+          total_events: number | null
+          total_kills: number | null
+          total_loadouts: number | null
+          total_players: number | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       get_user_role: {
