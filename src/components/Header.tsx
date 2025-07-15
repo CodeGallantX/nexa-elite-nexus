@@ -61,9 +61,9 @@ export const Header: React.FC = () => {
   return (
     <header className="h-16 border-b border-border/30 bg-card/30 backdrop-blur-sm flex items-center justify-between px-6">
       <div className="flex items-center space-x-4">
-        <h2 className="text-xl font-orbitron font-bold text-foreground">
+        {/* <h2 className="text-xl font-orbitron font-bold text-foreground">
           {user?.role === 'admin' ? 'Admin Dashboard' : 'Player Dashboard'}
-        </h2>
+        </h2> */}
       </div>
 
       <div className="flex items-center space-x-4">
