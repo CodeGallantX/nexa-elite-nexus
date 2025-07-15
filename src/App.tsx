@@ -29,7 +29,7 @@ import { WeaponLayouts } from '@/pages/WeaponLayouts';
 import { Announcements } from '@/pages/Announcements';
 
 // Admin pages
-import { AdminDashboard } from '@/pages/AdminDashboard';
+import AdminDashboard from '@/pages/AdminDashboard';
 import { AdminPlayers } from '@/pages/admin/Players';
 import { AdminStats } from '@/pages/admin/Stats';
 import { AdminProfiles } from '@/pages/admin/Profiles';
@@ -73,7 +73,7 @@ function App() {
             {/* Admin routes */}
             <Route path="/admin" element={<Layout showSidebar><AdminDashboard /></Layout>} />
             <Route path="/admin/players" element={<Layout showSidebar><AdminPlayers /></Layout>} />
-            <Route path="/admin/stats" element={<Layout showSidebar><AdminStats /></Layout>} />
+            <Route path="/admin/stats" element={<Layout showSidbar><AdminStats /></Layout>} />
             <Route path="/admin/profiles" element={<Layout showSidebar><AdminProfiles /></Layout>} />
             <Route path="/admin/loadouts" element={<Layout showSidebar><AdminLoadouts /></Layout>} />
             <Route path="/admin/weapon-layouts" element={<Layout showSidebar><AdminWeaponLayouts /></Layout>} />
