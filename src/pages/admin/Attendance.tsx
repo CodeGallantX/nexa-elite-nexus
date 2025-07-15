@@ -142,7 +142,7 @@ export const AdminAttendance: React.FC = () => {
       const attendanceData = {
         player_id: playerId,
         status,
-        attendance_type: attendanceMode === 'Mixed' ? 'Mixed' : attendanceMode,
+        attendance_type: attendanceMode === 'Mixed' ? 'Mixed' as const : attendanceMode as AttendanceMode,
         date: selectedDate,
         event_id: eventId || null
       };
@@ -195,6 +195,48 @@ export const AdminAttendance: React.FC = () => {
       toast({
         title: "Error",
         description: "Failed to mark attendance. Please try again.",
+        variant: "destructive",
+      });
+    }
+  });
+
+  // Bulk attendance mutation
+  const bulkAttendanceMutation = useMutation({
+    mutationFn: async (attendanceRecords: Array<{
+      player_id: string;
+      status: 'present' | 'absent';
+      attendance_type: AttendanceMode;
+      date: string;
+      event_id?: string;
+    }>) => {
+      // Insert each record individually to avoid type issues
+      for (const record of attendanceRecords) {
+        const { error } = await supabase
+          .from('attendance')
+          .insert({
+            player_id: record.player_id,
+            status: record.status,
+            attendance_type: record.attendance_type,
+            date: record.date,
+            event_id: record.event_id || null
+          });
+        
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-attendance-records'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-attendance-players'] });
+      toast({
+        title: "Bulk Attendance Updated",
+        description: "All attendance records have been updated successfully.",
+      });
+    },
+    onError: (error) => {
+      console.error('Error with bulk attendance:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update attendance records. Please try again.",
         variant: "destructive",
       });
     }
