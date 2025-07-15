@@ -6,6 +6,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
+import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 import { 
   User, 
   Edit3, 
@@ -15,12 +17,15 @@ import {
   Target,
   Smartphone,
   Calendar,
-  ExternalLink
+  ExternalLink,
+  Upload
 } from 'lucide-react';
 
 export const Profile: React.FC = () => {
   const { profile, updateProfile } = useAuth();
+  const { toast } = useToast();
   const [editing, setEditing] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [formData, setFormData] = useState({
     tiktok_handle: profile?.tiktok_handle || '',
     preferred_mode: profile?.preferred_mode || '',
@@ -31,6 +36,44 @@ export const Profile: React.FC = () => {
     if (profile) {
       await updateProfile(formData);
       setEditing(false);
+    }
+  };
+
+  const handleAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file || !profile) return;
+
+    setUploading(true);
+
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${profile.id}/avatar.${fileExt}`;
+      
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(fileName, file, { upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      const { data } = supabase.storage
+        .from('avatars')
+        .getPublicUrl(fileName);
+
+      await updateProfile({ avatar_url: data.publicUrl });
+
+      toast({
+        title: "Success",
+        description: "Avatar updated successfully",
+      });
+    } catch (error) {
+      console.error('Error uploading avatar:', error);
+      toast({
+        title: "Error",
+        description: "Failed to upload avatar",
+        variant: "destructive",
+      });
+    } finally {
+      setUploading(false);
     }
   };
 
@@ -64,14 +107,29 @@ export const Profile: React.FC = () => {
               <img
                 src={profile.avatar_url || '/placeholder.svg'}
                 alt="Profile"
-                className="w-32 h-32 rounded-full border-4 border-[#FF1F44]/30"
+                className="w-32 h-32 rounded-full border-4 border-[#FF1F44]/30 object-cover"
               />
-              <Button 
-                size="sm"
-                className="absolute bottom-0 right-0 rounded-full p-2 bg-[#FF1F44] hover:bg-red-600"
-              >
-                <Camera className="w-4 h-4" />
-              </Button>
+              <div className="absolute bottom-0 right-0">
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleAvatarUpload}
+                  className="hidden"
+                  id="avatar-upload"
+                />
+                <label htmlFor="avatar-upload">
+                  <Button 
+                    size="sm"
+                    className="rounded-full p-2 bg-[#FF1F44] hover:bg-red-600 cursor-pointer"
+                    disabled={uploading}
+                    asChild
+                  >
+                    <div>
+                      {uploading ? <Upload className="w-4 h-4 animate-spin" /> : <Camera className="w-4 h-4" />}
+                    </div>
+                  </Button>
+                </label>
+              </div>
             </div>
 
             {/* Basic Info */}

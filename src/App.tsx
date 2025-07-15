@@ -1,209 +1,97 @@
-import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { AuthProvider, useAuth } from "@/contexts/AuthContext";
-import { ThemeProvider } from "@/contexts/ThemeContext";
-import { Layout } from "@/components/Layout";
 
-// Pages
-import { Landing } from "@/pages/Landing";
-import { Login } from "@/pages/auth/Login";
-import { Signup } from "@/pages/auth/Signup";
-import { ForgotPassword } from "@/pages/auth/ForgotPassword";
-import { ResetPassword } from "@/pages/auth/ResetPassword";
-import { Onboarding } from "@/pages/auth/Onboarding";
-import { Dashboard } from "@/pages/Dashboard";
-import { AdminDashboard } from "@/pages/AdminDashboard";
-import { AdminPlayers } from "@/pages/admin/Players";
-import { AdminProfiles } from "@/pages/admin/Profiles";
-import { AdminStats } from "@/pages/admin/Stats";
-import { Profile } from "@/pages/Profile";
-import { Chat } from "@/pages/Chat";
-import { Announcements } from "@/pages/Announcements";
-import { Settings } from "@/pages/Settings";
-import NotFound from "./pages/NotFound";
-import { Loadouts } from "@/pages/Loadouts";
-import { Scrims } from "@/pages/Scrims";
-import { PublicProfile } from "@/pages/PublicProfile";
-import { AdminLoadouts } from "@/pages/admin/Loadouts";
-import { AdminScrimsManagement } from "@/pages/admin/ScrimsManagement";
-import { AdminEventsManagement } from "@/pages/admin/EventsManagement";
-import { AdminAttendance } from "@/pages/admin/Attendance";
-import { AdminNotifications } from "@/pages/admin/Notifications";
-import { AdminAnnouncementsManagement } from "@/pages/admin/AnnouncementsManagement";
-import { EventAssignment } from "@/pages/admin/EventAssignment";
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { Toaster } from '@/components/ui/toaster';
+import { AuthProvider } from '@/contexts/AuthContext';
+import { ThemeProvider } from '@/contexts/ThemeContext';
+import { Layout } from '@/components/Layout';
 
-const queryClient = new QueryClient();
+// Public pages
+import { Index } from '@/pages/Index';
+import { Landing } from '@/pages/Landing';
+import { PublicProfile } from '@/pages/PublicProfile';
+import { NotFound } from '@/pages/NotFound';
 
-// Protected Route Component
-const ProtectedRoute = ({ children, requiredRole }: { children: React.ReactNode; requiredRole?: 'admin' | 'player' }) => {
-  const { isAuthenticated, profile, loading } = useAuth();
+// Auth pages
+import { Login } from '@/pages/auth/Login';
+import { Signup } from '@/pages/auth/Signup';
+import { ForgotPassword } from '@/pages/auth/ForgotPassword';
+import { ResetPassword } from '@/pages/auth/ResetPassword';
+import { Onboarding } from '@/pages/auth/Onboarding';
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-foreground text-xl font-orbitron">Loading...</div>
-      </div>
-    );
-  }
+// Protected pages
+import { Dashboard } from '@/pages/Dashboard';
+import { Profile } from '@/pages/Profile';
+import { Settings } from '@/pages/Settings';
+import { Chat } from '@/pages/Chat';
+import { Scrims } from '@/pages/Scrims';
+import { Loadouts } from '@/pages/Loadouts';
+import { WeaponLayouts } from '@/pages/WeaponLayouts';
+import { Announcements } from '@/pages/Announcements';
 
-  if (!isAuthenticated) {
-    return <Navigate to="/auth/login" replace />;
-  }
+// Admin pages
+import { AdminDashboard } from '@/pages/AdminDashboard';
+import { AdminPlayers } from '@/pages/admin/Players';
+import { AdminStats } from '@/pages/admin/Stats';
+import { AdminProfiles } from '@/pages/admin/Profiles';
+import { AdminLoadouts } from '@/pages/admin/Loadouts';
+import { AdminWeaponLayouts } from '@/pages/admin/WeaponLayouts';
+import { AdminScrimsManagement } from '@/pages/admin/ScrimsManagement';
+import { AdminEventsManagement } from '@/pages/admin/EventsManagement';
+import { AdminEventAssignment } from '@/pages/admin/EventAssignment';
+import { AdminAttendance } from '@/pages/admin/Attendance';
+import { AdminAnnouncementsManagement } from '@/pages/admin/AnnouncementsManagement';
+import { AdminNotifications } from '@/pages/admin/Notifications';
 
-  if (requiredRole && profile?.role !== requiredRole) {
-    return <Navigate to={profile?.role === 'admin' ? '/admin' : '/dashboard'} replace />;
-  }
-
-  return <>{children}</>;
-};
-
-const AppRoutes = () => {
-  const { isAuthenticated, profile } = useAuth();
-
+function App() {
   return (
-    <Routes>
-      {/* Public Routes */}
-      <Route path="/" element={<Layout><Landing /></Layout>} />
-      <Route path="/user/:ign" element={<Layout><PublicProfile /></Layout>} />
-      <Route path="/auth/login" element={
-        isAuthenticated ? 
-        <Navigate to={profile?.role === 'admin' ? '/admin' : '/dashboard'} replace /> : 
-        <Layout><Login /></Layout>
-      } />
-      <Route path="/auth/signup" element={
-        isAuthenticated ? 
-        <Navigate to={profile?.role === 'admin' ? '/admin' : '/dashboard'} replace /> : 
-        <Layout><Signup /></Layout>
-      } />
-      <Route path="/auth/forgot-password" element={<Layout><ForgotPassword /></Layout>} />
-      <Route path="/auth/reset-password" element={<Layout><ResetPassword /></Layout>} />
-      
-      {/* Onboarding Route */}
-      <Route path="/auth/onboarding" element={
-        <ProtectedRoute>
-          <Layout><Onboarding /></Layout>
-        </ProtectedRoute>
-      } />
+    <ThemeProvider>
+      <AuthProvider>
+        <Router>
+          <Routes>
+            {/* Public routes */}
+            <Route path="/" element={<Index />} />
+            <Route path="/landing" element={<Landing />} />
+            <Route path="/profile/:id" element={<PublicProfile />} />
+            
+            {/* Auth routes */}
+            <Route path="/auth/login" element={<Login />} />
+            <Route path="/auth/signup" element={<Signup />} />
+            <Route path="/auth/forgot-password" element={<ForgotPassword />} />
+            <Route path="/auth/reset-password" element={<ResetPassword />} />
+            <Route path="/auth/onboarding" element={<Onboarding />} />
 
-      {/* Protected Player Routes */}
-      <Route path="/dashboard" element={
-        <ProtectedRoute requiredRole="player">
-          <Layout showSidebar><Dashboard /></Layout>
-        </ProtectedRoute>
-      } />
-      <Route path="/loadouts" element={
-        <ProtectedRoute requiredRole="player">
-          <Layout showSidebar><Loadouts /></Layout>
-        </ProtectedRoute>
-      } />
-      <Route path="/scrims" element={
-        <ProtectedRoute requiredRole="player">
-          <Layout showSidebar><Scrims /></Layout>
-        </ProtectedRoute>
-      } />
+            {/* Protected routes */}
+            <Route path="/dashboard" element={<Layout showSidebar><Dashboard /></Layout>} />
+            <Route path="/profile" element={<Layout showSidebar><Profile /></Layout>} />
+            <Route path="/settings" element={<Layout showSidebar><Settings /></Layout>} />
+            <Route path="/chat" element={<Layout showSidebar><Chat /></Layout>} />
+            <Route path="/scrims" element={<Layout showSidebar><Scrims /></Layout>} />
+            <Route path="/loadouts" element={<Layout showSidebar><Loadouts /></Layout>} />
+            <Route path="/weapon-layouts" element={<Layout showSidebar><WeaponLayouts /></Layout>} />
+            <Route path="/announcements" element={<Layout showSidebar><Announcements /></Layout>} />
 
-      {/* Protected Admin Routes */}
-      <Route path="/admin" element={
-        <ProtectedRoute requiredRole="admin">
-          <Layout showSidebar><AdminDashboard /></Layout>
-        </ProtectedRoute>
-      } />
-      <Route path="/admin/players" element={
-        <ProtectedRoute requiredRole="admin">
-          <Layout showSidebar><AdminPlayers /></Layout>
-        </ProtectedRoute>
-      } />
-      <Route path="/admin/profiles" element={
-        <ProtectedRoute requiredRole="admin">
-          <Layout showSidebar><AdminProfiles /></Layout>
-        </ProtectedRoute>
-      } />
-      <Route path="/admin/stats" element={
-        <ProtectedRoute requiredRole="admin">
-          <Layout showSidebar><AdminStats /></Layout>
-        </ProtectedRoute>
-      } />
-      <Route path="/admin/loadouts" element={
-        <ProtectedRoute requiredRole="admin">
-          <Layout showSidebar><AdminLoadouts /></Layout>
-        </ProtectedRoute>
-      } />
-      <Route path="/admin/scrims" element={
-        <ProtectedRoute requiredRole="admin">
-          <Layout showSidebar><AdminScrimsManagement /></Layout>
-        </ProtectedRoute>
-      } />
-      <Route path="/admin/events" element={
-        <ProtectedRoute requiredRole="admin">
-          <Layout showSidebar><AdminEventsManagement /></Layout>
-        </ProtectedRoute>
-      } />
-      <Route path="/admin/events/:eventId/assign" element={
-        <ProtectedRoute requiredRole="admin">
-          <Layout showSidebar><EventAssignment /></Layout>
-        </ProtectedRoute>
-      } />
-      <Route path="/admin/attendance" element={
-        <ProtectedRoute requiredRole="admin">
-          <Layout showSidebar><AdminAttendance /></Layout>
-        </ProtectedRoute>
-      } />
-      <Route path="/admin/notifications" element={
-        <ProtectedRoute requiredRole="admin">
-          <Layout showSidebar><AdminNotifications /></Layout>
-        </ProtectedRoute>
-      } />
-      <Route path="/admin/announcements" element={
-        <ProtectedRoute requiredRole="admin">
-          <Layout showSidebar><AdminAnnouncementsManagement /></Layout>
-        </ProtectedRoute>
-      } />
+            {/* Admin routes */}
+            <Route path="/admin" element={<Layout showSidebar><AdminDashboard /></Layout>} />
+            <Route path="/admin/players" element={<Layout showSidebar><AdminPlayers /></Layout>} />
+            <Route path="/admin/stats" element={<Layout showSidebar><AdminStats /></Layout>} />
+            <Route path="/admin/profiles" element={<Layout showSidebar><AdminProfiles /></Layout>} />
+            <Route path="/admin/loadouts" element={<Layout showSidebar><AdminLoadouts /></Layout>} />
+            <Route path="/admin/weapon-layouts" element={<Layout showSidebar><AdminWeaponLayouts /></Layout>} />
+            <Route path="/admin/scrims" element={<Layout showSidebar><AdminScrimsManagement /></Layout>} />
+            <Route path="/admin/events" element={<Layout showSidebar><AdminEventsManagement /></Layout>} />
+            <Route path="/admin/event-assignment" element={<Layout showSidebar><AdminEventAssignment /></Layout>} />
+            <Route path="/admin/attendance" element={<Layout showSidebar><AdminAttendance /></Layout>} />
+            <Route path="/admin/announcements" element={<Layout showSidebar><AdminAnnouncementsManagement /></Layout>} />
+            <Route path="/admin/notifications" element={<Layout showSidebar><AdminNotifications /></Layout>} />
 
-      {/* Shared Protected Routes */}
-      <Route path="/profile" element={
-        <ProtectedRoute>
-          <Layout showSidebar><Profile /></Layout>
-        </ProtectedRoute>
-      } />
-      <Route path="/chat" element={
-        <ProtectedRoute>
-          <Layout showSidebar><Chat /></Layout>
-        </ProtectedRoute>
-      } />
-      <Route path="/announcements" element={
-        <ProtectedRoute>
-          <Layout showSidebar><Announcements /></Layout>
-        </ProtectedRoute>
-      } />
-      <Route path="/settings" element={
-        <ProtectedRoute>
-          <Layout showSidebar><Settings /></Layout>
-        </ProtectedRoute>
-      } />
-
-      {/* Catch-all */}
-      <Route path="*" element={<NotFound />} />
-    </Routes>
+            {/* 404 */}
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+          <Toaster />
+        </Router>
+      </AuthProvider>
+    </ThemeProvider>
   );
-};
-
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <ThemeProvider>
-        <Toaster />
-        <Sonner />
-        <AuthProvider>
-          <BrowserRouter>
-            <AppRoutes />
-          </BrowserRouter>
-        </AuthProvider>
-      </ThemeProvider>
-    </TooltipProvider>
-  </QueryClientProvider>
-);
+}
 
 export default App;

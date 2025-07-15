@@ -363,6 +363,56 @@ export type Database = {
         }
         Relationships: []
       }
+      weapon_layouts: {
+        Row: {
+          created_at: string | null
+          id: string
+          image_name: string | null
+          image_url: string | null
+          is_featured: boolean | null
+          mode: string
+          player_id: string
+          updated_at: string | null
+          view_count: number | null
+          weapon_name: string
+          weapon_type: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          image_name?: string | null
+          image_url?: string | null
+          is_featured?: boolean | null
+          mode: string
+          player_id: string
+          updated_at?: string | null
+          view_count?: number | null
+          weapon_name: string
+          weapon_type: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          image_name?: string | null
+          image_url?: string | null
+          is_featured?: boolean | null
+          mode?: string
+          player_id?: string
+          updated_at?: string | null
+          view_count?: number | null
+          weapon_name?: string
+          weapon_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "weapon_layouts_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never

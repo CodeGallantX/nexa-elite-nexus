@@ -1,131 +1,175 @@
-
-import React from 'react';
-import { NavLink, useNavigate } from 'react-router-dom';
+import React, { useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { 
-  Home, 
-  User, 
-  MessageCircle, 
-  Megaphone, 
-  Settings, 
-  LogOut,
+import { Button } from '@/components/ui/button';
+import {
+  LayoutDashboard,
+  User,
+  MessageSquare,
+  Crosshair,
+  Package,
+  Settings,
   Shield,
   Users,
-  Edit,
-  BarChart,
-  Target,
+  BarChart3,
+  UserCog,
   Calendar,
+  UserPlus,
+  Clock,
+  Megaphone,
   Bell,
-  Trophy,
-  UserCheck,
-  CalendarDays
+  ChevronLeft,
+  ChevronRight,
+  LogOut,
+  Target,
 } from 'lucide-react';
-import { useIsMobile } from '@/hooks/use-mobile';
+import { NavItem } from '@/components/NavItem';
+
+interface MenuItem {
+  icon: React.ComponentType<any>;
+  label: string;
+  path: string;
+}
 
 export const Sidebar: React.FC = () => {
-  const { user, profile, logout } = useAuth();
+  const { profile, logout } = useAuth();
+  const location = useLocation();
   const navigate = useNavigate();
-  const isMobile = useIsMobile();
+  const [isCollapsed, setIsCollapsed] = useState(false);
 
-  const handleLogout = () => {
-    logout();
-    navigate('/');
+  const isAdmin = profile?.role === 'admin';
+
+  const playerMenuItems = [
+    { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
+    { icon: User, label: 'Profile', path: '/profile' },
+    { icon: MessageSquare, label: 'Chat', path: '/chat' },
+    { icon: Crosshair, label: 'Scrims', path: '/scrims' },
+    { icon: Package, label: 'My Loadouts', path: '/loadouts' },
+    { icon: Target, label: 'Weapon Layouts', path: '/weapon-layouts' },
+    { icon: Megaphone, label: 'Announcements', path: '/announcements' },
+    { icon: Settings, label: 'Settings', path: '/settings' },
+  ];
+
+  const adminMenuItems = [
+    { icon: Shield, label: 'Admin Dashboard', path: '/admin' },
+    { icon: Users, label: 'Players', path: '/admin/players' },
+    { icon: BarChart3, label: 'Statistics', path: '/admin/stats' },
+    { icon: UserCog, label: 'Profiles', path: '/admin/profiles' },
+    { icon: Package, label: 'Loadouts', path: '/admin/loadouts' },
+    { icon: Target, label: 'Weapon Layouts', path: '/admin/weapon-layouts' },
+    { icon: Crosshair, label: 'Scrims', path: '/admin/scrims' },
+    { icon: Calendar, label: 'Events', path: '/admin/events' },
+    { icon: UserPlus, label: 'Assignments', path: '/admin/event-assignment' },
+    { icon: Clock, label: 'Attendance', path: '/admin/attendance' },
+    { icon: Megaphone, label: 'Announcements', path: '/admin/announcements' },
+    { icon: Bell, label: 'Notifications', path: '/admin/notifications' },
+  ];
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+      navigate('/auth/login');
+    } catch (error) {
+      console.error('Logout failed', error);
+    }
   };
 
-  const playerNavItems = [
-    { icon: Home, label: 'Dashboard', path: '/dashboard' },
-    { icon: User, label: 'Profile', path: '/profile' },
-    { icon: Target, label: 'Loadouts', path: '/loadouts' },
-    { icon: Calendar, label: 'Events', path: '/scrims' },
-    { icon: MessageCircle, label: 'Chat Room', path: '/chat' },
-    { icon: Megaphone, label: 'Announcements', path: '/announcements' },
-    { icon: Settings, label: 'Settings', path: '/settings' }
-  ];
-
-  const adminNavItems = [
-    { icon: Home, label: 'Overview', path: '/admin' },
-    { icon: Users, label: 'Manage Players', path: '/admin/players' },
-    { icon: Edit, label: 'Edit Profiles', path: '/admin/profiles' },
-    { icon: BarChart, label: 'Stats Input', path: '/admin/stats' },
-    { icon: Target, label: 'Loadouts', path: '/admin/loadouts' },
-    { icon: Calendar, label: 'Events', path: '/admin/scrims' },
-    { icon: CalendarDays, label: 'Events Manager', path: '/admin/events' },
-    { icon: UserCheck, label: 'Attendance', path: '/admin/attendance' },
-    { icon: Bell, label: 'Notifications', path: '/admin/notifications' },
-    { icon: Megaphone, label: 'Announcements', path: '/admin/announcements' },
-    { icon: MessageCircle, label: 'Chat Room', path: '/chat' },
-    { icon: Settings, label: 'Settings', path: '/settings' }
-  ];
-
-  const navItems = profile?.role === 'admin' ? adminNavItems : playerNavItems;
+  if (!profile) {
+    return <div>Loading...</div>;
+  }
 
   return (
-    <div className={`bg-sidebar-background border-r border-sidebar-border backdrop-blur-sm flex flex-col h-full ${
-      isMobile ? 'w-64 fixed left-0 top-0 z-40' : 'w-64'
-    }`}>
-      {/* Logo */}
-      <div className="p-6 border-b border-sidebar-border flex-shrink-0">
-        <div className="flex items-center space-x-3">
-          <div className="w-16 h-16 rounded-lg flex items-center justify-center">
-            <img src="/nexa-logo.jpg" alt="logo" className="object-cover w-full h-full rounded-lg" />
-          </div>
-          <div>
-            <h1 className="text-xl font-bold bg-gradient-to-r from-sidebar-primary to-red-300 bg-clip-text text-transparent font-orbitron">
-              NeXa_Esports
-            </h1>
-            <p className="text-xs text-sidebar-foreground/60 uppercase tracking-wider font-rajdhani">
-              {profile?.role === 'admin' ? 'Command Center' : 'Tactical Hub'}
-            </p>
-          </div>
+    <div className={`bg-card border-r border-border transition-all duration-300 ${
+      isCollapsed ? 'w-16' : 'w-64'
+    } min-h-screen flex flex-col`}>
+      {/* Header */}
+      <div className="p-4 border-b border-border">
+        <div className="flex items-center justify-between">
+          {!isCollapsed && (
+            <div className="flex items-center space-x-3">
+              <img
+                src={profile?.avatar_url || '/placeholder.svg'}
+                alt="Avatar"
+                className="w-8 h-8 rounded-full object-cover"
+              />
+              <div>
+                <p className="text-sm font-medium text-foreground">{profile?.ign}</p>
+                <p className="text-xs text-muted-foreground capitalize">{profile?.role}</p>
+              </div>
+            </div>
+          )}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setIsCollapsed(!isCollapsed)}
+            className="text-muted-foreground hover:text-foreground"
+          >
+            {isCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
+          </Button>
         </div>
       </div>
 
-      {/* Navigation - Scrollable */}
-      <nav className="flex-1 p-4 overflow-y-auto">
-        <ul className="space-y-2">
-          {navItems.map((item) => (
-            <li key={item.path}>
-              <NavLink
-                to={item.path}
-                className={({ isActive }) =>
-                  `flex items-center space-x-3 px-4 py-3 rounded-lg transition-all duration-200 group font-rajdhani ${
-                    isActive
-                      ? 'bg-sidebar-primary/20 text-sidebar-primary border border-sidebar-primary/30'
-                      : 'text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent/50'
-                  }`
-                }
-              >
-                <item.icon className="w-5 h-5" />
-                <span className="font-medium">{item.label}</span>
-              </NavLink>
-            </li>
+      {/* Navigation */}
+      <nav className="flex-1 p-4">
+        <div className="space-y-2">
+          {/* Player Menu */}
+          {!isCollapsed && (
+            <div className="pb-2">
+              <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                Player Menu
+              </h3>
+            </div>
+          )}
+          {playerMenuItems.map((item) => (
+            <NavItem
+              key={item.path}
+              icon={item.icon}
+              label={item.label}
+              path={item.path}
+              isActive={location.pathname === item.path}
+              isCollapsed={isCollapsed}
+              onClick={() => navigate(item.path)}
+            />
           ))}
-        </ul>
+
+          {/* Admin Menu */}
+          {isAdmin && (
+            <>
+              {!isCollapsed && (
+                <div className="pt-4 pb-2">
+                  <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                    Admin Menu
+                  </h3>
+                </div>
+              )}
+              {adminMenuItems.map((item) => (
+                <NavItem
+                  key={item.path}
+                  icon={item.icon}
+                  label={item.label}
+                  path={item.path}
+                  isActive={location.pathname === item.path}
+                  isCollapsed={isCollapsed}
+                  onClick={() => navigate(item.path)}
+                />
+              ))}
+            </>
+          )}
+        </div>
       </nav>
 
-      {/* User Info & Logout */}
-      <div className="p-4 border-t border-sidebar-border flex-shrink-0">
-        <div className="flex items-center space-x-3 mb-4">
-          <img
-            src={profile?.avatar_url || '/placeholder.svg'}
-            alt="Avatar"
-            className="w-10 h-10 rounded-full border-2 border-sidebar-primary/30"
-          />
-          <div className="flex-1">
-            <p className="text-sidebar-foreground font-medium font-rajdhani">{profile?.username}</p>
-            <p className="text-xs text-sidebar-foreground/60 uppercase font-rajdhani">
-              {profile?.tier || 'Recruit'}
-            </p>
-          </div>
-        </div>
-        
-        <button
+      {/* Footer */}
+      <div className="p-4 border-t border-border">
+        <Button
+          variant="ghost"
           onClick={handleLogout}
-          className="flex items-center space-x-2 w-full px-4 py-2 text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-red-500/10 rounded-lg transition-colors duration-200 font-rajdhani"
+          className={`w-full justify-start text-muted-foreground hover:text-foreground ${
+            isCollapsed ? 'px-0 justify-center' : ''
+          }`}
         >
           <LogOut className="w-4 h-4" />
-          <span>Sign Out</span>
-        </button>
+          {!isCollapsed && <span className="ml-2">Logout</span>}
+        </Button>
       </div>
     </div>
   );
