@@ -6,10 +6,10 @@ import { ThemeProvider } from '@/contexts/ThemeContext';
 import { Layout } from '@/components/Layout';
 
 // Public pages
-import { Index } from '@/pages/Index';
+import Index from '@/pages/Index';
 import { Landing } from '@/pages/Landing';
 import { PublicProfile } from '@/pages/PublicProfile';
-import { NotFound } from '@/pages/NotFound';
+import NotFound from '@/pages/NotFound';
 
 // Auth pages
 import { Login } from '@/pages/auth/Login';
@@ -37,7 +37,7 @@ import { AdminLoadouts } from '@/pages/admin/Loadouts';
 import { AdminWeaponLayouts } from '@/pages/admin/WeaponLayouts';
 import { AdminScrimsManagement } from '@/pages/admin/ScrimsManagement';
 import { AdminEventsManagement } from '@/pages/admin/EventsManagement';
-import { AdminEventAssignment } from '@/pages/admin/EventAssignment';
+import { EventAssignment } from '@/pages/admin/EventAssignment';
 import { AdminAttendance } from '@/pages/admin/Attendance';
 import { AdminAnnouncementsManagement } from '@/pages/admin/AnnouncementsManagement';
 import { AdminNotifications } from '@/pages/admin/Notifications';
@@ -79,7 +79,7 @@ function App() {
             <Route path="/admin/weapon-layouts" element={<Layout showSidebar><AdminWeaponLayouts /></Layout>} />
             <Route path="/admin/scrims" element={<Layout showSidebar><AdminScrimsManagement /></Layout>} />
             <Route path="/admin/events" element={<Layout showSidebar><AdminEventsManagement /></Layout>} />
-            <Route path="/admin/event-assignment" element={<Layout showSidebar><AdminEventAssignment /></Layout>} />
+            <Route path="/admin/event-assignment" element={<Layout showSidebar><EventAssignment /></Layout>} />
             <Route path="/admin/attendance" element={<Layout showSidebar><AdminAttendance /></Layout>} />
             <Route path="/admin/announcements" element={<Layout showSidebar><AdminAnnouncementsManagement /></Layout>} />
             <Route path="/admin/notifications" element={<Layout showSidebar><AdminNotifications /></Layout>} />
