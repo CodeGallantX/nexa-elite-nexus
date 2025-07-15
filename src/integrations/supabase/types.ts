@@ -14,16 +14,345 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      announcements: {
+        Row: {
+          content: string
+          created_at: string | null
+          created_by: string | null
+          id: string
+          is_published: boolean | null
+          scheduled_for: string | null
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          content: string
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          is_published?: boolean | null
+          scheduled_for?: string | null
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          content?: string
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          is_published?: boolean | null
+          scheduled_for?: string | null
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "announcements_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      attendance: {
+        Row: {
+          attendance_type: Database["public"]["Enums"]["event_type"]
+          created_at: string | null
+          date: string
+          event_id: string | null
+          id: string
+          marked_by: string | null
+          player_id: string | null
+          status: Database["public"]["Enums"]["attendance_status"]
+        }
+        Insert: {
+          attendance_type: Database["public"]["Enums"]["event_type"]
+          created_at?: string | null
+          date?: string
+          event_id?: string | null
+          id?: string
+          marked_by?: string | null
+          player_id?: string | null
+          status: Database["public"]["Enums"]["attendance_status"]
+        }
+        Update: {
+          attendance_type?: Database["public"]["Enums"]["event_type"]
+          created_at?: string | null
+          date?: string
+          event_id?: string | null
+          id?: string
+          marked_by?: string | null
+          player_id?: string | null
+          status?: Database["public"]["Enums"]["attendance_status"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "attendance_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "attendance_marked_by_fkey"
+            columns: ["marked_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "attendance_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      chat_messages: {
+        Row: {
+          attachment_name: string | null
+          attachment_type: string | null
+          attachment_url: string | null
+          channel: string
+          created_at: string | null
+          id: string
+          message: string
+          user_id: string | null
+        }
+        Insert: {
+          attachment_name?: string | null
+          attachment_type?: string | null
+          attachment_url?: string | null
+          channel?: string
+          created_at?: string | null
+          id?: string
+          message: string
+          user_id?: string | null
+        }
+        Update: {
+          attachment_name?: string | null
+          attachment_type?: string | null
+          attachment_url?: string | null
+          channel?: string
+          created_at?: string | null
+          id?: string
+          message?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_messages_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      event_groups: {
+        Row: {
+          created_at: string | null
+          event_id: string | null
+          id: string
+          max_players: number | null
+          name: string
+        }
+        Insert: {
+          created_at?: string | null
+          event_id?: string | null
+          id?: string
+          max_players?: number | null
+          name: string
+        }
+        Update: {
+          created_at?: string | null
+          event_id?: string | null
+          id?: string
+          max_players?: number | null
+          name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_groups_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      event_participants: {
+        Row: {
+          created_at: string | null
+          event_id: string | null
+          group_id: string | null
+          id: string
+          kills: number | null
+          player_id: string | null
+          role: string | null
+          verified: boolean | null
+        }
+        Insert: {
+          created_at?: string | null
+          event_id?: string | null
+          group_id?: string | null
+          id?: string
+          kills?: number | null
+          player_id?: string | null
+          role?: string | null
+          verified?: boolean | null
+        }
+        Update: {
+          created_at?: string | null
+          event_id?: string | null
+          group_id?: string | null
+          id?: string
+          kills?: number | null
+          player_id?: string | null
+          role?: string | null
+          verified?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_participants_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_participants_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "event_groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_participants_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      events: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          date: string
+          description: string | null
+          id: string
+          name: string
+          status: string | null
+          time: string
+          type: Database["public"]["Enums"]["event_type"]
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          date: string
+          description?: string | null
+          id?: string
+          name: string
+          status?: string | null
+          time: string
+          type: Database["public"]["Enums"]["event_type"]
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          date?: string
+          description?: string | null
+          id?: string
+          name?: string
+          status?: string | null
+          time?: string
+          type?: Database["public"]["Enums"]["event_type"]
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "events_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          attendance: number | null
+          avatar_url: string | null
+          created_at: string | null
+          date_joined: string | null
+          device: string | null
+          grade: string | null
+          id: string
+          ign: string
+          kills: number | null
+          preferred_mode: string | null
+          role: Database["public"]["Enums"]["user_role"]
+          tier: string | null
+          tiktok_handle: string | null
+          updated_at: string | null
+          username: string
+        }
+        Insert: {
+          attendance?: number | null
+          avatar_url?: string | null
+          created_at?: string | null
+          date_joined?: string | null
+          device?: string | null
+          grade?: string | null
+          id: string
+          ign: string
+          kills?: number | null
+          preferred_mode?: string | null
+          role?: Database["public"]["Enums"]["user_role"]
+          tier?: string | null
+          tiktok_handle?: string | null
+          updated_at?: string | null
+          username: string
+        }
+        Update: {
+          attendance?: number | null
+          avatar_url?: string | null
+          created_at?: string | null
+          date_joined?: string | null
+          device?: string | null
+          grade?: string | null
+          id?: string
+          ign?: string
+          kills?: number | null
+          preferred_mode?: string | null
+          role?: Database["public"]["Enums"]["user_role"]
+          tier?: string | null
+          tiktok_handle?: string | null
+          updated_at?: string | null
+          username?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_user_role: {
+        Args: { user_id: string }
+        Returns: Database["public"]["Enums"]["user_role"]
+      }
     }
     Enums: {
-      [_ in never]: never
+      attendance_status: "present" | "absent"
+      event_type: "MP" | "BR" | "Mixed"
+      user_role: "admin" | "player" | "moderator"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +479,10 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      attendance_status: ["present", "absent"],
+      event_type: ["MP", "BR", "Mixed"],
+      user_role: ["admin", "player", "moderator"],
+    },
   },
 } as const

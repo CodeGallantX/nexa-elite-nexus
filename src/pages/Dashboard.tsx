@@ -1,8 +1,10 @@
+
 import React from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
+import { KillPerformanceTracker } from '@/components/KillPerformanceTracker';
 import { 
   Trophy, 
   Target, 
@@ -15,7 +17,7 @@ import {
 } from 'lucide-react';
 
 export const Dashboard: React.FC = () => {
-  const { user } = useAuth();
+  const { profile } = useAuth();
 
   const getGradeColor = (grade: string) => {
     const colors = {
@@ -34,15 +36,15 @@ export const Dashboard: React.FC = () => {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-white mb-2">
-            Welcome back, <span className="text-[#FF1F44]">{user?.username}</span>
+            Welcome back, <span className="text-[#FF1F44]">{profile?.username}</span>
           </h1>
           <p className="text-gray-400">Your tactical command center awaits</p>
         </div>
         <div className="flex items-center space-x-4">
-          <div className={`px-4 py-2 rounded-lg bg-black/30 border ${getGradeColor(user?.profile?.grade || 'D')} border-current/30`}>
+          <div className={`px-4 py-2 rounded-lg bg-black/30 border ${getGradeColor(profile?.grade || 'D')} border-current/30`}>
             <div className="text-center">
-              <div className={`text-2xl font-bold ${getGradeColor(user?.profile?.grade || 'D')}`}>
-                {user?.profile?.grade}
+              <div className={`text-2xl font-bold ${getGradeColor(profile?.grade || 'D')}`}>
+                {profile?.grade}
               </div>
               <div className="text-xs text-gray-400">GRADE</div>
             </div>
@@ -58,7 +60,7 @@ export const Dashboard: React.FC = () => {
             <Target className="h-4 w-4 text-[#FF1F44]" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-white">{user?.profile?.kills?.toLocaleString()}</div>
+            <div className="text-2xl font-bold text-white">{profile?.kills?.toLocaleString()}</div>
             <p className="text-xs text-gray-400">
               <TrendingUp className="inline w-3 h-3 mr-1" />
               Managed by admin
@@ -72,8 +74,8 @@ export const Dashboard: React.FC = () => {
             <Calendar className="h-4 w-4 text-[#FF1F44]" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-white">{user?.profile?.attendance}%</div>
-            <Progress value={user?.profile?.attendance || 0} className="mt-2" />
+            <div className="text-2xl font-bold text-white">{profile?.attendance}%</div>
+            <Progress value={profile?.attendance || 0} className="mt-2" />
           </CardContent>
         </Card>
 
@@ -94,11 +96,14 @@ export const Dashboard: React.FC = () => {
             <Award className="h-4 w-4 text-[#FF1F44]" />
           </CardHeader>
           <CardContent>
-            <div className="text-lg font-bold text-white">{user?.profile?.tier}</div>
-            <p className="text-xs text-gray-400">Since {user?.profile?.dateJoined}</p>
+            <div className="text-lg font-bold text-white">{profile?.tier}</div>
+            <p className="text-xs text-gray-400">Since {profile?.date_joined}</p>
           </CardContent>
         </Card>
       </div>
+
+      {/* Kill Performance Tracker */}
+      <KillPerformanceTracker />
 
       {/* Performance & Activity */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

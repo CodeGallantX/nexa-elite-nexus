@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Shield, Eye, EyeOff, CheckCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 export const ResetPassword: React.FC = () => {
   const [searchParams] = useSearchParams();
@@ -41,10 +42,14 @@ export const ResetPassword: React.FC = () => {
 
     setIsLoading(true);
     
-    // Mock API call - in real app would reset password
-    setTimeout(() => {
+    try {
+      const { error } = await supabase.auth.updateUser({
+        password: password
+      });
+
+      if (error) throw error;
+
       setIsSuccess(true);
-      setIsLoading(false);
       toast({
         title: "Password Reset Successful",
         description: "Your password has been updated successfully.",
@@ -54,7 +59,15 @@ export const ResetPassword: React.FC = () => {
       setTimeout(() => {
         navigate('/auth/login');
       }, 2000);
-    }, 1500);
+    } catch (error: any) {
+      toast({
+        title: "Password Reset Failed",
+        description: error.message,
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   if (!token) {

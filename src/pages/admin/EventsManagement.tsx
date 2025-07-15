@@ -1,26 +1,26 @@
 
 import React, { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
+import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
 import { 
   Calendar, 
+  Clock, 
   Plus, 
-  Search, 
   Edit, 
   Trash2, 
   Users,
-  Trophy,
-  Clock,
-  CalendarDays
+  Search,
+  Filter
 } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
 
 interface Event {
   id: string;
@@ -28,200 +28,270 @@ interface Event {
   type: 'MP' | 'BR' | 'Mixed';
   date: string;
   time: string;
-  description: string;
-  assignedPlayers: string[];
-  status: 'upcoming' | 'ongoing' | 'completed';
+  description?: string;
+  status: string;
+  created_at: string;
+  event_participants: { count: number }[];
 }
 
-const mockEvents: Event[] = [
-  {
-    id: '1',
-    name: 'Championship Qualifier',
-    type: 'BR',
-    date: '2024-07-20',
-    time: '20:00',
-    description: 'Qualifying round for the championship tournament',
-    assignedPlayers: ['slayerX', 'TacticalSniper', 'EliteWarrior'],
-    status: 'upcoming'
-  },
-  {
-    id: '2',
-    name: 'Training Session - Hardpoint',
-    type: 'MP',
-    date: '2024-07-18',
-    time: '19:30',
-    description: 'Practice session focused on Hardpoint strategies',
-    assignedPlayers: ['GhostAlpha', 'ProSniper'],
-    status: 'completed'
-  }
-];
-
-const mockPlayers = ['slayerX', 'TacticalSniper', 'EliteWarrior', 'GhostAlpha', 'ProSniper', 'CombatPro'];
-
 export const AdminEventsManagement: React.FC = () => {
+  const { profile } = useAuth();
   const { toast } = useToast();
-  const [events, setEvents] = useState<Event[]>(mockEvents);
+  const queryClient = useQueryClient();
+  const navigate = useNavigate();
+  
+  const [isCreating, setIsCreating] = useState(false);
+  const [editingEvent, setEditingEvent] = useState<Event | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-  const [editingEvent, setEditingEvent] = useState<Event | null>(null);
-
-  // Form state
+  
   const [formData, setFormData] = useState({
     name: '',
     type: 'MP' as 'MP' | 'BR' | 'Mixed',
     date: '',
     time: '',
     description: '',
-    assignedPlayers: [] as string[]
+    status: 'upcoming'
   });
 
-  const resetForm = () => {
-    setFormData({
-      name: '',
-      type: 'MP',
-      date: '',
-      time: '',
-      description: '',
-      assignedPlayers: []
-    });
-  };
+  // Fetch events
+  const { data: events = [], isLoading } = useQuery({
+    queryKey: ['events'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('events')
+        .select(`
+          *,
+          event_participants (count)
+        `)
+        .order('date', { ascending: false });
 
-  const handleCreateEvent = () => {
-    if (!formData.name || !formData.date || !formData.time) {
-      toast({
-        title: "Missing Fields",
-        description: "Please fill in all required fields",
-        variant: "destructive"
+      if (error) throw error;
+      return data as Event[];
+    },
+  });
+
+  // Create/Update event mutation
+  const saveEventMutation = useMutation({
+    mutationFn: async (eventData: typeof formData) => {
+      if (editingEvent) {
+        const { error } = await supabase
+          .from('events')
+          .update({
+            ...eventData,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', editingEvent.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from('events')
+          .insert([{
+            ...eventData,
+            created_by: profile?.id
+          }]);
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['events'] });
+      setIsCreating(false);
+      setEditingEvent(null);
+      setFormData({
+        name: '',
+        type: 'MP',
+        date: '',
+        time: '',
+        description: '',
+        status: 'upcoming'
       });
-      return;
-    }
+      toast({
+        title: editingEvent ? "Event Updated" : "Event Created",
+        description: `Event has been ${editingEvent ? 'updated' : 'created'} successfully.`,
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
 
-    const newEvent: Event = {
-      id: Date.now().toString(),
-      ...formData,
-      status: 'upcoming'
-    };
+  // Delete event mutation
+  const deleteEventMutation = useMutation({
+    mutationFn: async (eventId: string) => {
+      const { error } = await supabase
+        .from('events')
+        .delete()
+        .eq('id', eventId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['events'] });
+      toast({
+        title: "Event Deleted",
+        description: "Event has been deleted successfully.",
+      });
+    },
+  });
 
-    setEvents(prev => [...prev, newEvent]);
-    setIsCreateDialogOpen(false);
-    resetForm();
-
-    toast({
-      title: "Event Created",
-      description: `${formData.name} has been scheduled successfully`,
-    });
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    saveEventMutation.mutate(formData);
   };
 
-  const handleEditEvent = (event: Event) => {
+  const handleEdit = (event: Event) => {
     setEditingEvent(event);
     setFormData({
       name: event.name,
       type: event.type,
       date: event.date,
       time: event.time,
-      description: event.description,
-      assignedPlayers: event.assignedPlayers
+      description: event.description || '',
+      status: event.status
     });
+    setIsCreating(true);
   };
 
-  const handleUpdateEvent = () => {
-    if (!editingEvent || !formData.name || !formData.date || !formData.time) return;
-
-    setEvents(prev => prev.map(event => 
-      event.id === editingEvent.id 
-        ? { ...event, ...formData }
-        : event
-    ));
-
-    setEditingEvent(null);
-    resetForm();
-
-    toast({
-      title: "Event Updated",
-      description: `${formData.name} has been updated successfully`,
-    });
-  };
-
-  const handleDeleteEvent = (eventId: string) => {
-    setEvents(prev => prev.filter(event => event.id !== eventId));
-    toast({
-      title: "Event Deleted",
-      description: "Event has been removed successfully",
-    });
-  };
-
-  const getTypeColor = (type: string) => {
-    switch (type) {
-      case 'BR':
-        return 'bg-green-500/20 text-green-400 border-green-500/50';
-      case 'MP':
-        return 'bg-purple-500/20 text-purple-400 border-purple-500/50';
-      case 'Mixed':
-        return 'bg-blue-500/20 text-blue-400 border-blue-500/50';
-      default:
-        return 'bg-gray-500/20 text-gray-400 border-gray-500/50';
-    }
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'upcoming':
-        return 'bg-blue-500/20 text-blue-400 border-blue-500/50';
-      case 'ongoing':
-        return 'bg-green-500/20 text-green-400 border-green-500/50';
-      case 'completed':
-        return 'bg-gray-500/20 text-gray-400 border-gray-500/50';
-      default:
-        return 'bg-gray-500/20 text-gray-400 border-gray-500/50';
+  const handleDelete = (eventId: string) => {
+    if (confirm('Are you sure you want to delete this event?')) {
+      deleteEventMutation.mutate(eventId);
     }
   };
 
   const filteredEvents = events.filter(event => {
     const matchesSearch = event.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         event.description.toLowerCase().includes(searchTerm.toLowerCase());
+                         event.description?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesType = typeFilter === 'all' || event.type === typeFilter;
     const matchesStatus = statusFilter === 'all' || event.status === statusFilter;
     
     return matchesSearch && matchesType && matchesStatus;
   });
 
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'upcoming': return 'bg-blue-100 text-blue-800';
+      case 'ongoing': return 'bg-green-100 text-green-800';
+      case 'completed': return 'bg-gray-100 text-gray-800';
+      case 'cancelled': return 'bg-red-100 text-red-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const getTypeColor = (type: string) => {
+    switch (type) {
+      case 'MP': return 'bg-purple-100 text-purple-800';
+      case 'BR': return 'bg-orange-100 text-orange-800';
+      case 'Mixed': return 'bg-indigo-100 text-indigo-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-foreground font-orbitron mb-2">Events Management</h1>
-          <p className="text-muted-foreground font-rajdhani">Create and manage clan events</p>
+          <h1 className="text-2xl font-bold text-white">Events Management</h1>
+          <p className="text-muted-foreground">Create and manage tournament events</p>
         </div>
-        <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-          <DialogTrigger asChild>
-            <Button className="bg-primary hover:bg-primary/90 font-rajdhani">
-              <Plus className="w-4 h-4 mr-2" />
-              Create Event
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="bg-card border-border/50 max-w-2xl">
-            <DialogHeader>
-              <DialogTitle className="font-orbitron">Create New Event</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+        <Button
+          onClick={() => {
+            setIsCreating(true);
+            setEditingEvent(null);
+            setFormData({
+              name: '',
+              type: 'MP',
+              date: '',
+              time: '',
+              description: '',
+              status: 'upcoming'
+            });
+          }}
+          className="bg-primary hover:bg-primary/90"
+        >
+          <Plus className="w-4 h-4 mr-2" />
+          Create Event
+        </Button>
+      </div>
+
+      {/* Filters */}
+      <Card className="bg-card/50 border-border/30 backdrop-blur-sm">
+        <CardContent className="p-4">
+          <div className="flex flex-col sm:flex-row gap-4">
+            <div className="flex-1">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+                <Input
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  placeholder="Search events..."
+                  className="pl-10 bg-background/50"
+                />
+              </div>
+            </div>
+            <Select value={typeFilter} onValueChange={setTypeFilter}>
+              <SelectTrigger className="w-full sm:w-40 bg-background/50">
+                <SelectValue placeholder="Filter by type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Types</SelectItem>
+                <SelectItem value="MP">Multiplayer</SelectItem>
+                <SelectItem value="BR">Battle Royale</SelectItem>
+                <SelectItem value="Mixed">Mixed</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-full sm:w-40 bg-background/50">
+                <SelectValue placeholder="Filter by status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Status</SelectItem>
+                <SelectItem value="upcoming">Upcoming</SelectItem>
+                <SelectItem value="ongoing">Ongoing</SelectItem>
+                <SelectItem value="completed">Completed</SelectItem>
+                <SelectItem value="cancelled">Cancelled</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Create/Edit Form */}
+      {isCreating && (
+        <Card className="bg-card/50 border-border/30 backdrop-blur-sm">
+          <CardHeader>
+            <CardTitle>
+              {editingEvent ? 'Edit Event' : 'Create New Event'}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="name" className="font-rajdhani">Event Name *</Label>
+                  <Label htmlFor="name">Event Name</Label>
                   <Input
                     id="name"
                     value={formData.name}
                     onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                    className="bg-background/50 border-border/50 font-rajdhani"
-                    placeholder="Enter event name"
+                    placeholder="Tournament Championship"
+                    className="bg-background/50"
+                    required
                   />
                 </div>
+                
                 <div>
-                  <Label htmlFor="type" className="font-rajdhani">Event Type *</Label>
-                  <Select value={formData.type} onValueChange={(value: 'MP' | 'BR' | 'Mixed') => setFormData(prev => ({ ...prev, type: value }))}>
-                    <SelectTrigger className="bg-background/50 border-border/50">
+                  <Label htmlFor="type">Event Type</Label>
+                  <Select 
+                    value={formData.type} 
+                    onValueChange={(value: 'MP' | 'BR' | 'Mixed') => 
+                      setFormData(prev => ({ ...prev, type: value }))
+                    }
+                  >
+                    <SelectTrigger className="bg-background/50">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -231,314 +301,173 @@ export const AdminEventsManagement: React.FC = () => {
                     </SelectContent>
                   </Select>
                 </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
+                
                 <div>
-                  <Label htmlFor="date" className="font-rajdhani">Date *</Label>
+                  <Label htmlFor="date">Date</Label>
                   <Input
                     id="date"
                     type="date"
                     value={formData.date}
                     onChange={(e) => setFormData(prev => ({ ...prev, date: e.target.value }))}
-                    className="bg-background/50 border-border/50 font-rajdhani"
+                    className="bg-background/50"
+                    required
                   />
                 </div>
+                
                 <div>
-                  <Label htmlFor="time" className="font-rajdhani">Time *</Label>
+                  <Label htmlFor="time">Time</Label>
                   <Input
                     id="time"
                     type="time"
                     value={formData.time}
                     onChange={(e) => setFormData(prev => ({ ...prev, time: e.target.value }))}
-                    className="bg-background/50 border-border/50 font-rajdhani"
+                    className="bg-background/50"
+                    required
                   />
                 </div>
-              </div>
 
+                <div>
+                  <Label htmlFor="status">Status</Label>
+                  <Select 
+                    value={formData.status} 
+                    onValueChange={(value) => setFormData(prev => ({ ...prev, status: value }))}
+                  >
+                    <SelectTrigger className="bg-background/50">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="upcoming">Upcoming</SelectItem>
+                      <SelectItem value="ongoing">Ongoing</SelectItem>
+                      <SelectItem value="completed">Completed</SelectItem>
+                      <SelectItem value="cancelled">Cancelled</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              
               <div>
-                <Label htmlFor="description" className="font-rajdhani">Description</Label>
-                <Textarea
+                <Label htmlFor="description">Description (Optional)</Label>
+                <Input
                   id="description"
                   value={formData.description}
                   onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                  className="bg-background/50 border-border/50 font-rajdhani"
                   placeholder="Event description..."
-                  rows={3}
+                  className="bg-background/50"
                 />
               </div>
-
-              <div className="flex justify-end space-x-2 pt-4">
+              
+              <div className="flex space-x-2">
+                <Button type="submit" disabled={saveEventMutation.isPending}>
+                  {editingEvent ? 'Update Event' : 'Create Event'}
+                </Button>
                 <Button
+                  type="button"
                   variant="outline"
                   onClick={() => {
-                    setIsCreateDialogOpen(false);
-                    resetForm();
+                    setIsCreating(false);
+                    setEditingEvent(null);
                   }}
-                  className="font-rajdhani"
                 >
                   Cancel
                 </Button>
-                <Button
-                  onClick={handleCreateEvent}
-                  className="bg-primary hover:bg-primary/90 font-rajdhani"
-                >
-                  Create Event
-                </Button>
               </div>
-            </div>
-          </DialogContent>
-        </Dialog>
-      </div>
+            </form>
+          </CardContent>
+        </Card>
+      )}
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <Card className="bg-card/50 border-border/30">
-          <CardContent className="p-4 text-center">
-            <div className="text-2xl font-bold text-primary mb-1 font-orbitron">{events.length}</div>
-            <div className="text-sm text-muted-foreground font-rajdhani">Total Events</div>
-          </CardContent>
-        </Card>
-        <Card className="bg-card/50 border-border/30">
-          <CardContent className="p-4 text-center">
-            <div className="text-2xl font-bold text-blue-400 mb-1 font-orbitron">
-              {events.filter(e => e.status === 'upcoming').length}
-            </div>
-            <div className="text-sm text-muted-foreground font-rajdhani">Upcoming</div>
-          </CardContent>
-        </Card>
-        <Card className="bg-card/50 border-border/30">
-          <CardContent className="p-4 text-center">
-            <div className="text-2xl font-bold text-green-400 mb-1 font-orbitron">
-              {events.filter(e => e.status === 'ongoing').length}
-            </div>
-            <div className="text-sm text-muted-foreground font-rajdhani">Ongoing</div>
-          </CardContent>
-        </Card>
-        <Card className="bg-card/50 border-border/30">
-          <CardContent className="p-4 text-center">
-            <div className="text-2xl font-bold text-gray-400 mb-1 font-orbitron">
-              {events.filter(e => e.status === 'completed').length}
-            </div>
-            <div className="text-sm text-muted-foreground font-rajdhani">Completed</div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Filters */}
-      <Card className="bg-card/50 border-border/30">
-        <CardContent className="p-4">
-          <div className="flex flex-col md:flex-row gap-4">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
-              <Input
-                placeholder="Search events..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 bg-background/50 border-border/50 font-rajdhani"
-              />
-            </div>
-            <Select value={typeFilter} onValueChange={setTypeFilter}>
-              <SelectTrigger className="w-40 bg-background/50 border-border/50">
-                <SelectValue placeholder="Filter by type" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Types</SelectItem>
-                <SelectItem value="MP">MP</SelectItem>
-                <SelectItem value="BR">BR</SelectItem>
-                <SelectItem value="Mixed">Mixed</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-40 bg-background/50 border-border/50">
-                <SelectValue placeholder="Filter by status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Status</SelectItem>
-                <SelectItem value="upcoming">Upcoming</SelectItem>
-                <SelectItem value="ongoing">Ongoing</SelectItem>
-                <SelectItem value="completed">Completed</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Events Table */}
-      <Card className="bg-card/50 border-border/30">
-        <CardHeader>
-          <CardTitle className="text-foreground font-orbitron flex items-center">
-            <CalendarDays className="w-5 h-5 mr-2 text-primary" />
-            Events List
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow className="border-border/30">
-                <TableHead className="text-muted-foreground font-rajdhani">Event</TableHead>
-                <TableHead className="text-muted-foreground font-rajdhani">Type</TableHead>
-                <TableHead className="text-muted-foreground font-rajdhani">Date & Time</TableHead>
-                <TableHead className="text-muted-foreground font-rajdhani">Status</TableHead>
-                <TableHead className="text-muted-foreground font-rajdhani">Players</TableHead>
-                <TableHead className="text-muted-foreground font-rajdhani">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredEvents.map(event => (
-                <TableRow key={event.id} className="border-border/30 hover:bg-muted/20">
-                  <TableCell>
-                    <div>
-                      <div className="font-medium text-foreground font-rajdhani">{event.name}</div>
-                      {event.description && (
-                        <div className="text-sm text-muted-foreground font-rajdhani truncate max-w-xs">
-                          {event.description}
+      {/* Events List */}
+      <div className="grid gap-4">
+        {isLoading ? (
+          <Card className="bg-card/50 border-border/30 backdrop-blur-sm">
+            <CardContent className="p-8 text-center">
+              <div className="text-muted-foreground">Loading events...</div>
+            </CardContent>
+          </Card>
+        ) : filteredEvents.length === 0 ? (
+          <Card className="bg-card/50 border-border/30 backdrop-blur-sm">
+            <CardContent className="p-8 text-center">
+              <div className="text-muted-foreground">
+                {searchTerm || typeFilter !== 'all' || statusFilter !== 'all' 
+                  ? 'No events match your filters.' 
+                  : 'No events created yet.'}
+              </div>
+            </CardContent>
+          </Card>
+        ) : (
+          filteredEvents.map((event) => (
+            <Card key={event.id} className="bg-card/50 border-border/30 backdrop-blur-sm">
+              <CardContent className="p-6">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                  <div className="flex-1">
+                    <div className="flex items-start gap-3">
+                      <div className="flex-1">
+                        <h3 className="text-lg font-semibold text-white mb-2">{event.name}</h3>
+                        
+                        <div className="flex flex-wrap items-center gap-2 mb-2">
+                          <Badge className={getTypeColor(event.type)}>
+                            {event.type}
+                          </Badge>
+                          <Badge className={getStatusColor(event.status)}>
+                            {event.status}
+                          </Badge>
                         </div>
-                      )}
+                        
+                        <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
+                          <div className="flex items-center gap-1">
+                            <Calendar className="w-4 h-4" />
+                            {new Date(event.date).toLocaleDateString()}
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <Clock className="w-4 h-4" />
+                            {event.time}
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <Users className="w-4 h-4" />
+                            {event.event_participants?.[0]?.count || 0} participants
+                          </div>
+                        </div>
+                        
+                        {event.description && (
+                          <p className="text-sm text-muted-foreground mt-2">
+                            {event.description}
+                          </p>
+                        )}
+                      </div>
                     </div>
-                  </TableCell>
-                  <TableCell>
-                    <Badge className={getTypeColor(event.type)}>
-                      {event.type}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-muted-foreground font-rajdhani">
-                    <div className="flex items-center space-x-2">
-                      <Calendar className="w-4 h-4" />
-                      <span>{new Date(event.date).toLocaleDateString()}</span>
-                    </div>
-                    <div className="flex items-center space-x-2 mt-1">
-                      <Clock className="w-4 h-4" />
-                      <span>{event.time}</span>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <Badge className={getStatusColor(event.status)}>
-                      {event.status}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center space-x-2">
-                      <Users className="w-4 h-4 text-muted-foreground" />
-                      <span className="text-muted-foreground font-rajdhani">
-                        {event.assignedPlayers.length}
-                      </span>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex space-x-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleEditEvent(event)}
-                        className="border-border/50 hover:bg-muted/50 font-rajdhani"
-                      >
-                        <Edit className="w-4 h-4" />
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleDeleteEvent(event.id)}
-                        className="border-red-500/50 text-red-400 hover:bg-red-500/10 font-rajdhani"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
-
-      {/* Edit Dialog */}
-      <Dialog open={!!editingEvent} onOpenChange={(open) => !open && setEditingEvent(null)}>
-        <DialogContent className="bg-card border-border/50 max-w-2xl">
-          <DialogHeader>
-            <DialogTitle className="font-orbitron">Edit Event</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="edit-name" className="font-rajdhani">Event Name *</Label>
-                <Input
-                  id="edit-name"
-                  value={formData.name}
-                  onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                  className="bg-background/50 border-border/50 font-rajdhani"
-                />
-              </div>
-              <div>
-                <Label htmlFor="edit-type" className="font-rajdhani">Event Type *</Label>
-                <Select value={formData.type} onValueChange={(value: 'MP' | 'BR' | 'Mixed') => setFormData(prev => ({ ...prev, type: value }))}>
-                  <SelectTrigger className="bg-background/50 border-border/50">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="MP">Multiplayer</SelectItem>
-                    <SelectItem value="BR">Battle Royale</SelectItem>
-                    <SelectItem value="Mixed">Mixed</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="edit-date" className="font-rajdhani">Date *</Label>
-                <Input
-                  id="edit-date"
-                  type="date"
-                  value={formData.date}
-                  onChange={(e) => setFormData(prev => ({ ...prev, date: e.target.value }))}
-                  className="bg-background/50 border-border/50 font-rajdhani"
-                />
-              </div>
-              <div>
-                <Label htmlFor="edit-time" className="font-rajdhani">Time *</Label>
-                <Input
-                  id="edit-time"
-                  type="time"
-                  value={formData.time}
-                  onChange={(e) => setFormData(prev => ({ ...prev, time: e.target.value }))}
-                  className="bg-background/50 border-border/50 font-rajdhani"
-                />
-              </div>
-            </div>
-
-            <div>
-              <Label htmlFor="edit-description" className="font-rajdhani">Description</Label>
-              <Textarea
-                id="edit-description"
-                value={formData.description}
-                onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                className="bg-background/50 border-border/50 font-rajdhani"
-                rows={3}
-              />
-            </div>
-
-            <div className="flex justify-end space-x-2 pt-4">
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setEditingEvent(null);
-                  resetForm();
-                }}
-                className="font-rajdhani"
-              >
-                Cancel
-              </Button>
-              <Button
-                onClick={handleUpdateEvent}
-                className="bg-primary hover:bg-primary/90 font-rajdhani"
-              >
-                Update Event
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+                  </div>
+                  
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => navigate(`/admin/events/${event.id}/assign`)}
+                    >
+                      <Users className="w-4 h-4 mr-1" />
+                      Assign Players
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleEdit(event)}
+                    >
+                      <Edit className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleDelete(event.id)}
+                      className="text-red-400 hover:text-red-300"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))
+        )}
+      </div>
     </div>
   );
 };

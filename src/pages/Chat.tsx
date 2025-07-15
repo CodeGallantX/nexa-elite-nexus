@@ -1,210 +1,429 @@
 
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
-import { 
-  Send, 
-  Users, 
-  Shield, 
-  MessageCircle,
-  Hash
-} from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Send, Paperclip, X, Download, File, Video, Image, Users } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
-// Mock chat messages
-const mockMessages = [
-  {
-    id: '1',
-    user: 'GhostAlpha',
-    role: 'admin',
-    message: 'Tournament registration is now open! Make sure to sign up before Friday.',
-    timestamp: '10:30 AM',
-    channel: 'general'
-  },
-  {
-    id: '2',
-    user: 'TacticalSniper',
-    role: 'player',
-    message: 'Great job everyone in last night\'s clan war! We dominated 🔥',
-    timestamp: '10:32 AM',
-    channel: 'general'
-  },
-  {
-    id: '3',
-    user: 'EliteWarrior',
-    role: 'player',
-    message: 'Anyone up for some Battle Royale matches?',
-    timestamp: '10:35 AM',
-    channel: 'general'
-  },
-  {
-    id: '4',
-    user: 'GhostAlpha',
-    role: 'admin',
-    message: '@everyone Don\'t forget about the strategy meeting tomorrow at 8 PM EST',
-    timestamp: '10:38 AM',
-    channel: 'admin'
-  }
-];
+interface ChatMessage {
+  id: string;
+  user_id: string;
+  message: string;
+  attachment_url?: string;
+  attachment_type?: string;
+  attachment_name?: string;
+  created_at: string;
+  profiles: {
+    username: string;
+    ign: string;
+    role: string;
+  };
+}
 
 export const Chat: React.FC = () => {
-  const { user } = useAuth();
+  const { profile, user } = useAuth();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  
   const [message, setMessage] = useState('');
-  const [activeChannel, setActiveChannel] = useState('general');
-  const [messages, setMessages] = useState(mockMessages);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [showMobileNav, setShowMobileNav] = useState(false);
+  
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const channels = [
-    { id: 'general', name: 'General', icon: Hash, members: 247 },
-    ...(user?.role === 'admin' ? [{ id: 'admin', name: 'Admin Only', icon: Shield, members: 5 }] : [])
-  ];
+  // Fetch chat messages
+  const { data: messages = [], isLoading } = useQuery({
+    queryKey: ['chat-messages', 'general'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('chat_messages')
+        .select(`
+          *,
+          profiles (
+            username,
+            ign,
+            role
+          )
+        `)
+        .eq('channel', 'general')
+        .order('created_at', { ascending: true });
 
-  const handleSendMessage = () => {
-    if (!message.trim()) return;
+      if (error) throw error;
+      return data as ChatMessage[];
+    },
+  });
 
-    const newMessage = {
-      id: Date.now().toString(),
-      user: user?.username || 'Anonymous',
-      role: user?.role || 'player',
-      message: message.trim(),
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      channel: activeChannel
-    };
+  // Send message mutation
+  const sendMessageMutation = useMutation({
+    mutationFn: async ({ message, attachmentUrl, attachmentType, attachmentName }: {
+      message: string;
+      attachmentUrl?: string;
+      attachmentType?: string;
+      attachmentName?: string;
+    }) => {
+      const { error } = await supabase
+        .from('chat_messages')
+        .insert([{
+          user_id: user?.id,
+          channel: 'general',
+          message,
+          attachment_url: attachmentUrl,
+          attachment_type: attachmentType,
+          attachment_name: attachmentName,
+        }]);
 
-    setMessages(prev => [...prev, newMessage]);
-    setMessage('');
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['chat-messages'] });
+      setMessage('');
+      setSelectedFile(null);
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Failed to send message",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Upload file to Supabase Storage
+  const uploadFile = async (file: File): Promise<string> => {
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${Date.now()}-${Math.random()}.${fileExt}`;
+
+    const { data, error } = await supabase.storage
+      .from('chat-attachments')
+      .upload(fileName, file);
+
+    if (error) throw error;
+
+    const { data: { publicUrl } } = supabase.storage
+      .from('chat-attachments')
+      .getPublicUrl(fileName);
+
+    return publicUrl;
   };
 
-  const filteredMessages = messages.filter(msg => 
-    msg.channel === activeChannel && 
-    (activeChannel !== 'admin' || user?.role === 'admin')
-  );
+  // Handle file selection
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
 
-  return (
-    <div className="h-full flex">
-      {/* Channels Sidebar */}
-      <div className="w-64 bg-white/5 border-r border-white/10 backdrop-blur-sm">
-        <div className="p-4 border-b border-white/10">
-          <h2 className="text-white font-bold flex items-center">
-            <MessageCircle className="w-5 h-5 mr-2 text-[#FF1F44]" />
-            Chat Rooms
-          </h2>
-        </div>
-        
-        <div className="p-4">
-          <div className="space-y-2">
-            {channels.map(channel => (
-              <button
-                key={channel.id}
-                onClick={() => setActiveChannel(channel.id)}
-                className={`w-full flex items-center space-x-3 px-3 py-2 rounded-lg transition-colors ${
-                  activeChannel === channel.id
-                    ? 'bg-[#FF1F44]/20 text-[#FF1F44] border border-[#FF1F44]/30'
-                    : 'text-gray-300 hover:text-white hover:bg-white/5'
-                }`}
-              >
-                <channel.icon className="w-4 h-4" />
-                <span className="flex-1 text-left">{channel.name}</span>
-                <span className="text-xs bg-white/10 px-2 py-1 rounded-full">
-                  {channel.members}
-                </span>
-              </button>
-            ))}
-          </div>
-        </div>
+    // Check file size (20MB limit)
+    if (file.size > 20 * 1024 * 1024) {
+      toast({
+        title: "File too large",
+        description: "Please select a file smaller than 20MB",
+        variant: "destructive",
+      });
+      return;
+    }
 
-        {/* Online Members */}
-        <div className="p-4 border-t border-white/10">
-          <h3 className="text-gray-400 text-sm font-medium mb-3 flex items-center">
-            <Users className="w-4 h-4 mr-2" />
-            Online Members (12)
-          </h3>
-          <div className="space-y-2">
-            {['GhostAlpha', 'TacticalSniper', 'EliteWarrior', 'CombatPro'].map(member => (
-              <div key={member} className="flex items-center space-x-2">
-                <div className="w-2 h-2 bg-green-400 rounded-full"></div>
-                <span className="text-gray-300 text-sm">{member}</span>
-                {member === 'GhostAlpha' && (
-                  <Shield className="w-3 h-3 text-[#FF1F44]" />
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
+    // Check file type
+    const allowedTypes = [
+      'image/jpeg', 'image/png', 'image/webp', 'image/gif',
+      'video/mp4', 'video/webm',
+      'application/pdf', 'text/plain', 'application/msword',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+    ];
 
-      {/* Chat Area */}
-      <div className="flex-1 flex flex-col relative">
-        {/* Logo Watermark */}
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-0">
+    if (!allowedTypes.includes(file.type)) {
+      toast({
+        title: "Unsupported file type",
+        description: "Please select an image, video, or document file",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setSelectedFile(file);
+  };
+
+  // Send message with or without attachment
+  const handleSendMessage = async () => {
+    if (!message.trim() && !selectedFile) return;
+
+    setUploading(true);
+    try {
+      let attachmentUrl, attachmentType, attachmentName;
+
+      if (selectedFile) {
+        attachmentUrl = await uploadFile(selectedFile);
+        attachmentType = selectedFile.type;
+        attachmentName = selectedFile.name;
+      }
+
+      await sendMessageMutation.mutateAsync({
+        message: message.trim() || `Shared ${selectedFile?.name}`,
+        attachmentUrl,
+        attachmentType,
+        attachmentName,
+      });
+    } catch (error: any) {
+      toast({
+        title: "Failed to send message",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  // Auto-scroll to bottom
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
+
+  // Real-time subscription
+  useEffect(() => {
+    const channel = supabase
+      .channel('chat-messages')
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'chat_messages',
+        filter: 'channel=eq.general'
+      }, () => {
+        queryClient.invalidateQueries({ queryKey: ['chat-messages'] });
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [queryClient]);
+
+  const renderAttachment = (msg: ChatMessage) => {
+    if (!msg.attachment_url) return null;
+
+    const isImage = msg.attachment_type?.startsWith('image/');
+    const isVideo = msg.attachment_type?.startsWith('video/');
+    const isPdf = msg.attachment_type === 'application/pdf';
+
+    return (
+      <div className="mt-2">
+        {isImage && (
           <img 
-            src="/nexa-logo.jpg" 
-            alt="NeXa Esports Watermark" 
-            className="w-96 h-96 object-contain opacity-5"
+            src={msg.attachment_url} 
+            alt={msg.attachment_name}
+            className="max-w-xs rounded-lg cursor-pointer hover:opacity-80"
+            onClick={() => window.open(msg.attachment_url, '_blank')}
           />
-        </div>
-
-        {/* Chat Header */}
-        <div className="p-4 bg-white/5 border-b border-white/10 backdrop-blur-sm relative z-10">
-          <div className="flex items-center space-x-3">
-            <Hash className="w-5 h-5 text-[#FF1F44]" />
-            <h1 className="text-xl font-bold text-white">
-              {channels.find(c => c.id === activeChannel)?.name}
-            </h1>
-            {activeChannel === 'admin' && (
-              <Badge className="bg-[#FF1F44]/20 text-[#FF1F44] border-[#FF1F44]/30">
-                Admin Only
-              </Badge>
-            )}
-          </div>
-        </div>
-
-        {/* Messages */}
-        <div className="flex-1 p-4 overflow-y-auto space-y-4 relative z-10">
-          {filteredMessages.map(msg => (
-            <div key={msg.id} className="flex space-x-3">
-              <img
-                src={`/placeholder.svg`}
-                alt={msg.user}
-                className="w-10 h-10 rounded-full border-2 border-white/20"
-              />
-              <div className="flex-1">
-                <div className="flex items-center space-x-2 mb-1">
-                  <span className="font-medium text-white">{msg.user}</span>
-                  {msg.role === 'admin' && (
-                    <Shield className="w-4 h-4 text-[#FF1F44]" />
-                  )}
-                  <span className="text-xs text-gray-400">{msg.timestamp}</span>
-                </div>
-                <div className="bg-white/10 backdrop-blur-sm rounded-lg px-3 py-2 border border-white/20">
-                  <p className="text-gray-300">{msg.message}</p>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {/* Message Input */}
-        <div className="p-4 bg-white/5 border-t border-white/10 backdrop-blur-sm relative z-10">
-          <div className="flex space-x-4">
-            <Input
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-              placeholder={`Message #${channels.find(c => c.id === activeChannel)?.name.toLowerCase()}`}
-              className="flex-1 bg-white/5 border-white/20 text-white placeholder-gray-400 focus:border-[#FF1F44]/50"
-            />
+        )}
+        
+        {isVideo && (
+          <video 
+            src={msg.attachment_url} 
+            controls 
+            className="max-w-xs rounded-lg"
+          />
+        )}
+        
+        {(isPdf || (!isImage && !isVideo)) && (
+          <div className="flex items-center space-x-2 p-2 bg-background/20 rounded-lg max-w-xs">
+            <File className="w-4 h-4 text-primary" />
+            <span className="text-sm flex-1 truncate">{msg.attachment_name}</span>
             <Button
-              onClick={handleSendMessage}
-              disabled={!message.trim()}
-              className="bg-[#FF1F44] hover:bg-red-600 text-white px-6"
+              size="sm"
+              variant="ghost"
+              onClick={() => window.open(msg.attachment_url, '_blank')}
             >
-              <Send className="w-4 h-4" />
+              <Download className="w-4 h-4" />
             </Button>
           </div>
-        </div>
+        )}
       </div>
+    );
+  };
+
+  return (
+    <div className="flex flex-col h-full relative">
+      {/* Background logo with reduced opacity */}
+      <div 
+        className="fixed inset-0 pointer-events-none z-0"
+        style={{
+          background: `url('/nexa-logo.jpg') center/contain no-repeat`,
+          opacity: 0.05,
+        }}
+      />
+
+      {/* Mobile navigation toggle */}
+      <div className="md:hidden mb-4">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setShowMobileNav(!showMobileNav)}
+          className="flex items-center space-x-2"
+        >
+          <Users className="w-4 h-4" />
+          <span>Chat Channels</span>
+        </Button>
+      </div>
+
+      {/* Mobile channel list */}
+      {showMobileNav && (
+        <Card className="md:hidden mb-4 bg-card/50 border-border/30">
+          <CardContent className="p-4">
+            <div className="space-y-2">
+              <Button variant="ghost" className="w-full justify-start text-primary">
+                # General
+              </Button>
+              {profile?.role === 'admin' && (
+                <Button variant="ghost" className="w-full justify-start">
+                  # Admin
+                </Button>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      <Card className="flex-1 bg-card/50 border-border/30 backdrop-blur-sm relative z-10">
+        <CardHeader className="border-b border-border/30">
+          <CardTitle className="flex items-center justify-between">
+            <span className="text-primary"># General Chat</span>
+            <div className="text-sm text-muted-foreground">
+              {messages.length} messages
+            </div>
+          </CardTitle>
+        </CardHeader>
+        
+        <CardContent className="flex-1 p-0 flex flex-col">
+          {/* Messages */}
+          <ScrollArea className="flex-1 p-4">
+            {isLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <div className="text-muted-foreground">Loading messages...</div>
+              </div>
+            ) : messages.length === 0 ? (
+              <div className="flex items-center justify-center py-8">
+                <div className="text-muted-foreground">No messages yet. Start the conversation!</div>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {messages.map((msg) => (
+                  <div
+                    key={msg.id}
+                    className={`flex ${msg.user_id === user?.id ? 'justify-end' : 'justify-start'}`}
+                  >
+                    <div
+                      className={`max-w-[70%] p-3 rounded-lg ${
+                        msg.user_id === user?.id
+                          ? 'bg-primary text-white ml-auto'
+                          : 'bg-muted'
+                      }`}
+                    >
+                      {msg.user_id !== user?.id && (
+                        <div className="text-xs font-medium mb-1 text-primary">
+                          {msg.profiles.ign}
+                          {msg.profiles.role === 'admin' && (
+                            <span className="ml-1 px-1 py-0.5 bg-red-500 text-white text-xs rounded">
+                              ADMIN
+                            </span>
+                          )}
+                        </div>
+                      )}
+                      
+                      <div className="text-sm">{msg.message}</div>
+                      {renderAttachment(msg)}
+                      
+                      <div className={`text-xs mt-1 ${
+                        msg.user_id === user?.id ? 'text-white/70' : 'text-muted-foreground'
+                      }`}>
+                        {new Date(msg.created_at).toLocaleTimeString([], { 
+                          hour: '2-digit', 
+                          minute: '2-digit' 
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+                <div ref={messagesEndRef} />
+              </div>
+            )}
+          </ScrollArea>
+
+          {/* File preview */}
+          {selectedFile && (
+            <div className="p-4 border-t border-border/30">
+              <div className="flex items-center justify-between p-2 bg-muted rounded-lg">
+                <div className="flex items-center space-x-2">
+                  {selectedFile.type.startsWith('image/') ? (
+                    <Image className="w-4 h-4" />
+                  ) : selectedFile.type.startsWith('video/') ? (
+                    <Video className="w-4 h-4" />
+                  ) : (
+                    <File className="w-4 h-4" />
+                  )}
+                  <span className="text-sm truncate">{selectedFile.name}</span>
+                </div>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => setSelectedFile(null)}
+                >
+                  <X className="w-4 h-4" />
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* Message input */}
+          <div className="p-4 border-t border-border/30">
+            <div className="flex items-center space-x-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploading}
+              >
+                <Paperclip className="w-4 h-4" />
+              </Button>
+              
+              <Input
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                placeholder="Type your message..."
+                className="flex-1 bg-background/50"
+                onKeyPress={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    handleSendMessage();
+                  }
+                }}
+                disabled={uploading}
+              />
+              
+              <Button
+                onClick={handleSendMessage}
+                disabled={(!message.trim() && !selectedFile) || uploading}
+                className="bg-primary hover:bg-primary/90"
+              >
+                <Send className="w-4 h-4" />
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Hidden file input */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        className="hidden"
+        accept="image/*,video/*,.pdf,.doc,.docx,.txt"
+        onChange={handleFileSelect}
+      />
     </div>
   );
 };

@@ -38,7 +38,7 @@ const bankOptions = [
 
 export const Onboarding: React.FC = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { profile, updateProfile } = useAuth();
   const { toast } = useToast();
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState({
@@ -102,15 +102,25 @@ export const Onboarding: React.FC = () => {
     }
   };
 
-  const handleComplete = () => {
-    console.log('Onboarding data:', formData);
-    
-    toast({
-      title: "Welcome to NeXa_Esports!",
-      description: "Your profile has been set up successfully.",
-    });
+  const handleComplete = async () => {
+    const profileUpdates = {
+      ign: formData.ign,
+      tiktok_handle: formData.tiktok,
+      preferred_mode: formData.mode,
+      device: formData.deviceSeries,
+      date_joined: formData.dateJoined,
+    };
 
-    navigate(user?.role === 'admin' ? '/admin' : '/dashboard');
+    const success = await updateProfile(profileUpdates);
+    
+    if (success) {
+      toast({
+        title: "Welcome to NeXa_Esports!",
+        description: "Your profile has been set up successfully.",
+      });
+
+      navigate(profile?.role === 'admin' ? '/admin' : '/dashboard');
+    }
   };
 
   const isStepValid = () => {

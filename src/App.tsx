@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -34,12 +33,13 @@ import { AdminEventsManagement } from "@/pages/admin/EventsManagement";
 import { AdminAttendance } from "@/pages/admin/Attendance";
 import { AdminNotifications } from "@/pages/admin/Notifications";
 import { AdminAnnouncementsManagement } from "@/pages/admin/AnnouncementsManagement";
+import { EventAssignment } from "@/pages/admin/EventAssignment";
 
 const queryClient = new QueryClient();
 
 // Protected Route Component
 const ProtectedRoute = ({ children, requiredRole }: { children: React.ReactNode; requiredRole?: 'admin' | 'player' }) => {
-  const { isAuthenticated, user, loading } = useAuth();
+  const { isAuthenticated, profile, loading } = useAuth();
 
   if (loading) {
     return (
@@ -53,15 +53,15 @@ const ProtectedRoute = ({ children, requiredRole }: { children: React.ReactNode;
     return <Navigate to="/auth/login" replace />;
   }
 
-  if (requiredRole && user?.role !== requiredRole) {
-    return <Navigate to={user?.role === 'admin' ? '/admin' : '/dashboard'} replace />;
+  if (requiredRole && profile?.role !== requiredRole) {
+    return <Navigate to={profile?.role === 'admin' ? '/admin' : '/dashboard'} replace />;
   }
 
   return <>{children}</>;
 };
 
 const AppRoutes = () => {
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated, profile } = useAuth();
 
   return (
     <Routes>
@@ -70,12 +70,12 @@ const AppRoutes = () => {
       <Route path="/user/:ign" element={<Layout><PublicProfile /></Layout>} />
       <Route path="/auth/login" element={
         isAuthenticated ? 
-        <Navigate to={user?.role === 'admin' ? '/admin' : '/dashboard'} replace /> : 
+        <Navigate to={profile?.role === 'admin' ? '/admin' : '/dashboard'} replace /> : 
         <Layout><Login /></Layout>
       } />
       <Route path="/auth/signup" element={
         isAuthenticated ? 
-        <Navigate to={user?.role === 'admin' ? '/admin' : '/dashboard'} replace /> : 
+        <Navigate to={profile?.role === 'admin' ? '/admin' : '/dashboard'} replace /> : 
         <Layout><Signup /></Layout>
       } />
       <Route path="/auth/forgot-password" element={<Layout><ForgotPassword /></Layout>} />
@@ -139,6 +139,11 @@ const AppRoutes = () => {
       <Route path="/admin/events" element={
         <ProtectedRoute requiredRole="admin">
           <Layout showSidebar><AdminEventsManagement /></Layout>
+        </ProtectedRoute>
+      } />
+      <Route path="/admin/events/:eventId/assign" element={
+        <ProtectedRoute requiredRole="admin">
+          <Layout showSidebar><EventAssignment /></Layout>
         </ProtectedRoute>
       } />
       <Route path="/admin/attendance" element={

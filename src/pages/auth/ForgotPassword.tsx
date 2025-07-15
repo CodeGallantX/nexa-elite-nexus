@@ -6,12 +6,14 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Shield, ArrowLeft, Mail } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
 
 export const ForgotPassword: React.FC = () => {
   const [email, setEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
   const { toast } = useToast();
+  const { resetPassword } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -19,15 +21,16 @@ export const ForgotPassword: React.FC = () => {
 
     setIsLoading(true);
     
-    // Mock API call - in real app would send reset email
-    setTimeout(() => {
+    const success = await resetPassword(email);
+    if (success) {
       setEmailSent(true);
-      setIsLoading(false);
       toast({
         title: "Reset Link Sent",
         description: "Check your email for password reset instructions.",
       });
-    }, 1500);
+    }
+    
+    setIsLoading(false);
   };
 
   if (emailSent) {
