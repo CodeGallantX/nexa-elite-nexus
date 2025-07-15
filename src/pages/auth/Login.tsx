@@ -110,6 +110,16 @@ export const Login: React.FC = () => {
                 </div>
               </div>
 
+              {/* Forgot Password Link */}
+              <div className="text-right">
+                <Link 
+                  to="/auth/forgot-password" 
+                  className="text-sm text-primary hover:text-primary/80 font-rajdhani transition-colors"
+                >
+                  Forgot Password?
+                </Link>
+              </div>
+
               <Button
                 type="submit"
                 disabled={loading}
@@ -138,10 +148,7 @@ export const Login: React.FC = () => {
               Join the clan
             </Link>
           </p>
-          <Link to="/auth/forgot-password" className="block text-muted-foreground hover:text-foreground text-sm font-rajdhani">
-            Forgot your password?
-          </Link>
-          <Link to="/" className="text-muted-foreground hover:text-foreground text-sm font-rajdhani">
+          <Link to="/" className="block text-muted-foreground hover:text-foreground text-sm font-rajdhani">
             ← Back to home
           </Link>
         </div>
