@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -17,7 +16,7 @@ import {
 } from 'lucide-react';
 
 export const AdminDashboard: React.FC = () => {
-  const { user } = useAuth();
+  const { profile } = useAuth();
 
   return (
     <div className="space-y-6">
@@ -28,7 +27,7 @@ export const AdminDashboard: React.FC = () => {
             Command Center
           </h1>
           <p className="text-gray-400">
-            Welcome, <span className="text-[#FF1F44] font-medium">{user?.username}</span> - Clan Administrator
+            Welcome, <span className="text-[#FF1F44] font-medium">{profile?.username}</span> - Clan Administrator
           </p>
         </div>
         <div className="flex items-center space-x-2 px-4 py-2 bg-[#FF1F44]/10 border border-[#FF1F44]/30 rounded-lg">

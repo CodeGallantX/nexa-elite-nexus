@@ -16,7 +16,7 @@ interface Announcement {
 }
 
 export const Header: React.FC = () => {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const [showNotifications, setShowNotifications] = useState(false);
   const [announcements, setAnnouncements] = useState<Announcement[]>([
     {
@@ -62,7 +62,7 @@ export const Header: React.FC = () => {
     <header className="h-16 border-b border-border/30 bg-card/30 backdrop-blur-sm flex items-center justify-between px-6">
       <div className="flex items-center space-x-4">
         {/* <h2 className="text-xl font-orbitron font-bold text-foreground">
-          {user?.role === 'admin' ? 'Admin Dashboard' : 'Player Dashboard'}
+          {profile?.role === 'admin' ? 'Admin Dashboard' : 'Player Dashboard'}
         </h2> */}
       </div>
 
@@ -154,14 +154,14 @@ export const Header: React.FC = () => {
         {/* User Profile */}
         <div className="flex items-center space-x-3">
           <img
-            src={user?.profile?.avatar || '/placeholder.svg'}
+            src={profile?.avatar_url || '/placeholder.svg'}
             alt="Avatar"
             className="w-8 h-8 rounded-full border-2 border-primary/30"
           />
           <div className="text-right">
-            <p className="text-sm font-medium text-foreground font-rajdhani">{user?.username}</p>
+            <p className="text-sm font-medium text-foreground font-rajdhani">{profile?.username}</p>
             <p className="text-xs text-muted-foreground uppercase font-rajdhani">
-              {user?.profile?.tier || user?.role}
+              {profile?.tier || profile?.role}
             </p>
           </div>
         </div>

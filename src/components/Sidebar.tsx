@@ -23,7 +23,7 @@ import {
 import { useIsMobile } from '@/hooks/use-mobile';
 
 export const Sidebar: React.FC = () => {
-  const { user, logout } = useAuth();
+  const { user, profile, logout } = useAuth();
   const navigate = useNavigate();
   const isMobile = useIsMobile();
 
@@ -57,7 +57,7 @@ export const Sidebar: React.FC = () => {
     { icon: Settings, label: 'Settings', path: '/settings' }
   ];
 
-  const navItems = user?.role === 'admin' ? adminNavItems : playerNavItems;
+  const navItems = profile?.role === 'admin' ? adminNavItems : playerNavItems;
 
   return (
     <div className={`bg-sidebar-background border-r border-sidebar-border backdrop-blur-sm flex flex-col h-full ${
@@ -74,7 +74,7 @@ export const Sidebar: React.FC = () => {
               NeXa_Esports
             </h1>
             <p className="text-xs text-sidebar-foreground/60 uppercase tracking-wider font-rajdhani">
-              {user?.role === 'admin' ? 'Command Center' : 'Tactical Hub'}
+              {profile?.role === 'admin' ? 'Command Center' : 'Tactical Hub'}
             </p>
           </div>
         </div>
@@ -107,14 +107,14 @@ export const Sidebar: React.FC = () => {
       <div className="p-4 border-t border-sidebar-border flex-shrink-0">
         <div className="flex items-center space-x-3 mb-4">
           <img
-            src={user?.profile?.avatar || '/placeholder.svg'}
+            src={profile?.avatar_url || '/placeholder.svg'}
             alt="Avatar"
             className="w-10 h-10 rounded-full border-2 border-sidebar-primary/30"
           />
           <div className="flex-1">
-            <p className="text-sidebar-foreground font-medium font-rajdhani">{user?.username}</p>
+            <p className="text-sidebar-foreground font-medium font-rajdhani">{profile?.username}</p>
             <p className="text-xs text-sidebar-foreground/60 uppercase font-rajdhani">
-              {user?.profile?.tier || 'Recruit'}
+              {profile?.tier || 'Recruit'}
             </p>
           </div>
         </div>

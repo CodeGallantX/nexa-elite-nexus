@@ -253,9 +253,13 @@ export const KillPerformanceTracker: React.FC = () => {
                             </div>
                             <div className="flex flex-col items-center space-y-1">
                               {participation.verified ? (
-                                <CheckCircle className="w-4 h-4 text-green-400" title="Verified by admin" />
+                                <div title="Verified by admin">
+                                  <CheckCircle className="w-4 h-4 text-green-400" />
+                                </div>
                               ) : (
-                                <AlertCircle className="w-4 h-4 text-yellow-400" title="Pending verification" />
+                                <div title="Pending verification">
+                                  <AlertCircle className="w-4 h-4 text-yellow-400" />
+                                </div>
                               )}
                               <Button
                                 size="sm"
