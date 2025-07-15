@@ -9,6 +9,7 @@ import { Send, Paperclip, X, Download, File, Video, Image, Users } from 'lucide-
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useChatNotifications } from '@/hooks/useChatNotifications';
 
 interface ChatMessage {
   id: string;
@@ -29,6 +30,7 @@ export const Chat: React.FC = () => {
   const { profile, user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { markChatAsSeen } = useChatNotifications();
   
   const [message, setMessage] = useState('');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -37,6 +39,11 @@ export const Chat: React.FC = () => {
   
   const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Mark chat as seen when component mounts
+  useEffect(() => {
+    markChatAsSeen();
+  }, [markChatAsSeen]);
 
   // Fetch chat messages
   const { data: messages = [], isLoading } = useQuery({
@@ -85,6 +92,8 @@ export const Chat: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ['chat-messages'] });
       setMessage('');
       setSelectedFile(null);
+      // Update last seen timestamp
+      markChatAsSeen();
     },
     onError: (error: any) => {
       toast({

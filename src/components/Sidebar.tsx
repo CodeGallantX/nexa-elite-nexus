@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -38,6 +39,7 @@ export const Sidebar: React.FC = () => {
   const [isCollapsed, setIsCollapsed] = useState(false);
 
   const isAdmin = profile?.role === 'admin';
+  const isPlayer = profile?.role === 'player';
 
   const playerMenuItems = [
     { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
@@ -112,31 +114,35 @@ export const Sidebar: React.FC = () => {
       {/* Navigation */}
       <nav className="flex-1 p-4">
         <div className="space-y-2">
-          {/* Player Menu */}
-          {!isCollapsed && (
-            <div className="pb-2">
-              <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                Player Menu
-              </h3>
-            </div>
+          {/* Player Menu - Only show for players */}
+          {isPlayer && (
+            <>
+              {!isCollapsed && (
+                <div className="pb-2">
+                  <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                    Player Menu
+                  </h3>
+                </div>
+              )}
+              {playerMenuItems.map((item) => (
+                <NavItem
+                  key={item.path}
+                  icon={item.icon}
+                  label={item.label}
+                  path={item.path}
+                  isActive={location.pathname === item.path}
+                  isCollapsed={isCollapsed}
+                  onClick={() => navigate(item.path)}
+                />
+              ))}
+            </>
           )}
-          {playerMenuItems.map((item) => (
-            <NavItem
-              key={item.path}
-              icon={item.icon}
-              label={item.label}
-              path={item.path}
-              isActive={location.pathname === item.path}
-              isCollapsed={isCollapsed}
-              onClick={() => navigate(item.path)}
-            />
-          ))}
 
-          {/* Admin Menu */}
+          {/* Admin Menu - Only show for admins */}
           {isAdmin && (
             <>
               {!isCollapsed && (
-                <div className="pt-4 pb-2">
+                <div className="pb-2">
                   <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                     Admin Menu
                   </h3>
