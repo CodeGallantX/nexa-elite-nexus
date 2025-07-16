@@ -13,16 +13,7 @@ import { useToast } from '@/hooks/use-toast';
 // Device and brand data
 const deviceData = {
   iPhone: ['iPhone 13 Pro', 'iPhone 14 Pro Max', 'iPhone 15', 'iPhone 15 Pro', 'iPhone 16'],
-  Android: {
-    brands: ['Samsung', 'Redmi', 'Infinix', 'OnePlus', 'Tecno'],
-    series: {
-      Samsung: ['Galaxy S23 Ultra', 'Galaxy A73', 'Galaxy Note 20', 'Galaxy S22'],
-      Redmi: ['Note 12 Pro', 'Note 11 Pro', '10T Pro', 'K50 Ultra'],
-      Infinix: ['Zero 30', 'Note 30', 'Hot 12 Play', 'Smart 7'],
-      OnePlus: ['11 Pro', '10T', '9 Pro', 'Nord CE 3'],
-      Tecno: ['Phantom X', 'Camon 19', 'Spark 9', 'Pova 4']
-    }
-  },
+  Android: ['Samsung', 'Xiaomi', 'Infinix', 'Tecno', 'OnePlus', 'Huawei', 'Oppo', 'Vivo', 'Realme', 'Redmi', 'Honor', 'Nothing'],
   PC: ['MacBook Pro M4', 'Razer Blade 15', 'ASUS ROG Strix', 'MSI Gaming Laptop', 'Dell Alienware']
 };
 
@@ -47,7 +38,6 @@ export const Onboarding: React.FC = () => {
     uid: '',
     deviceType: '',
     androidBrand: '',
-    deviceSeries: '',
     mode: '',
     brClass: '',
     mpClass: '',
@@ -74,10 +64,6 @@ export const Onboarding: React.FC = () => {
       // Reset dependent fields when parent changes
       if (field === 'deviceType') {
         newData.androidBrand = '';
-        newData.deviceSeries = '';
-      }
-      if (field === 'androidBrand') {
-        newData.deviceSeries = '';
       }
       if (field === 'mode') {
         newData.brClass = '';
@@ -107,7 +93,7 @@ export const Onboarding: React.FC = () => {
       ign: formData.ign,
       tiktok_handle: formData.tiktok,
       preferred_mode: formData.mode,
-      device: formData.deviceSeries,
+      device: formData.deviceType === 'Android' ? formData.androidBrand : formData.androidBrand,
       date_joined: formData.dateJoined,
     };
 
@@ -127,7 +113,8 @@ export const Onboarding: React.FC = () => {
     switch (currentStep) {
       case 1:
         return formData.ign && formData.uid && formData.deviceType && 
-               formData.deviceSeries && formData.mode && 
+               (formData.deviceType === 'Android' ? formData.androidBrand : true) &&
+               formData.mode && 
                (formData.mode === 'BR' ? formData.brClass : 
                 formData.mode === 'MP' ? formData.mpClass : 
                 (formData.brClass && formData.mpClass));
@@ -141,11 +128,11 @@ export const Onboarding: React.FC = () => {
     }
   };
 
-  const getDeviceSeriesOptions = () => {
+  const getDeviceOptions = () => {
     if (formData.deviceType === 'iPhone') {
       return deviceData.iPhone;
-    } else if (formData.deviceType === 'Android' && formData.androidBrand) {
-      return deviceData.Android.series[formData.androidBrand as keyof typeof deviceData.Android.series] || [];
+    } else if (formData.deviceType === 'Android') {
+      return deviceData.Android;
     } else if (formData.deviceType === 'PC') {
       return deviceData.PC;
     }
@@ -239,13 +226,13 @@ export const Onboarding: React.FC = () => {
 
                 {formData.deviceType === 'Android' && (
                   <div>
-                    <Label htmlFor="androidBrand" className="text-foreground font-rajdhani">Brand *</Label>
+                    <Label htmlFor="androidBrand" className="text-foreground font-rajdhani">Android Brand *</Label>
                     <Select value={formData.androidBrand} onValueChange={(value) => handleInputChange('androidBrand', value)}>
                       <SelectTrigger className="bg-background/50 border-border/50 text-foreground font-rajdhani">
-                        <SelectValue placeholder="Select brand" />
+                        <SelectValue placeholder="Select Android brand" />
                       </SelectTrigger>
                       <SelectContent>
-                        {deviceData.Android.brands.map(brand => (
+                        {deviceData.Android.map(brand => (
                           <SelectItem key={brand} value={brand}>{brand}</SelectItem>
                         ))}
                       </SelectContent>
@@ -253,23 +240,24 @@ export const Onboarding: React.FC = () => {
                   </div>
                 )}
 
-                <div className={formData.deviceType === 'Android' ? 'md:col-start-1' : ''}>
-                  <Label htmlFor="deviceSeries" className="text-foreground font-rajdhani">Device Series *</Label>
-                  <Select 
-                    value={formData.deviceSeries} 
-                    onValueChange={(value) => handleInputChange('deviceSeries', value)}
-                    disabled={formData.deviceType === 'Android' && !formData.androidBrand}
-                  >
-                    <SelectTrigger className="bg-background/50 border-border/50 text-foreground font-rajdhani">
-                      <SelectValue placeholder="Select device series" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {getDeviceSeriesOptions().map(series => (
-                        <SelectItem key={series} value={series}>{series}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+                {(formData.deviceType === 'iPhone' || formData.deviceType === 'PC') && (
+                  <div>
+                    <Label htmlFor="deviceModel" className="text-foreground font-rajdhani">Device Model *</Label>
+                    <Select 
+                      value={formData.androidBrand} 
+                      onValueChange={(value) => handleInputChange('androidBrand', value)}
+                    >
+                      <SelectTrigger className="bg-background/50 border-border/50 text-foreground font-rajdhani">
+                        <SelectValue placeholder="Select device model" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {getDeviceOptions().map(model => (
+                          <SelectItem key={model} value={model}>{model}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
 
                 <div>
                   <Label htmlFor="mode" className="text-foreground font-rajdhani">Preferred Mode *</Label>

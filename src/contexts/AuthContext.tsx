@@ -18,6 +18,8 @@ interface UserProfile {
   grade: string;
   date_joined: string;
   updated_at?: string;
+  social_links?: Record<string, string> | null;
+  banking_info?: Record<string, string> | null;
 }
 
 interface AuthContextType {
@@ -71,7 +73,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return;
       }
       
-      setProfile(data);
+      setProfile({
+        ...data,
+        social_links: data.social_links as Record<string, string> | null,
+        banking_info: data.banking_info as Record<string, string> | null,
+      });
     } catch (error) {
       console.error('Error fetching profile:', error);
     }

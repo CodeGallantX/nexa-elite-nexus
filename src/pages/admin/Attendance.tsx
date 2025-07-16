@@ -1,6 +1,8 @@
 
 import React, { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -21,48 +23,85 @@ import {
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
-type AttendanceMode = 'MP' | 'BR' | 'Event';
-
-// Mock data
-const mockPlayers = [
-  { ign: 'slayerX', attendance: 85, lastSeen: '2024-07-14', status: 'active', kills: 127 },
-  { ign: 'TacticalSniper', attendance: 78, lastSeen: '2024-07-13', status: 'active', kills: 98 },
-  { ign: 'EliteWarrior', attendance: 65, lastSeen: '2024-07-12', status: 'inactive', kills: 84 },
-  { ign: 'GhostAlpha', attendance: 95, lastSeen: '2024-07-14', status: 'active', kills: 156 },
-  { ign: 'ProSniper', attendance: 72, lastSeen: '2024-07-11', status: 'active', kills: 112 }
-];
-
-const mockAttendanceRecords = [
-  { id: '1', playerIgn: 'slayerX', eventName: 'Championship Qualifier', date: '2024-07-15', status: 'present', mode: 'BR' as AttendanceMode },
-  { id: '2', playerIgn: 'TacticalSniper', eventName: 'Training Session', date: '2024-07-14', status: 'present', mode: 'MP' as AttendanceMode },
-  { id: '3', playerIgn: 'EliteWarrior', eventName: 'Training Session', date: '2024-07-14', status: 'absent', mode: 'MP' as AttendanceMode }
-];
+type AttendanceMode = 'MP' | 'BR' | 'Mixed';
 
 export const AdminAttendance: React.FC = () => {
   const { toast } = useToast();
-  const [players] = useState(mockPlayers);
-  const [attendanceRecords, setAttendanceRecords] = useState(mockAttendanceRecords);
+  const queryClient = useQueryClient();
   const [attendanceMode, setAttendanceMode] = useState<AttendanceMode>('MP');
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState('all');
 
-  const handleMarkAttendance = (playerIgn: string, status: 'present' | 'absent') => {
-    const newRecord = {
-      id: Date.now().toString(),
-      playerIgn,
-      eventName: `${attendanceMode} Session`,
-      date: selectedDate,
-      status,
-      mode: attendanceMode
-    };
+  // Fetch players
+  const { data: players = [], isLoading: playersLoading } = useQuery({
+    queryKey: ['players'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .order('username');
+      
+      if (error) throw error;
+      return data;
+    }
+  });
 
-    setAttendanceRecords(prev => [...prev, newRecord]);
+  // Fetch attendance records
+  const { data: attendanceRecords = [], isLoading: attendanceLoading } = useQuery({
+    queryKey: ['attendance', attendanceMode],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('attendance')
+        .select(`
+          *,
+          profiles!attendance_player_id_fkey(username, ign),
+          events(name)
+        `)
+        .eq('attendance_type', attendanceMode)
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      return data;
+    }
+  });
 
-    toast({
-      title: "Attendance Marked",
-      description: `${playerIgn} marked as ${status} for ${attendanceMode} on ${new Date(selectedDate).toLocaleDateString()}`,
-    });
+  // Mark attendance mutation
+  const markAttendanceMutation = useMutation({
+    mutationFn: async ({ playerId, status }: { playerId: string; status: 'present' | 'absent' }) => {
+      const { data, error } = await supabase
+        .from('attendance')
+        .insert({
+          player_id: playerId,
+          status,
+          attendance_type: attendanceMode,
+          date: selectedDate,
+        });
+      
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['attendance'] });
+      queryClient.invalidateQueries({ queryKey: ['players'] });
+    }
+  });
+
+  const handleMarkAttendance = async (playerId: string, playerIgn: string, status: 'present' | 'absent') => {
+    try {
+      await markAttendanceMutation.mutateAsync({ playerId, status });
+      toast({
+        title: "Attendance Marked",
+        description: `${playerIgn} marked as ${status} for ${attendanceMode} on ${new Date(selectedDate).toLocaleDateString()}`,
+      });
+    } catch (error) {
+      console.error('Error marking attendance:', error);
+      toast({
+        title: "Error",
+        description: "Failed to mark attendance",
+        variant: "destructive",
+      });
+    }
   };
 
   const setToday = () => {
@@ -71,8 +110,7 @@ export const AdminAttendance: React.FC = () => {
 
   const exportData = (format: 'csv' | 'xlsx') => {
     const filteredRecords = attendanceRecords.filter(record => 
-      record.playerIgn.toLowerCase().includes(searchTerm.toLowerCase()) &&
-      record.mode === attendanceMode
+      record.profiles?.ign?.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
     // Mock export functionality
@@ -95,16 +133,15 @@ export const AdminAttendance: React.FC = () => {
 
   const filteredPlayers = players.filter(player => {
     const matchesSearch = player.ign.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesRole = roleFilter === 'all' || player.status === roleFilter;
+    const matchesRole = roleFilter === 'all' || (roleFilter === 'active' ? player.role === 'player' : player.role === 'admin');
     return matchesSearch && matchesRole;
   });
 
   const filteredRecords = attendanceRecords.filter(record =>
-    record.playerIgn.toLowerCase().includes(searchTerm.toLowerCase()) &&
-    record.mode === attendanceMode
+    record.profiles?.ign?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const avgAttendance = Math.round(players.reduce((sum, p) => sum + p.attendance, 0) / players.length);
+  const avgAttendance = players.length > 0 ? Math.round(players.reduce((sum, p) => sum + (p.attendance || 0), 0) / players.length) : 0;
 
   return (
     <div className="space-y-6">
@@ -154,7 +191,7 @@ export const AdminAttendance: React.FC = () => {
           <div className="flex flex-col md:flex-row gap-4 items-center">
             <Label className="font-rajdhani text-sm font-medium">Attendance Mode:</Label>
             <div className="flex rounded-lg bg-background/50 p-1">
-              {(['MP', 'BR', 'Event'] as AttendanceMode[]).map((mode) => (
+              {(['MP', 'BR', 'Mixed'] as AttendanceMode[]).map((mode) => (
                 <Button
                   key={mode}
                   variant={attendanceMode === mode ? "default" : "ghost"}
@@ -261,53 +298,69 @@ export const AdminAttendance: React.FC = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredPlayers.map(player => (
-                  <TableRow 
-                    key={player.ign} 
-                    id={`player-${player.ign}`}
-                    className="border-border/30 hover:bg-muted/20 transition-colors"
-                  >
-                    <TableCell>
-                      <div className="flex items-center space-x-3">
-                        <div className="w-8 h-8 bg-primary/20 rounded-full flex items-center justify-center">
-                          <Users className="w-4 h-4 text-primary" />
-                        </div>
-                        <div>
-                          <div className="font-medium text-foreground font-rajdhani">{player.ign}</div>
-                          <div className="text-sm text-muted-foreground font-rajdhani">
-                            {player.attendance}% attendance
-                          </div>
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="text-lg font-bold text-primary font-orbitron">
-                        {player.kills}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Button
-                        size="sm"
-                        onClick={() => handleMarkAttendance(player.ign, 'present')}
-                        className="bg-green-600 hover:bg-green-700 text-white font-rajdhani"
-                      >
-                        <CheckCircle className="w-4 h-4 mr-1" />
-                        Present
-                      </Button>
-                    </TableCell>
-                    <TableCell>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleMarkAttendance(player.ign, 'absent')}
-                        className="border-red-500/50 text-red-400 hover:bg-red-500/10 font-rajdhani"
-                      >
-                        <XCircle className="w-4 h-4 mr-1" />
-                        Absent
-                      </Button>
+                {playersLoading ? (
+                  <TableRow>
+                    <TableCell colSpan={4} className="text-center py-8">
+                      <div className="text-muted-foreground">Loading players...</div>
                     </TableCell>
                   </TableRow>
-                ))}
+                ) : filteredPlayers.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={4} className="text-center py-8">
+                      <div className="text-muted-foreground">No players found</div>
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  filteredPlayers.map(player => (
+                    <TableRow 
+                      key={player.id} 
+                      id={`player-${player.ign}`}
+                      className="border-border/30 hover:bg-muted/20 transition-colors"
+                    >
+                      <TableCell>
+                        <div className="flex items-center space-x-3">
+                          <div className="w-8 h-8 bg-primary/20 rounded-full flex items-center justify-center">
+                            <Users className="w-4 h-4 text-primary" />
+                          </div>
+                          <div>
+                            <div className="font-medium text-foreground font-rajdhani">{player.ign}</div>
+                            <div className="text-sm text-muted-foreground font-rajdhani">
+                              {player.attendance || 0}% attendance
+                            </div>
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="text-lg font-bold text-primary font-orbitron">
+                          {player.kills || 0}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Button
+                          size="sm"
+                          onClick={() => handleMarkAttendance(player.id, player.ign, 'present')}
+                          disabled={markAttendanceMutation.isPending}
+                          className="bg-green-600 hover:bg-green-700 text-white font-rajdhani"
+                        >
+                          <CheckCircle className="w-4 h-4 mr-1" />
+                          Present
+                        </Button>
+                      </TableCell>
+                      <TableCell>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleMarkAttendance(player.id, player.ign, 'absent')}
+                          disabled={markAttendanceMutation.isPending}
+                          className="border-red-500/50 text-red-400 hover:bg-red-500/10 font-rajdhani"
+                        >
+                          <XCircle className="w-4 h-4 mr-1" />
+                          Absent
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
               </TableBody>
             </Table>
           </div>
@@ -333,40 +386,54 @@ export const AdminAttendance: React.FC = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredRecords.slice(-10).reverse().map(record => (
-                <TableRow key={record.id} className="border-border/30 hover:bg-muted/20">
-                  <TableCell 
-                    className="font-medium text-foreground font-rajdhani cursor-pointer hover:text-primary"
-                    onClick={() => scrollToPlayer(record.playerIgn)}
-                  >
-                    {record.playerIgn}
-                  </TableCell>
-                  <TableCell className="text-muted-foreground font-rajdhani">
-                    {record.eventName}
-                  </TableCell>
-                  <TableCell className="text-muted-foreground font-rajdhani">
-                    {new Date(record.date).toLocaleDateString()}
-                  </TableCell>
-                  <TableCell>
-                    <Badge className={record.status === 'present' 
-                      ? 'bg-green-500/20 text-green-400 border-green-500/50'
-                      : 'bg-red-500/20 text-red-400 border-red-500/50'
-                    }>
-                      {record.status === 'present' ? (
-                        <>
-                          <CheckCircle className="w-3 h-3 mr-1" />
-                          Present
-                        </>
-                      ) : (
-                        <>
-                          <XCircle className="w-3 h-3 mr-1" />
-                          Absent
-                        </>
-                      )}
-                    </Badge>
+              {attendanceLoading ? (
+                <TableRow>
+                  <TableCell colSpan={4} className="text-center py-8">
+                    <div className="text-muted-foreground">Loading attendance records...</div>
                   </TableCell>
                 </TableRow>
-              ))}
+              ) : filteredRecords.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={4} className="text-center py-8">
+                    <div className="text-muted-foreground">No attendance records found</div>
+                  </TableCell>
+                </TableRow>
+              ) : (
+                filteredRecords.slice(-10).reverse().map(record => (
+                  <TableRow key={record.id} className="border-border/30 hover:bg-muted/20">
+                    <TableCell 
+                      className="font-medium text-foreground font-rajdhani cursor-pointer hover:text-primary"
+                      onClick={() => scrollToPlayer(record.profiles?.ign || '')}
+                    >
+                      {record.profiles?.ign || 'Unknown Player'}
+                    </TableCell>
+                    <TableCell className="text-muted-foreground font-rajdhani">
+                      {record.events?.name || `${attendanceMode} Session`}
+                    </TableCell>
+                    <TableCell className="text-muted-foreground font-rajdhani">
+                      {new Date(record.date).toLocaleDateString()}
+                    </TableCell>
+                    <TableCell>
+                      <Badge className={record.status === 'present' 
+                        ? 'bg-green-500/20 text-green-400 border-green-500/50'
+                        : 'bg-red-500/20 text-red-400 border-red-500/50'
+                      }>
+                        {record.status === 'present' ? (
+                          <>
+                            <CheckCircle className="w-3 h-3 mr-1" />
+                            Present
+                          </>
+                        ) : (
+                          <>
+                            <XCircle className="w-3 h-3 mr-1" />
+                            Absent
+                          </>
+                        )}
+                      </Badge>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
             </TableBody>
           </Table>
         </CardContent>

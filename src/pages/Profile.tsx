@@ -18,11 +18,15 @@ import {
   Smartphone,
   Calendar,
   ExternalLink,
-  Upload
+  Upload,
+  Key,
+  Instagram,
+  Youtube,
+  Twitter
 } from 'lucide-react';
 
 export const Profile: React.FC = () => {
-  const { profile, updateProfile } = useAuth();
+  const { profile, updateProfile, resetPassword, user } = useAuth();
   const { toast } = useToast();
   const [editing, setEditing] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -86,6 +90,68 @@ export const Profile: React.FC = () => {
       'D': 'bg-red-500'
     };
     return colors[grade as keyof typeof colors] || 'bg-gray-500';
+  };
+
+  const handlePasswordReset = async () => {
+    if (!user?.email) {
+      toast({
+        title: "Error",
+        description: "No email found for password reset",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const success = await resetPassword(user.email);
+    if (success) {
+      toast({
+        title: "Password Reset Email Sent",
+        description: "Check your email for password reset instructions",
+      });
+    }
+  };
+
+  const getSocialIcon = (platform: string) => {
+    switch (platform.toLowerCase()) {
+      case 'instagram':
+        return <Instagram className="w-4 h-4" />;
+      case 'youtube':
+        return <Youtube className="w-4 h-4" />;
+      case 'twitter':
+      case 'x':
+        return <Twitter className="w-4 h-4" />;
+      default:
+        return <ExternalLink className="w-4 h-4" />;
+    }
+  };
+
+  const formatSocialLink = (handle: string, platform: string) => {
+    if (!handle) return null;
+    
+    let url = '';
+    const cleanHandle = handle.replace('@', '');
+    
+    switch (platform.toLowerCase()) {
+      case 'instagram':
+        url = `https://instagram.com/${cleanHandle}`;
+        break;
+      case 'youtube':
+        url = `https://youtube.com/@${cleanHandle}`;
+        break;
+      case 'twitter':
+      case 'x':
+        url = `https://x.com/${cleanHandle}`;
+        break;
+      case 'tiktok':
+        url = `https://tiktok.com/@${cleanHandle}`;
+        break;
+      case 'discord':
+        return handle; // Discord handles don't have URLs
+      default:
+        return handle;
+    }
+    
+    return url;
   };
 
   if (!profile) {
@@ -250,15 +316,16 @@ export const Profile: React.FC = () => {
           </CardContent>
         </Card>
 
-        {/* Social Media */}
+        {/* Social Media & Account */}
         <Card className="bg-white/5 border-white/10 backdrop-blur-sm">
           <CardHeader>
             <CardTitle className="text-white flex items-center">
               <ExternalLink className="w-5 h-5 mr-2 text-[#FF1F44]" />
-              Social Media
+              Social Media & Account
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
+            {/* TikTok */}
             <div>
               <Label htmlFor="tiktok" className="text-gray-300">TikTok Handle</Label>
               {editing ? (
@@ -270,8 +337,74 @@ export const Profile: React.FC = () => {
                   placeholder="@username"
                 />
               ) : (
-                <div className="text-white font-medium mt-1">{profile.tiktok_handle || 'Not provided'}</div>
+                <div className="flex items-center mt-1">
+                  {getSocialIcon('tiktok')}
+                  <span className="ml-2 text-white font-medium">
+                    {profile.tiktok_handle ? (
+                      <a 
+                        href={formatSocialLink(profile.tiktok_handle, 'tiktok') || '#'}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-[#FF1F44] hover:text-red-300 transition-colors"
+                      >
+                        {profile.tiktok_handle}
+                      </a>
+                    ) : 'Not provided'}
+                  </span>
+                </div>
               )}
+            </div>
+
+            {/* All Social Links (stored in social_links JSON field) */}
+            {profile.social_links && (
+              <div className="space-y-3">
+                {Object.entries(profile.social_links as Record<string, string>).map(([platform, handle]) => (
+                  <div key={platform}>
+                    <Label className="text-gray-300 capitalize">{platform}</Label>
+                    <div className="flex items-center mt-1">
+                      {getSocialIcon(platform)}
+                      <span className="ml-2 text-white font-medium">
+                        {formatSocialLink(handle, platform) ? (
+                          <a 
+                            href={formatSocialLink(handle, platform) || '#'}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-[#FF1F44] hover:text-red-300 transition-colors"
+                          >
+                            {handle}
+                          </a>
+                        ) : handle}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Banking Info */}
+            {profile.banking_info && (
+              <div className="pt-4 border-t border-white/10">
+                <Label className="text-gray-300">Banking Information</Label>
+                <div className="mt-2 space-y-2">
+                  {Object.entries(profile.banking_info as Record<string, string>).map(([key, value]) => (
+                    <div key={key} className="flex justify-between">
+                      <span className="text-gray-400 capitalize">{key.replace('_', ' ')}:</span>
+                      <span className="text-white font-medium">{value}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Password Reset */}
+            <div className="pt-4 border-t border-white/10">
+              <Button
+                onClick={handlePasswordReset}
+                className="bg-orange-600 hover:bg-orange-700 text-white"
+              >
+                <Key className="w-4 h-4 mr-2" />
+                Change Password
+              </Button>
             </div>
 
             {editing && (

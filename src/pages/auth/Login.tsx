@@ -7,12 +7,14 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Shield, Mail, Lock, Eye, EyeOff } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 export const Login: React.FC = () => {
-  const [email, setEmail] = useState('');
+  const [emailOrUsername, setEmailOrUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [isUsernameMode, setIsUsernameMode] = useState(false);
   
   const { login } = useAuth();
   const navigate = useNavigate();
@@ -23,7 +25,23 @@ export const Login: React.FC = () => {
     setLoading(true);
 
     try {
-      const success = await login(email, password);
+      let loginEmail = emailOrUsername;
+      
+      // If in username mode, we need to look up the user
+      if (isUsernameMode) {
+        // For username login, we'll need to try a different approach
+        // Since we can't directly get email from username on client side,
+        // we'll show an error for now and recommend using email
+        toast({
+          title: "Username Login Not Available",
+          description: "Please use your email address to log in, or contact admin for assistance.",
+          variant: "destructive",
+        });
+        setLoading(false);
+        return;
+      }
+      
+      const success = await login(loginEmail, password);
       if (success) {
         toast({
           title: "Welcome back, warrior!",
@@ -72,16 +90,29 @@ export const Login: React.FC = () => {
           <div className="p-8 bg-card/50 backdrop-blur-sm rounded-xl border border-border/30">
             <div className="space-y-4">
               <div>
-                <Label htmlFor="email" className="text-foreground mb-2 block font-rajdhani">Email</Label>
+                <div className="flex items-center justify-between mb-2">
+                  <Label htmlFor="emailOrUsername" className="text-foreground font-rajdhani">
+                    {isUsernameMode ? 'Username' : 'Email'}
+                  </Label>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setIsUsernameMode(!isUsernameMode)}
+                    className="text-primary hover:text-primary/80 font-rajdhani text-xs"
+                  >
+                    Use {isUsernameMode ? 'Email' : 'Username'}
+                  </Button>
+                </div>
                 <div className="relative">
                   <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-5 h-5" />
                   <Input
-                    id="email"
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    id="emailOrUsername"
+                    type={isUsernameMode ? "text" : "email"}
+                    value={emailOrUsername}
+                    onChange={(e) => setEmailOrUsername(e.target.value)}
                     className="pl-10 bg-background/50 border-border/50 text-foreground focus:border-primary/50 font-rajdhani"
-                    placeholder="warrior@nexa.gg"
+                    placeholder={isUsernameMode ? "username" : "warrior@nexa.gg"}
                     required
                   />
                 </div>
