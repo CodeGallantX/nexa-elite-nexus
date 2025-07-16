@@ -62,6 +62,7 @@ export const Sidebar: React.FC = () => {
   const adminMenuItems = [
     { icon: Shield, label: 'Admin Dashboard', path: '/admin' },
     { icon: Users, label: 'Players', path: '/admin/players' },
+    { icon: MessageSquare, label: 'Chat', path: '/chat' },
     { icon: BarChart3, label: 'Statistics', path: '/admin/stats' },
     { icon: UserCog, label: 'Profiles', path: '/admin/profiles' },
     { icon: Package, label: 'Loadouts', path: '/admin/loadouts' },
