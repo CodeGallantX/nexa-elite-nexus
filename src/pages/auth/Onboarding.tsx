@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Label } from '@/components/ui/label';
 import { Shield, ChevronRight, ChevronLeft, Gamepad2, Users, User } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 // Device and brand data
 const deviceData = {
@@ -89,23 +90,48 @@ export const Onboarding: React.FC = () => {
   };
 
   const handleComplete = async () => {
-    const profileUpdates = {
-      ign: formData.ign,
-      tiktok_handle: formData.tiktok,
-      preferred_mode: formData.mode,
-      device: formData.deviceType === 'Android' ? formData.androidBrand : formData.androidBrand,
-      date_joined: formData.dateJoined,
-    };
+    try {
+      const { data: user } = await supabase.auth.getUser();
+      if (!user.user) throw new Error('No authenticated user');
 
-    const success = await updateProfile(profileUpdates);
-    
-    if (success) {
+      const profileUpdates = {
+        ign: formData.ign,
+        tiktok_handle: formData.tiktok,
+        preferred_mode: formData.mode,
+        device: formData.deviceType === 'Android' ? formData.androidBrand : formData.androidBrand,
+        social_links: {
+          tiktok: formData.tiktok,
+          youtube: formData.youtube,
+          discord: formData.discord,
+          x: formData.x,
+          instagram: formData.instagram
+        },
+        banking_info: {
+          real_name: formData.realName,
+          account_name: formData.accountName,
+          account_number: formData.accountNumber,
+          bank_name: formData.bankName
+        }
+      };
+
+      const success = await updateProfile(profileUpdates);
+      
+      if (success) {
+        toast({
+          title: "Welcome to NeXa_Esports!",
+          description: "Your profile has been set up successfully.",
+        });
+
+        // Navigate based on user role
+        navigate(profile?.role === 'admin' ? '/admin' : '/dashboard');
+      }
+    } catch (error) {
+      console.error('Error completing onboarding:', error);
       toast({
-        title: "Welcome to NeXa_Esports!",
-        description: "Your profile has been set up successfully.",
+        title: "Error",
+        description: "Failed to complete onboarding. Please try again.",
+        variant: "destructive",
       });
-
-      navigate(profile?.role === 'admin' ? '/admin' : '/dashboard');
     }
   };
 
