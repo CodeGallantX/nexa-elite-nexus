@@ -148,7 +148,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signup = async (signupData: SignupData): Promise<boolean> => {
     try {
       console.log('Attempting signup for:', signupData.email);
-      const redirectUrl = `${window.location.origin}/auth/onboarding`;
+      const redirectUrl = `${window.location.origin}/auth/email-confirmation`;
       
       const { data, error } = await supabase.auth.signUp({
         email: signupData.email,
