@@ -21,6 +21,8 @@ export type Database = {
           expires_at: string | null
           id: string
           is_active: boolean | null
+          requested_by: string | null
+          used: boolean | null
         }
         Insert: {
           code: string
@@ -28,6 +30,8 @@ export type Database = {
           expires_at?: string | null
           id?: string
           is_active?: boolean | null
+          requested_by?: string | null
+          used?: boolean | null
         }
         Update: {
           code?: string
@@ -35,6 +39,8 @@ export type Database = {
           expires_at?: string | null
           id?: string
           is_active?: boolean | null
+          requested_by?: string | null
+          used?: boolean | null
         }
         Relationships: []
       }
@@ -309,6 +315,53 @@ export type Database = {
           },
         ]
       }
+      notifications: {
+        Row: {
+          action_data: Json | null
+          created_at: string | null
+          data: Json | null
+          expires_at: string | null
+          id: string
+          message: string
+          read: boolean | null
+          title: string
+          type: string
+          user_id: string | null
+        }
+        Insert: {
+          action_data?: Json | null
+          created_at?: string | null
+          data?: Json | null
+          expires_at?: string | null
+          id?: string
+          message: string
+          read?: boolean | null
+          title: string
+          type: string
+          user_id?: string | null
+        }
+        Update: {
+          action_data?: Json | null
+          created_at?: string | null
+          data?: Json | null
+          expires_at?: string | null
+          id?: string
+          message?: string
+          read?: boolean | null
+          title?: string
+          type?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notifications_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           attendance: number | null
@@ -436,6 +489,14 @@ export type Database = {
       get_user_role: {
         Args: { user_id: string }
         Returns: Database["public"]["Enums"]["user_role"]
+      }
+      mark_access_code_used: {
+        Args: { code_input: string; email_input: string }
+        Returns: boolean
+      }
+      validate_access_code: {
+        Args: { code_input: string; email_input: string }
+        Returns: boolean
       }
     }
     Enums: {

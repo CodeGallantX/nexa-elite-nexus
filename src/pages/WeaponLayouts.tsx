@@ -373,7 +373,11 @@ export const WeaponLayouts: React.FC = () => {
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-400">Views:</span>
-                  <span className="text-white">{layout.view_count}</span>
+                  <span className="text-white">{layout.view_count || 0}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-400">Created:</span>
+                  <span className="text-white">{new Date(layout.created_at).toLocaleDateString()}</span>
                 </div>
               </div>
             </CardContent>

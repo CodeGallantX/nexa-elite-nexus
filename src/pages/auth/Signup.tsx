@@ -44,36 +44,81 @@ export const Signup: React.FC = () => {
   };
 
   const handleRequestCode = async () => {
+    if (!formData.email) {
+      toast({
+        title: "Email Required",
+        description: "Please enter your email first",
+        variant: "destructive",
+      });
+      return;
+    }
+
     const code = generateAccessCode();
-    setGeneratedCode(code);
-    setCodeRequested(true);
-    setCountdown(60);
+    const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes from now
     
-    // In a real app, you would insert this into the database
-    // For demo purposes, we'll just show it in the toast
-    console.log(`Access code ${code} sent to admin@nexa.gg`);
-    
-    toast({
-      title: "Access Code Requested",
-      description: `Code ${code} sent to admin. Check console for demo.`,
-    });
+    try {
+      // Store OTP in database
+      const { error: insertError } = await supabase
+        .from('access_codes')
+        .insert({
+          code,
+          requested_by: formData.email,
+          expires_at: expiresAt.toISOString(),
+          used: false,
+          is_active: true
+        });
+
+      if (insertError) throw insertError;
+
+      // Create notification for admin
+      const { error: notificationError } = await supabase
+        .from('notifications')
+        .insert({
+          type: 'access_code_request',
+          title: 'New Access Code Request',
+          message: `${formData.email} has requested an access code`,
+          data: {
+            email: formData.email,
+            code: code,
+            requested_at: new Date().toISOString()
+          }
+        });
+
+      if (notificationError) console.error('Notification error:', notificationError);
+
+      setGeneratedCode(code);
+      setCodeRequested(true);
+      setCountdown(60);
+      
+      toast({
+        title: "Access Code Requested",
+        description: `Code ${code} generated and sent to admin for approval.`,
+      });
+    } catch (error) {
+      console.error('Error requesting access code:', error);
+      toast({
+        title: "Error",
+        description: "Failed to request access code. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   const validateAccessCode = async (code: string): Promise<boolean> => {
     try {
+      // Use the database function to validate
       const { data, error } = await supabase
-        .from('access_codes')
-        .select('code')
-        .eq('code', code)
-        .eq('is_active', true)
-        .single();
+        .rpc('validate_access_code', {
+          code_input: code,
+          email_input: formData.email
+        });
 
       if (error) {
         console.error('Error validating access code:', error);
         return false;
       }
 
-      return !!data;
+      return data === true;
     } catch (error) {
       console.error('Error validating access code:', error);
       return false;
@@ -124,11 +169,17 @@ export const Signup: React.FC = () => {
       });
       
       if (success) {
+        // Mark access code as used
+        await supabase.rpc('mark_access_code_used', {
+          code_input: formData.accessCode,
+          email_input: formData.email
+        });
+
         toast({
           title: "Welcome to NeXa_Esports!",
-          description: "Account created successfully. Complete your onboarding.",
+          description: "Check your email to verify your account.",
         });
-        navigate('/auth/onboarding');
+        navigate('/auth/email-confirmation');
       }
     } catch (error) {
       toast({

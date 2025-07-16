@@ -33,12 +33,21 @@ export const Profile: React.FC = () => {
   const [formData, setFormData] = useState({
     tiktok_handle: profile?.tiktok_handle || '',
     preferred_mode: profile?.preferred_mode || '',
-    device: profile?.device || ''
+    device: profile?.device || '',
+    kills: profile?.kills?.toString() || '0',
+    ign: profile?.ign || '',
+    username: profile?.username || '',
+    social_links: profile?.social_links || {},
+    banking_info: profile?.banking_info || {}
   });
 
   const handleSave = async () => {
     if (profile) {
-      await updateProfile(formData);
+      const updateData = {
+        ...formData,
+        kills: parseInt(formData.kills) || 0
+      };
+      await updateProfile(updateData);
       setEditing(false);
     }
   };
@@ -260,11 +269,50 @@ export const Profile: React.FC = () => {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label className="text-gray-300">In-Game Name</Label>
-                <div className="text-white font-medium mt-1">{profile.ign}</div>
+                {editing ? (
+                  <Input
+                    value={formData.ign}
+                    onChange={(e) => setFormData(prev => ({ ...prev, ign: e.target.value }))}
+                    className="mt-1 bg-white/5 border-white/20 text-white"
+                    placeholder="Your in-game name"
+                  />
+                ) : (
+                  <div className="text-white font-medium mt-1">{profile.ign}</div>
+                )}
               </div>
               <div>
                 <Label className="text-gray-300">Username</Label>
-                <div className="text-white font-medium mt-1">{profile.username}</div>
+                {editing ? (
+                  <Input
+                    value={formData.username}
+                    onChange={(e) => setFormData(prev => ({ ...prev, username: e.target.value }))}
+                    className="mt-1 bg-white/5 border-white/20 text-white"
+                    placeholder="Your username"
+                  />
+                ) : (
+                  <div className="text-white font-medium mt-1">{profile.username}</div>
+                )}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label className="text-gray-300">Total Kills</Label>
+                {editing ? (
+                  <Input
+                    type="number"
+                    value={formData.kills}
+                    onChange={(e) => setFormData(prev => ({ ...prev, kills: e.target.value }))}
+                    className="mt-1 bg-white/5 border-white/20 text-white"
+                    placeholder="0"
+                  />
+                ) : (
+                  <div className="text-white font-medium mt-1">{profile.kills?.toLocaleString()}</div>
+                )}
+              </div>
+              <div>
+                <Label className="text-gray-300">Player UID</Label>
+                <div className="text-white font-medium mt-1">{profile.id.slice(0, 8)}...</div>
               </div>
             </div>
 

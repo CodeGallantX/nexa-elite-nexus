@@ -14,6 +14,7 @@ import NotFound from '@/pages/NotFound';
 // Auth pages
 import { Login } from '@/pages/auth/Login';
 import { Signup } from '@/pages/auth/Signup';
+import { EmailConfirmation } from '@/pages/auth/EmailConfirmation';
 import { ForgotPassword } from '@/pages/auth/ForgotPassword';
 import { ResetPassword } from '@/pages/auth/ResetPassword';
 import { Onboarding } from '@/pages/auth/Onboarding';
@@ -56,6 +57,7 @@ function App() {
             {/* Auth routes */}
             <Route path="/auth/login" element={<Login />} />
             <Route path="/auth/signup" element={<Signup />} />
+            <Route path="/auth/email-confirmation" element={<EmailConfirmation />} />
             <Route path="/auth/forgot-password" element={<ForgotPassword />} />
             <Route path="/auth/reset-password" element={<ResetPassword />} />
             <Route path="/auth/onboarding" element={<Onboarding />} />

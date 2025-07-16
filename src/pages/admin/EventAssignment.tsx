@@ -228,6 +228,41 @@ export const EventAssignment: React.FC = () => {
     }
   });
 
+  // Delete group mutation
+  const deleteGroupMutation = useMutation({
+    mutationFn: async (groupId: string) => {
+      // Check if group has players
+      const group = groups.find(g => g.id === groupId);
+      if (group && group.participants.length > 0) {
+        throw new Error('Cannot delete group with assigned players');
+      }
+
+      const { error } = await supabase
+        .from('event_groups')
+        .delete()
+        .eq('id', groupId);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['event-groups'] });
+      toast({
+        title: "Group Deleted",
+        description: "Group has been deleted successfully.",
+      });
+    },
+    onError: (error) => {
+      console.error('Error deleting group:', error);
+      toast({
+        title: "Error",
+        description: error.message === 'Cannot delete group with assigned players' 
+          ? "Cannot delete group with assigned players. Remove all players first."
+          : "Failed to delete group. Please try again.",
+        variant: "destructive",
+      });
+    }
+  });
+
   const filteredPlayers = players.filter(player =>
     player.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
     player.ign.toLowerCase().includes(searchTerm.toLowerCase())
@@ -374,6 +409,15 @@ export const EventAssignment: React.FC = () => {
                     {group.participants.length > group.max_players && (
                       <AlertTriangle className="w-4 h-4 text-yellow-500" />
                     )}
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => deleteGroupMutation.mutate(group.id)}
+                      className="text-red-400 hover:text-red-300"
+                      disabled={group.participants.length > 0}
+                    >
+                      Delete
+                    </Button>
                   </div>
                 </CardTitle>
               </CardHeader>
