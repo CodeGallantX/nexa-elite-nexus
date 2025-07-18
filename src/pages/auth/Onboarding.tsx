@@ -240,8 +240,8 @@ export const Onboarding: React.FC = () => {
       return deviceData.iPhone;
     } else if (formData.deviceType === 'Android') {
       return deviceData.Android;
-    } else if (formData.deviceType === 'PC') {
-      return deviceData.PC;
+    } else if (formData.deviceType === 'iPad') {
+      return deviceData.iPad;
     }
     return [];
   };
