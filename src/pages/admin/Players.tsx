@@ -137,7 +137,7 @@ export const AdminPlayers: React.FC = () => {
                         )}
                       </div>
                       <div>
-                        <div className="font-medium">{player.ign}</div>
+                        <div className="font-medium">Ɲ・乂{player.ign}</div>
                         <div className="text-sm text-gray-400">@{player.username}</div>
                       </div>
                     </div>
@@ -183,7 +183,7 @@ export const AdminPlayers: React.FC = () => {
                                 </div>
                                 <div>
                                   <label className="text-gray-300 text-sm">IGN</label>
-                                  <p className="text-white">{selectedPlayer.ign}</p>
+                                  <p className="text-white">Ɲ・乂{selectedPlayer.ign}</p>
                                 </div>
                                 <div>
                                   <label className="text-gray-300 text-sm">Device</label>

@@ -179,7 +179,7 @@ export const AdminLoadouts: React.FC = () => {
                             <div className="grid grid-cols-2 gap-4">
                               <div>
                                 <label className="text-gray-300 text-sm">Player</label>
-                                <p className="text-white">{selectedLoadout.profiles?.ign} (@{selectedLoadout.profiles?.username})</p>
+                                <p className="text-white">Ɲ・乂{selectedLoadout.profiles?.ign} (@{selectedLoadout.profiles?.username})</p>
                               </div>
                               <div>
                                 <label className="text-gray-300 text-sm">Mode</label>
@@ -235,7 +235,7 @@ export const AdminLoadouts: React.FC = () => {
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="text-gray-300 text-sm">Player</span>
-                  <span className="text-white text-sm">{loadout.profiles?.ign}</span>
+                  <span className="text-white text-sm">Ɲ・乂{loadout.profiles?.ign}</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-gray-300 text-sm">Mode</span>

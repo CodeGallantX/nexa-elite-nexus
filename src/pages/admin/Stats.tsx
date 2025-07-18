@@ -212,7 +212,7 @@ export const AdminStats: React.FC = () => {
                   <TableCell className="text-white font-medium">#{index + 1}</TableCell>
                   <TableCell className="text-white">
                     <div>
-                      <div className="font-medium">{player.ign}</div>
+                      <div className="font-medium">Ɲ・乂{player.ign}</div>
                       <div className="text-sm text-gray-400">@{player.username}</div>
                     </div>
                   </TableCell>

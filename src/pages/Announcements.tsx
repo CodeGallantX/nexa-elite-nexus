@@ -191,7 +191,7 @@ export const Announcements: React.FC = () => {
                           </CardTitle>
                         </div>
                         <div className="flex items-center space-x-4 text-sm text-gray-400">
-                          <span>By {announcement.profiles?.ign || 'Admin'}</span>
+                          <span>By Ɲ・乂{announcement.profiles?.ign || 'Admin'}</span>
                           <span className="flex items-center">
                             <Calendar className="w-4 h-4 mr-1" />
                             {new Date(announcement.created_at).toLocaleDateString()}

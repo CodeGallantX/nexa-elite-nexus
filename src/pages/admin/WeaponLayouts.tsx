@@ -232,7 +232,7 @@ export const AdminWeaponLayouts: React.FC = () => {
                 <TableRow key={layout.id} className="border-gray-700">
                   <TableCell className="text-white">
                     <div>
-                      <div className="font-medium">{layout.profiles.ign}</div>
+                      <div className="font-medium">Ɲ・乂{layout.profiles.ign}</div>
                       <div className="text-sm text-gray-400">@{layout.profiles.username}</div>
                     </div>
                   </TableCell>
@@ -263,7 +263,7 @@ export const AdminWeaponLayouts: React.FC = () => {
                             <DialogContent className="max-w-4xl">
                               <DialogHeader>
                                 <DialogTitle className="text-white">
-                                  {layout.weapon_name} - {layout.profiles.ign}
+                                  {layout.weapon_name} - Ɲ・乂{layout.profiles.ign}
                                 </DialogTitle>
                               </DialogHeader>
                               <div className="flex flex-col items-center space-y-4">

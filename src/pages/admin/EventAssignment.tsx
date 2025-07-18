@@ -342,7 +342,7 @@ export const EventAssignment: React.FC = () => {
                   className="flex items-center justify-between p-2 bg-background/20 rounded-lg"
                 >
                   <div className="flex-1">
-                    <div className="font-medium text-white">{player.ign}</div>
+                    <div className="font-medium text-white">Ɲ・乂{player.ign}</div>
                     <div className="text-sm text-muted-foreground">@{player.username}</div>
                   </div>
                   <Button
@@ -432,7 +432,7 @@ export const EventAssignment: React.FC = () => {
                       >
                         <div>
                           <div className="font-medium text-white">
-                            {participant.profiles.ign}
+                            Ɲ・乂{participant.profiles.ign}
                           </div>
                           <div className="text-sm text-muted-foreground">
                             @{participant.profiles.username}

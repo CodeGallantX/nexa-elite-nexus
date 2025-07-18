@@ -334,7 +334,7 @@ export const Chat: React.FC = () => {
                     >
                       {msg.user_id !== user?.id && (
                         <div className="text-xs font-medium mb-1 text-primary">
-                          {msg.profiles.ign}
+                          Ɲ・乂{msg.profiles.ign}
                           {msg.profiles.role === 'admin' && (
                             <span className="ml-1 px-1 py-0.5 bg-red-500 text-white text-xs rounded">
                               ADMIN

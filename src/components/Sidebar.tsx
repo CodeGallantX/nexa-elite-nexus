@@ -103,7 +103,7 @@ export const Sidebar: React.FC = () => {
                 className="w-8 h-8 rounded-full object-cover"
               />
               <div>
-                <p className="text-sm font-medium text-foreground">{profile?.ign}</p>
+                <p className="text-sm font-medium text-foreground">Ɲ・乂{profile?.ign}</p>
                 <p className="text-xs text-muted-foreground capitalize">{profile?.role}</p>
               </div>
             </div>

@@ -104,7 +104,7 @@ export const PublicProfile: React.FC = () => {
               />
               <div className="flex-1">
                 <div className="flex items-center space-x-4 mb-2">
-                  <h1 className="text-3xl font-orbitron font-bold text-foreground">{user.ign}</h1>
+                  <h1 className="text-3xl font-orbitron font-bold text-foreground">Ɲ・乂{user.ign}</h1>
                   <Badge className={getGradeColor(user.grade)}>
                     Grade {user.grade}
                   </Badge>

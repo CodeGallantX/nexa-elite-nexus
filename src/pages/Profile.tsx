@@ -209,7 +209,7 @@ export const Profile: React.FC = () => {
 
             {/* Basic Info */}
             <div className="flex-1 text-center md:text-left">
-              <h1 className="text-3xl font-bold text-white mb-2">{profile.ign}</h1>
+              <h1 className="text-3xl font-bold text-white mb-2">Ɲ・乂{profile.ign}</h1>
               <p className="text-gray-300 mb-4">{profile.username}</p>
               
               <div className="flex flex-wrap justify-center md:justify-start gap-3 mb-4">
@@ -277,7 +277,7 @@ export const Profile: React.FC = () => {
                     placeholder="Your in-game name"
                   />
                 ) : (
-                  <div className="text-white font-medium mt-1">{profile.ign}</div>
+                  <div className="text-white font-medium mt-1">Ɲ・乂{profile.ign}</div>
                 )}
               </div>
               <div>

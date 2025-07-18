@@ -85,7 +85,7 @@ export const AdminProfiles: React.FC = () => {
                   )}
                 </div>
                 <div className="flex-1">
-                  <h3 className="text-white font-semibold">{player.ign}</h3>
+                  <h3 className="text-white font-semibold">Ɲ・乂{player.ign}</h3>
                   <p className="text-gray-400 text-sm">@{player.username}</p>
                 </div>
                 <Dialog>
@@ -110,7 +110,7 @@ export const AdminProfiles: React.FC = () => {
                           )}
                         </div>
                         <div>
-                          <div>{selectedPlayer?.ign}</div>
+                          <div>Ɲ・乂{selectedPlayer?.ign}</div>
                           <div className="text-sm text-gray-400 font-normal">@{selectedPlayer?.username}</div>
                         </div>
                       </DialogTitle>

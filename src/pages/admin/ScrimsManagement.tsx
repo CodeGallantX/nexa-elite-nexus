@@ -434,7 +434,7 @@ export const AdminScrimsManagement: React.FC = () => {
                   {editingScrim.assignedPlayers.map((player, index) => (
                     <div key={index} className="flex items-center justify-between p-2 bg-background/30 rounded">
                       <div className="flex items-center space-x-4">
-                        <span className="font-rajdhani">{player.ign}</span>
+                        <span className="font-rajdhani">Ɲ・乂{player.ign}</span>
                         <Badge variant="outline" className="text-xs">{player.role}</Badge>
                         <Badge variant="outline" className="text-xs">{player.squad}</Badge>
                       </div>
