@@ -23,7 +23,7 @@ const mockGalleryItems: GalleryItem[] = [
   {
     id: 2,
     type: 'video',
-    src: '/placeholder.svg',
+    src: 'https://ik.imagekit.io/mshcgnjju/NeXa/training_day.mp4',
     thumbnail: '/placeholder.svg',
     title: 'Tactical Gameplay',
     description: 'Perfect team coordination in Ranked MP'
@@ -31,7 +31,7 @@ const mockGalleryItems: GalleryItem[] = [
   {
     id: 3,
     type: 'image',
-    src: '/placeholder.svg',
+    src: '/https://ik.imagekit.io/mshcgnjju/NeXa/winners_circle.jpg',
     title: 'Tournament Win',
     description: 'NeXa_Esports claims championship title'
   },
@@ -45,10 +45,10 @@ const mockGalleryItems: GalleryItem[] = [
   {
     id: 5,
     type: 'video',
-    src: '/placeholder.svg',
+    src: 'https://ik.imagekit.io/mshcgnjju/NeXa/clan_war.mp4',
     thumbnail: '/placeholder.svg',
-    title: 'Legendary Clutch',
-    description: '1v5 clutch moment that made history'
+    title: 'Clan Setup',
+    description: 'Clan ready for Clan War '
   }
 ];
 
