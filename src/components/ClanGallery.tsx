@@ -175,7 +175,7 @@ export const ClanGallery: React.FC = () => {
             {mockGalleryItems.map((_, index) => (
               <button
                 key={index}
-                className={`w-3 h-3 rounded-full transition-all duration-300 ${
+                className={`w-5 h-3 transition-all duration-300 ${
                   index === currentIndex 
                     ? 'bg-primary scale-125' 
                     : 'bg-muted-foreground/30 hover:bg-muted-foreground/50'
