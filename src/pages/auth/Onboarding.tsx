@@ -13,18 +13,99 @@ import { supabase } from '@/integrations/supabase/client';
 
 // Device and brand data
 const deviceData = {
-  iPhone: ['iPhone 13 Pro', 'iPhone 14 Pro Max', 'iPhone 15', 'iPhone 15 Pro', 'iPhone 16'],
-  Android: ['Samsung', 'Xiaomi', 'Infinix', 'Tecno', 'OnePlus', 'Huawei', 'Oppo', 'Vivo', 'Realme', 'Redmi', 'Honor', 'Nothing'],
-  PC: ['MacBook Pro M4', 'Razer Blade 15', 'ASUS ROG Strix', 'MSI Gaming Laptop', 'Dell Alienware']
+  iPhone: [
+  "iPhone X",
+
+  // 2018
+  "iPhone XR",
+  "iPhone XS",
+  "iPhone XS Max",
+
+  // 2019
+  "iPhone 11",
+  "iPhone 11 Pro",
+  "iPhone 11 Pro Max",
+
+  // 2020
+  "iPhone SE (2nd generation)",
+  "iPhone 12 mini",
+  "iPhone 12",
+  "iPhone 12 Pro",
+  "iPhone 12 Pro Max",
+
+  // 2021
+  "iPhone 13 mini",
+  "iPhone 13",
+  "iPhone 13 Pro",
+  "iPhone 13 Pro Max",
+
+  // 2022
+  "iPhone SE (3rd generation)",
+  "iPhone 14",
+  "iPhone 14 Plus",
+  "iPhone 14 Pro",
+  "iPhone 14 Pro Max",
+
+  // 2023
+  "iPhone 15",
+  "iPhone 15 Plus",
+  "iPhone 15 Pro",
+  "iPhone 15 Pro Max",
+
+  // 2024 (Expected)
+  "iPhone 16",
+  "iPhone 16 Plus",
+  "iPhone 16 Pro",
+  "iPhone 16 Pro Max",
+
+  // 2025 (Speculative, based on Apple’s naming pattern)
+  "iPhone 17",
+  "iPhone 17 Plus",
+  "iPhone 17 Pro",
+  "iPhone 17 Pro Max"],
+  Android: ['Samsung', 'Xiaomi', 'Infinix', 'Redmi', 'Itel', 'Tecno', 'Nokia', 'OnePlus', 'Huawei', 'Oppo', 'Vivo', 'Realme', 'Honor', 'Nothing'],
+  iPad: [
+  "iPad (5th generation)",        // 2017
+  "iPad (6th generation)",        // 2018
+  "iPad (7th generation)",        // 2019
+  "iPad (8th generation)",        // 2020
+  "iPad (9th generation)",        // 2021
+  "iPad (10th generation)",       // 2022
+  "iPad (11th generation)",       // 2025 (expected)
+
+  // 📱 iPad mini
+  "iPad mini (5th generation)",   // 2019
+  "iPad mini (6th generation)",   // 2021
+  "iPad mini (7th generation)",   // 2025 (expected)
+
+  // 📱 iPad Air
+  "iPad Air (3rd generation)",    // 2019
+  "iPad Air (4th generation)",    // 2020
+  "iPad Air (5th generation)",    // 2022
+  "iPad Air (6th generation)",    // 2024
+
+  // 💼 iPad Pro
+  "iPad Pro 10.5-inch",                         // 2017
+  "iPad Pro 12.9-inch (2nd generation)",        // 2017
+  "iPad Pro 11-inch (1st generation)",          // 2018
+  "iPad Pro 12.9-inch (3rd generation)",        // 2018
+  "iPad Pro 11-inch (2nd generation)",          // 2020
+  "iPad Pro 12.9-inch (4th generation)",        // 2020
+  "iPad Pro 11-inch (3rd generation)",          // 2021
+  "iPad Pro 12.9-inch (5th generation)",        // 2021
+  "iPad Pro 11-inch (4th generation)",          // 2022
+  "iPad Pro 12.9-inch (6th generation)",        // 2022
+  "iPad Pro 11-inch (M4, 5th generation)",      // 2024
+  "iPad Pro 13-inch (M4, 7th generation)" ]
 };
 
 const classOptions = {
-  BR: ['Ninja', 'Defender', 'Scout', 'Mechanic', 'Medic'],
-  MP: ['Anchor', 'Assault', 'Objective', 'Slayer']
+  BR: ['Trickster', 'Defender', 'Ninja', 'Rewind', 'Medic'],
+  MP: ['Anchor', 'Support', 'Objective', 'Slayer']
 };
 
 const bankOptions = [
-  'Opay', 'Palmpay', 'Moniepoint', 'Access Bank', 'GTBank', 
+  'Opay', 'Palmpay', 'Moniepoint', 'Kuda', 'Access Bank', 'GTBank', 
   'First Bank', 'UBA', 'Zenith Bank', 'Fidelity Bank'
 ];
 
@@ -245,7 +326,7 @@ export const Onboarding: React.FC = () => {
                     <SelectContent>
                       <SelectItem value="iPhone">iPhone</SelectItem>
                       <SelectItem value="Android">Android</SelectItem>
-                      <SelectItem value="PC">PC</SelectItem>
+                      <SelectItem value="iPad">iPad</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
