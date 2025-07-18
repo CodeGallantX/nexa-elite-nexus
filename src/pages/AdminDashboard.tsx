@@ -1,5 +1,6 @@
 
 import React from 'react';
+import {useNavigate} from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Users, Calendar, Target, TrendingUp, Trophy, Gamepad2 } from 'lucide-react';
 import { useAdminStats } from '@/hooks/useAdminStats';
@@ -61,6 +62,8 @@ export default function AdminDashboard() {
     }
   ];
 
+  const navigate = useNavigate();
+
   return (
     <div className="space-y-8">
       <div>
@@ -101,16 +104,16 @@ export default function AdminDashboard() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
-              <button className="p-3 bg-blue-600 hover:bg-blue-700 rounded-lg text-white text-sm font-medium transition-colors">
+              <button onClick={() => navigate('/admin/events') } className="p-3 bg-blue-600 hover:bg-blue-700 rounded-lg text-white text-sm font-medium transition-colors">
                 Create Event
               </button>
-              <button className="p-3 bg-green-600 hover:bg-green-700 rounded-lg text-white text-sm font-medium transition-colors">
+              <button onClick={() => navigate('/admin/attendance') }  className="p-3 bg-green-600 hover:bg-green-700 rounded-lg text-white text-sm font-medium transition-colors">
                 Mark Attendance
               </button>
-              <button className="p-3 bg-purple-600 hover:bg-purple-700 rounded-lg text-white text-sm font-medium transition-colors">
+              <button onClick={() => navigate('/admin/announements') }  className="p-3 bg-purple-600 hover:bg-purple-700 rounded-lg text-white text-sm font-medium transition-colors">
                 Send Announcement
               </button>
-              <button className="p-3 bg-orange-600 hover:bg-orange-700 rounded-lg text-white text-sm font-medium transition-colors">
+              <button onClick={() => navigate('/admin/stats') }  className="p-3 bg-orange-600 hover:bg-orange-700 rounded-lg text-white text-sm font-medium transition-colors">
                 View Reports
               </button>
             </div>
