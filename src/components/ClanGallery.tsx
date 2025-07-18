@@ -31,7 +31,7 @@ const mockGalleryItems: GalleryItem[] = [
   {
     id: 3,
     type: 'image',
-    src: '/https://ik.imagekit.io/mshcgnjju/NeXa/winners_circle.jpg',
+    src: 'https://ik.imagekit.io/mshcgnjju/NeXa/winners_circle.jpg',
     title: 'Tournament Win',
     description: 'NeXa_Esports claims championship title'
   },
