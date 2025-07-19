@@ -262,7 +262,7 @@ export const Chat: React.FC = () => {
         className="fixed inset-0 pointer-events-none z-0"
         style={{
           background: `url('/nexa-logo.jpg') center/contain no-repeat`,
-          opacity: 0.2,
+          opacity: 0.05,
         }}
       />
 
