@@ -161,7 +161,7 @@ export const Landing: React.FC = () => {
         <div className="max-w-4xl mx-auto">
           <h2 className="text-4xl font-orbitron font-bold mb-6">
             <span className="bg-gradient-to-r from-primary to-red-300 bg-clip-text text-transparent">
-              Ready to Join the Elite?
+              Ready to Join NeXa_Esports?
             </span>
           </h2>
           <p className="text-muted-foreground text-lg mb-8 max-w-2xl mx-auto font-rajdhani">
