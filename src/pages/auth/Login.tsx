@@ -163,13 +163,13 @@ export const Login: React.FC = () => {
         </form>
 
         {/* Demo Credentials */}
-        <div className="mt-6 p-4 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
+        {/* <div className="mt-6 p-4 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
           <p className="text-yellow-300 text-sm font-medium mb-2 font-rajdhani">Demo Credentials:</p>
           <div className="text-xs text-yellow-200 space-y-1 font-rajdhani">
             <p><strong>Player:</strong> slayer@nexa.gg / 12345678</p>
             <p><strong>Admin:</strong> admin@nexa.gg / adminmode123</p>
           </div>
-        </div>
+        </div> */}
 
         {/* Links */}
         <div className="mt-6 text-center space-y-2">
