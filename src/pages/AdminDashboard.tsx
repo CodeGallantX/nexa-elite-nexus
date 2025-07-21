@@ -110,7 +110,7 @@ export default function AdminDashboard() {
               <button onClick={() => navigate('/admin/attendance') }  className="p-3 bg-green-600 hover:bg-green-700 rounded-lg text-white text-sm font-medium transition-colors">
                 Mark Attendance
               </button>
-              <button onClick={() => navigate('/admin/announements') }  className="p-3 bg-purple-600 hover:bg-purple-700 rounded-lg text-white text-sm font-medium transition-colors">
+              <button onClick={() => navigate('/admin/announcements') }  className="p-3 bg-purple-600 hover:bg-purple-700 rounded-lg text-white text-sm font-medium transition-colors">
                 Send Announcement
               </button>
               <button onClick={() => navigate('/admin/stats') }  className="p-3 bg-orange-600 hover:bg-orange-700 rounded-lg text-white text-sm font-medium transition-colors">
