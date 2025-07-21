@@ -16,16 +16,16 @@ const mockGalleryItems: GalleryItem[] = [
   {
     id: 1,
     type: 'image',
-    src: '/placeholder.svg',
-    title: 'Epic Victory #1',
-    description: 'Dominating Blackout with a 25-kill streak'
+    src: '/https://ik.imagekit.io/mshcgnjju/NeXa/clan.jpg',
+    title: 'Clan War',
+    description: 'Gearing up for for Clan Wars'
   },
   {
     id: 2,
     type: 'video',
     src: 'https://ik.imagekit.io/mshcgnjju/NeXa/training_day.mp4',
     thumbnail: '/placeholder.svg',
-    title: 'Tactical Gameplay',
+    title: 'Training Day: Tactical Gameplay',
     description: 'Perfect team coordination in Ranked MP'
   },
   {
@@ -38,15 +38,15 @@ const mockGalleryItems: GalleryItem[] = [
   {
     id: 4,
     type: 'image',
-    src: '/placeholder.svg',
-    title: 'Squad Goals',
+    src: 'https://ik.imagekit.io/mshcgnjju/NeXa/scrim.jpg',
+    title: 'Scrim formation',
     description: 'Elite team formation ready for battle'
   },
   {
     id: 5,
     type: 'video',
     src: 'https://ik.imagekit.io/mshcgnjju/NeXa/clan_war.mp4',
-    thumbnail: '/placeholder.svg',
+    thumbnail: 'https://ik.imagekit.io/mshcgnjju/NeXa/team.jpg',
     title: 'Clan Setup',
     description: 'Clan ready for Clan War '
   }
