@@ -233,11 +233,13 @@ export const Chat: React.FC = () => {
         )}
         
         {isVideo && (
+          <div className="max-w-xs max-h-xs">
           <video 
             src={msg.attachment_url} 
             controls 
-            className="max-w-xs rounded-lg"
-          />
+            className="w-full h-full rounded-lg"
+            />
+            </div>
         )}
         
         {(isPdf || (!isImage && !isVideo)) && (
