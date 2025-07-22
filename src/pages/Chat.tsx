@@ -271,7 +271,7 @@ export const Chat: React.FC = () => {
       />
 
       {/* Mobile navigation toggle */}
-      <div className="md:hidden mb-4">
+      <div className="mb-4">
         <Button
           variant="outline"
           size="sm"
