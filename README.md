@@ -1,73 +1,146 @@
-# Welcome to your Lovable project
+# Nexa_Esports 🎮
 
-## Project info
+**Nexa_Esports** is a clan-driven esports platform built for gamers, teams, and competitive communities. This MVP empowers users to create or join clans, engage in clan-based activities, and compete in scrims or ranked tournaments — all within a sleek, mobile-optimized dashboard powered by **TailwindCSS** and **ShadCN UI**.
 
-**URL**: https://lovable.dev/projects/f0fbb05d-a648-450f-b0d4-2f7246894ec2
+> “Give gamers an identity, a team, a home — then build the war room around it.”
 
-## How can I edit this code?
+---
 
-There are several ways of editing your application.
+## 🚀 Features
 
-**Use Lovable**
+- 🔐 Role-based Authentication (Sign Up, Login, Reset Password)
+- 🧑‍🤝‍🧑 Clan System: Create, Join, or Manage Clans
+- 📊 Personalized Dashboards: Real-time clan activity, stats & announcements
+- 🧭 Clan “Base”: Media galleries, event scheduling, rosters, match setup
+- 🛠 Admin Dashboard: Users, Clans, Scrims, Announcements, Disputes
+- 🖼 ShadCN UI Components: Stylish, modern, gamer-centric interface
+- ⚙️ Supabase Integration for auth, storage, and database
+- 🌙 Responsive Dark Mode for PC and mobile
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/f0fbb05d-a648-450f-b0d4-2f7246894ec2) and start prompting.
+---
 
-Changes made via Lovable will be committed automatically to this repo.
+## 📸 Screenshots
 
-**Use your preferred IDE**
+> *(Replace with real screenshots later)*
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+![Dashboard Preview](public/thumbnail.png)
+![Clan Base UI](public/nexa-logo.jpg)
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+---
 
-Follow these steps:
+## 🧱 Tech Stack
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+- **Frontend**: React + Vite + TypeScript
+- **Styling**: Tailwind CSS + ShadCN UI
+- **Backend**: Supabase (auth, DB, storage)
+- **Routing**: React Router DOM
+- **Deployment**: Vercel (via `vercel.json`)
+- **State/Logic**: Custom React hooks & context
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+---
 
-# Step 3: Install the necessary dependencies.
-npm i
+## 📦 Installation
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
+```bash
+# 1. Clone the repo
+git clone https://github.com/your-username/nexa-esports.git
+
+# 2. Navigate into the project
+cd nexa-esports
+
+# 3. Install dependencies
+npm install
+
+# 4. Start dev server
 npm run dev
+````
+
+---
+
+## 🔑 Environment Setup
+
+> Create a `.env` file and configure Supabase keys
+
+```env
+VITE_SUPABASE_URL=your_supabase_url
+VITE_SUPABASE_ANON_KEY=your_anon_key
 ```
 
-**Edit a file directly in GitHub**
+---
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+## 📁 Project Structure Highlights
 
-**Use GitHub Codespaces**
+```
+├── src
+│   ├── pages              # Auth, Admin, Clan, Dashboard pages
+│   ├── components         # UI components (Sidebar, ThemeToggle, etc.)
+│   ├── hooks              # Custom logic (loadouts, stats, auth)
+│   ├── contexts           # Theme & Auth context
+│   └── integrations       # Supabase client + types
+├── public                 # Favicon, logo, thumbnails
+├── supabase               # DB migrations, config
+├── tailwind.config.ts     # Styling config
+└── vite.config.ts         # Vite app config
+```
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+---
 
-## What technologies are used for this project?
+## 🧪 Development Scripts
 
-This project is built with:
+```bash
+# Start dev server
+npm run dev
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+# Format code
+npm run format
 
-## How can I deploy this project?
+# Type-check
+npm run typecheck
 
-Simply open [Lovable](https://lovable.dev/projects/f0fbb05d-a648-450f-b0d4-2f7246894ec2) and click on Share -> Publish.
+# Build for production
+npm run build
+```
 
-## Can I connect a custom domain to my Lovable project?
+---
 
-Yes, you can!
+## 👑 Admin Features
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+Accessible to platform superusers:
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+* Manage Players, Clans, Loadouts
+* Announcements & Notifications
+* Scrim Scheduling + Results
+* Dispute Management
+
+---
+
+## 🔐 Auth Pages Included
+
+* `/auth/signup`
+* `/auth/login`
+* `/auth/forgot-password`
+* `/auth/reset-password`
+* `/auth/email-confirmation`
+
+---
+
+## 📬 Contact & Contribution
+
+Want to contribute or test it?
+
+* 🧙 Built by [@codegallantx](https://github.com/codegallantx)
+* 🛠 Pull requests welcome!
+* 👀 DM for onboarding, issue reporting, or clan requests
+
+---
+
+## 🪪 License
+
+MIT — free to fork, modify, or build on.
+Give credit if you clone the whole war room ⚔️
+
+---
+
+## 🌐 Demo Link
+
+> [Live App](https://nexa-esports.vercel.app)
