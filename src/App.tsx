@@ -30,7 +30,6 @@ import { WeaponLayouts } from '@/pages/WeaponLayouts';
 import { Announcements } from '@/pages/Announcements';
 
 // Admin pages
-import AdminDashboard from '@/pages/AdminDashboard';
 import { AdminPlayers } from '@/pages/admin/Players';
 import { AdminStats } from '@/pages/admin/Stats';
 import { AdminProfiles } from '@/pages/admin/Profiles';
@@ -42,6 +41,7 @@ import { EventAssignment } from '@/pages/admin/EventAssignment';
 import { AdminAttendance } from '@/pages/admin/Attendance';
 import { AdminAnnouncementsManagement } from '@/pages/admin/AnnouncementsManagement';
 import { AdminNotifications } from '@/pages/admin/Notifications';
+import AdminDashboard from '@/pages/AdminDashboard';
 
 function App() {
   return (
