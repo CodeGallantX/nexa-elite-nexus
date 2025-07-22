@@ -58,7 +58,7 @@ export const Landing: React.FC = () => {
               <span className="bg-gradient-to-r from-foreground via-foreground/90 to-foreground/70 bg-clip-text text-transparent">
                 Dominate the
               </span>
-              <br />
+              <br /> 
               <span className="bg-gradient-to-r from-primary to-red-300 bg-clip-text text-transparent animate-glow-pulse">
                 Battlefield
               </span>

@@ -222,12 +222,14 @@ export const Chat: React.FC = () => {
     return (
       <div className="mt-2">
         {isImage && (
+          <div className="max-w-xs max-h-xs">
           <img 
             src={msg.attachment_url} 
             alt={msg.attachment_name}
-            className="max-w-xs rounded-lg cursor-pointer hover:opacity-80"
+            className="w-full h-full object-cover rounded-lg cursor-pointer hover:opacity-80"
             onClick={() => window.open(msg.attachment_url, '_blank')}
-          />
+            />
+            </div>
         )}
         
         {isVideo && (
