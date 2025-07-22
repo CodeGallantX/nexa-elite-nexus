@@ -285,7 +285,7 @@ export const Chat: React.FC = () => {
 
       {/* Mobile channel list */}
       {showMobileNav && (
-        <Card className="md:hidden mb-4 bg-card/50 border-border/30">
+        <Card className=" mb-4 bg-card/50 border-border/30">
           <CardContent className="p-4">
             <div className="space-y-2">
               <Button variant="ghost" className="w-full justify-start text-primary">
