@@ -36,6 +36,7 @@ export const Chat: React.FC = () => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [showMobileNav, setShowMobileNav] = useState(false);
+  const [selectedChannel, setSelectedChannel] = useState('general');
   
   const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -47,7 +48,7 @@ export const Chat: React.FC = () => {
 
   // Fetch chat messages
   const { data: messages = [], isLoading } = useQuery({
-    queryKey: ['chat-messages', 'general'],
+    queryKey: ['chat-messages', selectedChannel],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('chat_messages')
@@ -59,7 +60,7 @@ export const Chat: React.FC = () => {
             role
           )
         `)
-        .eq('channel', 'general')
+        .eq('channel', selectedChannel)
         .order('created_at', { ascending: true });
 
       if (error) throw error;
@@ -79,7 +80,7 @@ export const Chat: React.FC = () => {
         .from('chat_messages')
         .insert([{
           user_id: user?.id,
-          channel: 'general',
+          channel: selectedChannel,
           message,
           attachment_url: attachmentUrl,
           attachment_type: attachmentType,
@@ -201,7 +202,7 @@ export const Chat: React.FC = () => {
         event: 'INSERT',
         schema: 'public',
         table: 'chat_messages',
-        filter: 'channel=eq.general'
+        filter: `channel=eq.${selectedChannel}`
       }, () => {
         queryClient.invalidateQueries({ queryKey: ['chat-messages'] });
       })
@@ -288,11 +289,11 @@ export const Chat: React.FC = () => {
         <Card className=" mb-4 bg-card/50 border-border/30">
           <CardContent className="p-4">
             <div className="space-y-2">
-              <Button variant="ghost" className="w-full justify-start text-primary">
+              <Button onClick={() => setSelectedChannel('general')} variant="ghost" className={`w-full justify-start ${selectedChannel === 'general' ? "text-primary" : "text-white"}`}>
                 # General
               </Button>
               {profile?.role === 'admin' && (
-                <Button variant="ghost" className="w-full justify-start">
+                <Button onClick={() => setSelectedChannel('admin')} variant="ghost" className={`w-full justify-start ${selectedChannel === 'admin' ? "text-primary" : "text-white"}`}>
                   # Admin
                 </Button>
               )}
@@ -304,9 +305,15 @@ export const Chat: React.FC = () => {
       <Card className="flex-1 bg-card/50 border-border/30 backdrop-blur-sm relative z-10">
         <CardHeader className="border-b border-border/30">
           <CardTitle className="flex items-center justify-between">
-            <span className="text-primary"># General Chat</span>
+            {selectedChannel == 'admin' ? (
+            <span className="text-primary"># Admin Chat</span>
+            )
+            : (
+              <span className="text-primary"># General Chat</span>
+            )
+}
             <div className="text-sm text-muted-foreground">
-              {messages.length} messages
+              {messages?.length || 0} message{messages?.length === 1 ? '' : "s"}
             </div>
           </CardTitle>
         </CardHeader>
