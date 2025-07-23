@@ -304,7 +304,7 @@ export const Chat: React.FC = () => {
 
       <Card className="flex-1 bg-card/50 border-border/30 backdrop-blur-sm relative z-10">
         <CardHeader className="border-b border-border/30">
-          <CardTitle className="flex items-center justify-between">
+          <CardTitle className="flex flex-col md:flex-row items-start md:items-center justify-between">
             {selectedChannel == 'admin' ? (
             <span className="text-primary"># Admin Chat</span>
             )
