@@ -25,7 +25,7 @@ import {
 interface Event {
   id: string;
   name: string;
-  type: 'MP' | 'BR' | 'Mixed';
+  type: 'MP' | 'BR' | 'Tournament' | 'Scrims';
   date: string;
   time: string;
   description?: string;
@@ -48,7 +48,7 @@ export const AdminEventsManagement: React.FC = () => {
   
   const [formData, setFormData] = useState({
     name: '',
-    type: 'MP' as 'MP' | 'BR' | 'Mixed',
+    type: 'MP' as 'MP' | 'BR' | 'Tournament' | 'Scrims',
     date: '',
     time: '',
     description: '',
@@ -185,7 +185,8 @@ export const AdminEventsManagement: React.FC = () => {
     switch (type) {
       case 'MP': return 'bg-purple-100 text-purple-800';
       case 'BR': return 'bg-orange-100 text-orange-800';
-      case 'Mixed': return 'bg-indigo-100 text-indigo-800';
+      case 'Tournament': return 'bg-green-100 text-green-800';
+      case 'Scrims': return 'bg-indigo-100 text-indigo-800';
       default: return 'bg-gray-100 text-gray-800';
     }
   };
@@ -241,7 +242,8 @@ export const AdminEventsManagement: React.FC = () => {
                 <SelectItem value="all">All Types</SelectItem>
                 <SelectItem value="MP">Multiplayer</SelectItem>
                 <SelectItem value="BR">Battle Royale</SelectItem>
-                <SelectItem value="Mixed">Mixed</SelectItem>
+                <SelectItem value="Tournament">Tournament</SelectItem>
+                <SelectItem value="Scrims">Scrims</SelectItem>
               </SelectContent>
             </Select>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
@@ -287,7 +289,7 @@ export const AdminEventsManagement: React.FC = () => {
                   <Label htmlFor="type">Event Type</Label>
                   <Select 
                     value={formData.type} 
-                    onValueChange={(value: 'MP' | 'BR' | 'Mixed') => 
+                    onValueChange={(value: 'MP' | 'BR' | 'Tournament' | 'Scrims') => 
                       setFormData(prev => ({ ...prev, type: value }))
                     }
                   >
@@ -297,7 +299,8 @@ export const AdminEventsManagement: React.FC = () => {
                     <SelectContent>
                       <SelectItem value="MP">Multiplayer</SelectItem>
                       <SelectItem value="BR">Battle Royale</SelectItem>
-                      <SelectItem value="Mixed">Mixed</SelectItem>
+                      <SelectItem value="Tournament">Tournament</SelectItem>
+                      <SelectItem value="Scrims">Scrims</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
