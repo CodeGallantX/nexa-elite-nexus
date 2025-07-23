@@ -89,10 +89,12 @@ export const Signup: React.FC = () => {
       setGeneratedCode(code);
       setCodeRequested(true);
       setCountdown(60);
-      
+            
+      await navigator.clipboard.writeText(code);
+
       toast({
         title: "Access Code Requested",
-        description: `Code ${code} generated and sent to admin for approval.`,
+        description: `Code ${code} generated, copied to clipboard, and sent to admin for approval.`,
       });
     } catch (error) {
       console.error('Error requesting access code:', error);
@@ -336,12 +338,6 @@ export const Signup: React.FC = () => {
             </div>
           </div>
         </form>
-
-        {/* Demo Info */}
-        <div className="mt-6 p-4 bg-blue-500/10 border border-blue-500/30 rounded-lg">
-          <p className="text-blue-300 text-sm font-medium mb-1 font-rajdhani">Demo Access Code:</p>
-          <p className="text-blue-200 text-xs font-rajdhani">Use <strong>NEXA24</strong> or request a new code</p>
-        </div>
 
         {/* Links */}
         <div className="mt-6 text-center space-y-2">
