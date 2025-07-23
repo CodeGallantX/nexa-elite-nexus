@@ -21,7 +21,7 @@ export const Signup: React.FC = () => {
   const [codeRequested, setCodeRequested] = useState(false);
   const [countdown, setCountdown] = useState(0);
   const [generatedCode, setGeneratedCode] = useState('');
-  
+
   const { signup } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -55,7 +55,7 @@ export const Signup: React.FC = () => {
 
     const code = generateAccessCode();
     const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes from now
-    
+
     try {
       // Store OTP in database
       const { error: insertError } = await supabase
@@ -89,13 +89,23 @@ export const Signup: React.FC = () => {
       setGeneratedCode(code);
       setCodeRequested(true);
       setCountdown(60);
-            
-      await navigator.clipboard.writeText(code);
+
+
 
       toast({
         title: "Access Code Requested",
         description: `Code ${code} generated, copied to clipboard, and sent to admin for approval.`,
       });
+
+      try {
+        await navigator.clipboard.writeText(code);
+      } catch (clipboardError) {
+        console.warn("Clipboard copy failed:", clipboardError);
+        toast({
+          title: "Copied Manually",
+          description: `Copy this code manually: ${code}`,
+        });
+      }
     } catch (error) {
       console.error('Error requesting access code:', error);
       toast({
@@ -151,7 +161,7 @@ export const Signup: React.FC = () => {
 
     // Validate access code against database
     const isValidCode = await validateAccessCode(formData.accessCode) || formData.accessCode === generatedCode;
-    
+
     if (!isValidCode) {
       toast({
         title: "Invalid Access Code",
@@ -169,7 +179,7 @@ export const Signup: React.FC = () => {
         password: formData.password,
         ign: formData.username // Default IGN to username
       });
-      
+
       if (success) {
         // Mark access code as used
         await supabase.rpc('mark_access_code_used', {
