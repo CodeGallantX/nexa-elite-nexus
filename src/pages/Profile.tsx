@@ -257,10 +257,11 @@ export const Profile: React.FC = () => {
               {editing ? 'Save' : 'Edit Profile'}
             </Button>
             <Button
-              onClick={() => navigate('/profile/:id')}
+              onClick={() => navigate('/profile/:id/')}
               className="bg-white/10 hover:bg-white/20 text-white border border-white/20"
             >
               <Share2 />
+              Share Profile
             </Button>
           </div>
         </CardContent>
