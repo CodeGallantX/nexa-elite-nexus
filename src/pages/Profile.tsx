@@ -19,7 +19,7 @@ import {
   Smartphone,
   Calendar,
   ExternalLink,
-  Upload,
+  Loader,
   Key,
   Instagram,
   Youtube,
@@ -204,7 +204,7 @@ export const Profile: React.FC = () => {
                     asChild
                   >
                     <div>
-                      {uploading ? <Upload className="w-4 h-4 animate-spin" /> : <Camera className="w-4 h-4" />}
+                      {uploading ? <Loader className="w-4 h-4 animate-spin" /> : <Camera className="w-4 h-4" />}
                     </div>
                   </Button>
                 </label>
