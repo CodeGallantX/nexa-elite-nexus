@@ -248,6 +248,7 @@ export const Profile: React.FC = () => {
               </div>
             </div>
 
+<div className='flex flex-col items-start justify-center'>
             {/* Edit Button */}
             <Button
               onClick={() => setEditing(!editing)}
@@ -263,6 +264,7 @@ export const Profile: React.FC = () => {
               <Share2 />
               Share Profile
             </Button>
+              </div>
           </div>
         </CardContent>
       </Card>
