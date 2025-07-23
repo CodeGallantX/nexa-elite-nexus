@@ -229,6 +229,7 @@ export const AdminScrimsManagement: React.FC = () => {
           </CardTitle>
         </CardHeader>
         <CardContent>
+          <div className="overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow className="border-border/30">
@@ -299,6 +300,7 @@ export const AdminScrimsManagement: React.FC = () => {
               ))}
             </TableBody>
           </Table>
+          </div>
         </CardContent>
       </Card>
 
