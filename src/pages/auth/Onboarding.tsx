@@ -117,7 +117,7 @@ export const Onboarding: React.FC = () => {
   const [formData, setFormData] = useState({
     // Gaming Info
     ign: '',
-    uid: '',
+    player_uid: '',
     deviceType: '',
     androidBrand: '',
     mode: '',
@@ -177,6 +177,7 @@ export const Onboarding: React.FC = () => {
 
       const profileUpdates = {
         ign: formData.ign,
+        player_uid: formData.player_uid,
         tiktok_handle: formData.tiktok,
         preferred_mode: formData.mode,
         device: formData.deviceType === 'Android' ? formData.androidBrand : formData.androidBrand,
@@ -219,7 +220,7 @@ export const Onboarding: React.FC = () => {
   const isStepValid = () => {
     switch (currentStep) {
       case 1:
-        return formData.ign && formData.uid && formData.deviceType && 
+        return formData.ign && formData.player_uid && formData.deviceType && 
                (formData.deviceType === 'Android' ? formData.androidBrand : true) &&
                formData.mode && 
                (formData.mode === 'BR' ? formData.brClass : 
@@ -309,8 +310,8 @@ export const Onboarding: React.FC = () => {
                 <div>
                   <Label htmlFor="uid" className="text-foreground font-rajdhani">Player UID *</Label>
                   <Input
-                    id="uid"
-                    value={formData.uid}
+                    id="player_uid"
+                    value={formData.player_uid}
                     onChange={(e) => handleInputChange('uid', e.target.value)}
                     className="bg-background/50 border-border/50 text-foreground font-rajdhani"
                     placeholder="CDM001234567"
@@ -347,7 +348,7 @@ export const Onboarding: React.FC = () => {
                   </div>
                 )}
 
-                {(formData.deviceType === 'iPhone' || formData.deviceType === 'PC') && (
+                {(formData.deviceType === 'iPhone' || formData.deviceType === 'iPad') && (
                   <div>
                     <Label htmlFor="deviceModel" className="text-foreground font-rajdhani">Device Model *</Label>
                     <Select 
