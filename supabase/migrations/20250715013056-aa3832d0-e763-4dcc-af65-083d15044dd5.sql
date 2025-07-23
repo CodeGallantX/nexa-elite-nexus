@@ -4,7 +4,7 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- Create custom types
 CREATE TYPE user_role AS ENUM ('admin', 'player', 'moderator');
-CREATE TYPE event_type AS ENUM ('MP', 'BR', 'Mixed');
+CREATE TYPE event_type AS ENUM ('MP', 'BR', 'Tournament', 'Scrims');
 CREATE TYPE attendance_status AS ENUM ('present', 'absent');
 
 -- Create profiles table (extends auth.users)
