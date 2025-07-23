@@ -1,5 +1,6 @@
 
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -22,7 +23,8 @@ import {
   Key,
   Instagram,
   Youtube,
-  Twitter
+  Twitter,
+  Share2
 } from 'lucide-react';
 
 export const Profile: React.FC = () => {
@@ -171,6 +173,8 @@ export const Profile: React.FC = () => {
     );
   }
 
+ const navigate = useNavigate()
+
   return (
     <div className="space-y-6">
       {/* Profile Header */}
@@ -251,6 +255,12 @@ export const Profile: React.FC = () => {
             >
               {editing ? <Save className="w-4 h-4 mr-2" /> : <Edit3 className="w-4 h-4 mr-2" />}
               {editing ? 'Save' : 'Edit Profile'}
+            </Button>
+            <Button
+              onClick={() => navigate('/profile')}
+              className="bg-white/10 hover:bg-white/20 text-white border border-white/20"
+            >
+              <Share2 />
             </Button>
           </div>
         </CardContent>

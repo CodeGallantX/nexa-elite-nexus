@@ -308,11 +308,11 @@ export const Onboarding: React.FC = () => {
                 </div>
 
                 <div>
-                  <Label htmlFor="uid" className="text-foreground font-rajdhani">Player UID *</Label>
+                  <Label htmlFor="player_uid" className="text-foreground font-rajdhani">Player UID *</Label>
                   <Input
                     id="player_uid"
                     value={formData.player_uid}
-                    onChange={(e) => handleInputChange('uid', e.target.value)}
+                    onChange={(e) => handleInputChange('player_uid', e.target.value)}
                     className="bg-background/50 border-border/50 text-foreground font-rajdhani"
                     placeholder="CDM001234567"
                   />

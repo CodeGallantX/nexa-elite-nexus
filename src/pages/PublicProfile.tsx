@@ -9,7 +9,7 @@ import { Shield, ExternalLink, Target, Calendar, Award, Users } from 'lucide-rea
 // Mock user data - in real app would fetch based on IGN
 const mockUser = {
   ign: 'slayerX',
-  uid: 'CDM001234567',
+  player_uid: 'CDM001234567',
   avatar: '/placeholder.svg',
   kills: 15420,
   attendance: 85,
@@ -111,7 +111,7 @@ export const PublicProfile: React.FC = () => {
                 </div>
                 <p className="text-xl text-primary font-rajdhani mb-2">{user.tier}</p>
                 <div className="flex items-center space-x-4 text-muted-foreground font-rajdhani">
-                  <span>UID: {user.uid}</span>
+                  <span>Player UID: {user.player_uid}</span>
                   <span>•</span>
                   <span>Device: {user.device}</span>
                   <span>•</span>
