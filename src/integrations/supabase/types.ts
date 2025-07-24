@@ -501,7 +501,7 @@ export type Database = {
     }
     Enums: {
       attendance_status: "present" | "absent"
-      event_type: "MP" | "BR" | "Mixed"
+      event_type: "MP" | "BR" | "Tournament" | "Scrims"
       user_role: "admin" | "player" | "moderator"
     }
     CompositeTypes: {

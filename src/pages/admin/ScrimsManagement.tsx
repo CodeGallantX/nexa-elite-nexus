@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,6 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { supabase } from '@/integrations/supabase/client';
 import { 
   Calendar, 
   Clock, 
@@ -23,41 +24,9 @@ import {
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
-// Mock scrims data
-const mockScrims = [
-  {
-    id: '1',
-    name: 'Clan War vs Thunder',
-    date: '2024-07-15',
-    time: '20:00',
-    mode: 'BR',
-    description: 'Championship qualifier match against Thunder clan',
-    assignedPlayers: [
-      { ign: 'slayerX', role: 'Assault', squad: 'Alpha', kills: 18, performance: 'Excellent' },
-      { ign: 'TacticalSniper', role: 'Support', squad: 'Alpha', kills: 12, performance: 'Good' }
-    ],
-    status: 'upcoming'
-  },
-  {
-    id: '2',
-    name: 'Training Scrim - Hardpoint',
-    date: '2024-07-14',
-    time: '19:00',
-    mode: 'MP',
-    description: 'Practice session for hardpoint strategies',
-    assignedPlayers: [
-      { ign: 'EliteWarrior', role: 'Objective', squad: 'Beta', kills: 15, performance: 'Good' },
-      { ign: 'GhostAlpha', role: 'Anchor', squad: 'Beta', kills: 22, performance: 'Excellent' }
-    ],
-    status: 'completed'
-  }
-];
-
-const mockPlayers = ['slayerX', 'TacticalSniper', 'EliteWarrior', 'GhostAlpha', 'ProSniper', 'RapidFire'];
-
 export const AdminScrimsManagement: React.FC = () => {
   const { toast } = useToast();
-  const [scrims, setScrims] = useState(mockScrims);
+  const [scrims, setScrims] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
@@ -67,7 +36,6 @@ export const AdminScrimsManagement: React.FC = () => {
     name: '',
     date: '',
     time: '',
-    mode: 'MP',
     description: '',
     assignedPlayers: []
   });
@@ -85,11 +53,6 @@ export const AdminScrimsManagement: React.FC = () => {
     }
   };
 
-  const getModeColor = (mode: string) => {
-    return mode === 'BR' 
-      ? 'bg-green-500/20 text-green-400 border-green-500/50' 
-      : 'bg-purple-500/20 text-purple-400 border-purple-500/50';
-  };
 
   const filteredScrims = scrims.filter(scrim => {
     const matchesSearch = scrim.name.toLowerCase().includes(searchTerm.toLowerCase());
@@ -105,7 +68,6 @@ export const AdminScrimsManagement: React.FC = () => {
       name: '',
       date: '',
       time: '',
-      mode: 'MP',
       description: '',
       assignedPlayers: []
     });
@@ -138,6 +100,26 @@ export const AdminScrimsManagement: React.FC = () => {
       description: "Changes have been saved successfully.",
     });
   };
+
+
+  useEffect(() => {
+    const fetchScrims = async () => {
+      const { data, error } = await supabase
+      .from('events')
+      .select('*')
+      .eq('type', 'Scrims');
+
+      if (error) {
+        console.error('Error fetching scrims:', error.message);
+      }
+        else {
+          setScrims(data || []);
+        }
+    }    
+    
+    fetchScrims();
+  }, []);
+
 
   return (
     <div className="space-y-6">
@@ -183,7 +165,10 @@ export const AdminScrimsManagement: React.FC = () => {
         <Card className="bg-card/50 border-border/30">
           <CardContent className="p-4 text-center">
             <div className="text-2xl font-bold text-green-400 mb-1 font-orbitron">
-              {scrims.reduce((total, s) => total + s.assignedPlayers.length, 0)}
+              {Array.isArray(scrims)
+                ? scrims.reduce((total, s) => total + (s.assignedPlayers?.length || 0), 0)
+                : 0
+              }
             </div>
             <div className="text-sm text-muted-foreground font-rajdhani">Total Assignments</div>
           </CardContent>
@@ -235,7 +220,6 @@ export const AdminScrimsManagement: React.FC = () => {
               <TableRow className="border-border/30">
                 <TableHead className="text-muted-foreground font-rajdhani">Scrim Details</TableHead>
                 <TableHead className="text-muted-foreground font-rajdhani">Date & Time</TableHead>
-                <TableHead className="text-muted-foreground font-rajdhani">Mode</TableHead>
                 <TableHead className="text-muted-foreground font-rajdhani">Players</TableHead>
                 <TableHead className="text-muted-foreground font-rajdhani">Status</TableHead>
                 <TableHead className="text-muted-foreground font-rajdhani">Actions</TableHead>
@@ -261,14 +245,9 @@ export const AdminScrimsManagement: React.FC = () => {
                     </div>
                   </TableCell>
                   <TableCell>
-                    <Badge className={getModeColor(scrim.mode)}>
-                      {scrim.mode}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
                     <div className="flex items-center">
                       <Users className="w-4 h-4 mr-2 text-muted-foreground" />
-                      <span className="font-rajdhani">{scrim.assignedPlayers.length} assigned</span>
+                      <span className="font-rajdhani">{(scrim.assignedPlayers?.length || 0)} assigned</span>
                     </div>
                   </TableCell>
                   <TableCell>
@@ -312,7 +291,7 @@ export const AdminScrimsManagement: React.FC = () => {
           </DialogHeader>
           
           <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4">
               <div>
                 <Label htmlFor="name" className="font-rajdhani">Scrim Name</Label>
                 <Input
@@ -322,21 +301,6 @@ export const AdminScrimsManagement: React.FC = () => {
                   className="bg-background/50 border-border/50 font-rajdhani"
                   placeholder="e.g., Clan War vs Thunder"
                 />
-              </div>
-              <div>
-                <Label htmlFor="mode" className="font-rajdhani">Game Mode</Label>
-                <Select 
-                  value={newScrim.mode} 
-                  onValueChange={(value) => setNewScrim(prev => ({ ...prev, mode: value }))}
-                >
-                  <SelectTrigger className="bg-background/50 border-border/50">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="MP">Multiplayer</SelectItem>
-                    <SelectItem value="BR">Battle Royale</SelectItem>
-                  </SelectContent>
-                </Select>
               </div>
             </div>
             
@@ -433,7 +397,7 @@ export const AdminScrimsManagement: React.FC = () => {
               <div>
                 <Label className="font-rajdhani">Assigned Players</Label>
                 <div className="mt-2 space-y-2 max-h-40 overflow-y-auto">
-                  {editingScrim.assignedPlayers.map((player, index) => (
+                  {editingScrim?.assignedPlayers?.map((player, index) => (
                     <div key={index} className="flex items-center justify-between p-2 bg-background/30 rounded">
                       <div className="flex items-center space-x-4">
                         <span className="font-rajdhani">Ɲ・乂{player.ign}</span>
