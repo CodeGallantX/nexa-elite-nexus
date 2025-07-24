@@ -22,7 +22,7 @@ export const Header: React.FC = () => {
       <div className="flex items-center space-x-4">
         
         {/* Tiktok*/}
-      <FaTiktok onClick={() => navigate('https://tiktok.com/@nexaesports')} className="text-lg animate-pulse text-gray-200 hover:text-primary/30 cursor-pointer"/>
+      <FaTiktok onClick={() => navigate('https://tiktok.com/@nexaesports')} className="text-lg animate-pulse md:animate-bounce text-white hover:text-primary cursor-pointer"/>
         
         {/* Notification Bell */}
         <NotificationBell />
