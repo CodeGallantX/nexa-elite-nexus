@@ -16,7 +16,7 @@ const mockGalleryItems: GalleryItem[] = [
   {
     id: 1,
     type: 'image',
-    src: '/https://ik.imagekit.io/mshcgnjju/NeXa/clan.jpg',
+    src: 'https://ik.imagekit.io/mshcgnjju/NeXa/clan.jpg',
     title: 'Clan War',
     description: 'Gearing up for for Clan Wars'
   },
