@@ -1,9 +1,10 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
+import { supabase } from "@/integrations/supabase/client";
 import { 
   Bell, 
   Copy, 
@@ -17,63 +18,39 @@ import {
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
-// Mock notifications data
-const mockNotifications = [
-  {
-    id: '1',
-    type: 'access_code_request',
-    message: 'Player newPlayer123 is requesting access code ABC123',
-    playerName: 'newPlayer123',
-    accessCode: 'ABC123',
-    timestamp: '2024-07-14T15:30:00Z',
-    status: 'unread',
-    action: 'copy_code'
-  },
-  {
-    id: '2',
-    type: 'new_player_joined',
-    message: 'New player TacticalSniper joined the clan',
-    playerName: 'TacticalSniper',
-    timestamp: '2024-07-14T14:20:00Z',
-    status: 'read',
-    action: 'view_player'
-  },
-  {
-    id: '3',
-    type: 'access_code_request',
-    message: 'Player EliteGamer is requesting access code DEF456',
-    playerName: 'EliteGamer',
-    accessCode: 'DEF456',
-    timestamp: '2024-07-14T13:15:00Z',
-    status: 'responded',
-    action: 'copy_code'
-  },
-  {
-    id: '4',
-    type: 'new_player_joined',
-    message: 'New player ProSniper joined the clan',
-    playerName: 'ProSniper',
-    timestamp: '2024-07-14T12:45:00Z',
-    status: 'read',
-    action: 'view_player'
-  },
-  {
-    id: '5',
-    type: 'access_code_request',
-    message: 'Player RapidFire is requesting access code GHI789',
-    playerName: 'RapidFire',
-    accessCode: 'GHI789',
-    timestamp: '2024-07-14T11:30:00Z',
-    status: 'unread',
-    action: 'copy_code'
-  }
-];
 
 export const AdminNotifications: React.FC = () => {
   const { toast } = useToast();
-  const [notifications, setNotifications] = useState(mockNotifications);
+  const [notifications, setNotifications] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [filter, setFilter] = useState('all');
+
+  useEffect(() => {
+    const fetchNotifications = async () => {
+      const { data, error } = await supabase
+      .from('notifications')
+      .select("*")
+      .order("created_at", {ascending: false});
+    
+      if (error) {
+        console.error("Error fetching notifications:", error.message)
+      } else {
+        const formatted = data.map((n) => ({
+          id: n.id,
+          type: n.type,
+          message: n.message,
+          playerName: n.data?.playerName || 'Unknown',
+          accessCode: n.data?.accessCode || '',
+          timestamp: n.created_at,
+          status: n.read ? 'read' : 'unread',
+          action: n.action_data?.action || '',
+        }));
+        setNotifications(formatted);
+      }
+    };
+
+    fetchNotifications();
+  })
 
   const getNotificationIcon = (type: string) => {
     switch (type) {
@@ -125,20 +102,43 @@ export const AdminNotifications: React.FC = () => {
     });
   };
 
-  const markAsRead = (notificationId: string) => {
+  const markAsRead = async (notificationId: string) => {
+    await supabase
+    .from("notifications")
+    .update({ read:true })
+    .eq('id', notificationId)
+    
     setNotifications(prev =>
       prev.map(n => n.id === notificationId ? { ...n, status: 'read' } : n)
     );
   };
 
-  const markAllAsRead = () => {
-    setNotifications(prev =>
-      prev.map(n => ({ ...n, status: 'read' }))
-    );
-    toast({
-      title: "All Marked as Read",
-      description: "All notifications have been marked as read",
-    });
+  const markAllAsRead = async () => {
+    const { data, error } = await supabase.auth.getUser()
+    const user = data?.user;
+
+    if (error || !user) {
+      console.error("Failed to get user:", error)
+      return;
+    }
+
+    const  { error:updateError } = await supabase
+      .from("notifications")
+      .update({ read:true })
+      .eq('id', user?.id)
+
+      if (updateError) {
+        console.error("Error performing action:", error)
+        return;
+      }
+      
+      setNotifications(prev =>
+        prev.map(n => ({ ...n, status: 'read' }))
+      );
+      toast({
+        title: "All Marked as Read",
+        description: "All notifications have been marked as read",
+      });
   };
 
   const filteredNotifications = notifications.filter(notification => {
@@ -153,20 +153,38 @@ export const AdminNotifications: React.FC = () => {
   const unreadCount = notifications.filter(n => n.status === 'unread').length;
   const totalNotifications = notifications.length;
 
-  const formatTimeAgo = (timestamp: string) => {
+  const formatTimeAgo = (timestamp: string): string => {
     const now = new Date();
     const time = new Date(timestamp);
-    const diffInMinutes = Math.floor((now.getTime() - time.getTime()) / (1000 * 60));
-    
-    if (diffInMinutes < 60) return `${diffInMinutes}m ago`;
-    if (diffInMinutes < 1440) return `${Math.floor(diffInMinutes / 60)}h ago`;
-    return `${Math.floor(diffInMinutes / 1440)}d ago`;
+    const diffInSeconds = Math.floor((now.getTime() - time.getTime()) / 1000);
+  
+    if (diffInSeconds < 1) return "now";
+    if (diffInSeconds < 60) return `${diffInSeconds}s ago`;
+  
+    const minutes = Math.floor(diffInSeconds / 60);
+    if (minutes < 60) return `${minutes}m ago`;
+  
+    const hours = Math.floor(diffInSeconds / 3600);
+    if (hours < 24) return `${hours}h ago`;
+  
+    const days = Math.floor(diffInSeconds / 86400);
+    if (days < 7) return `${days}d ago`;
+  
+    const weeks = Math.floor(diffInSeconds / 604800);
+    if (weeks < 5) return `${weeks}w ago`;
+  
+    const months = Math.floor(diffInSeconds / 2628000);
+    if (months < 12) return `${months}mo ago`;
+  
+    const years = Math.floor(diffInSeconds / 31536000);
+    return `${years}y ago`;
   };
+  
 
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col md:flex-row items-start md:items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-foreground font-orbitron mb-2">Notifications</h1>
           <p className="text-muted-foreground font-rajdhani">Manage clan notifications and requests</p>
@@ -272,9 +290,9 @@ export const AdminNotifications: React.FC = () => {
                       <div className="flex-1">
                         <div className="flex items-center space-x-2 mb-1">
                           <p className="text-foreground font-rajdhani">{notification.message}</p>
-                          <Badge className={getStatusColor(notification.status)}>
+                          {/* <Badge className={getStatusColor(notification.status)}>
                             {notification.status}
-                          </Badge>
+                          </Badge> */}
                         </div>
                         <div className="flex items-center space-x-2 text-sm text-muted-foreground">
                           <Clock className="w-3 h-3" />
@@ -283,8 +301,8 @@ export const AdminNotifications: React.FC = () => {
                       </div>
                     </div>
                     
-                    <div className="flex items-center space-x-2 ml-4">
-                      {notification.action === 'copy_code' && notification.accessCode && (
+                    <div className="flex flex-col md:flex-row items-center spacemd:space-x-2 ml-4">
+                      {notification.type === 'access_code_request' && notification.accessCode && (
                         <Button
                           size="sm"
                           onClick={() => handleCopyCode(notification.accessCode!, notification.id)}
@@ -317,6 +335,7 @@ export const AdminNotifications: React.FC = () => {
                           Mark Read
                         </Button>
                       )}
+                      
                     </div>
                   </div>
                 </div>
