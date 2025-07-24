@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { NotificationBell } from '@/components/NotificationBell';
+import { FaTiktok } from "react-icons/fa6"
 
 export const Header: React.FC = () => {
   const { profile } = useAuth();
@@ -19,6 +20,10 @@ export const Header: React.FC = () => {
   return (
     <header className="h-14 border-b border-border flex items-center justify-end px-4 bg-card/50">
       <div className="flex items-center space-x-4">
+        
+        {/* Tiktok*/}
+      <FaTiktok onClick={() => navigate('https://tiktok.com/@nexaesports')} className="text-lg animate-pulse text-gray-200 hover:text-primary/30 cursor-pointer"/>
+        
         {/* Notification Bell */}
         <NotificationBell />
 
