@@ -54,8 +54,9 @@ export const AdminPlayers: React.FC = () => {
   const getTierColor = (tier: string) => {
     switch (tier?.toLowerCase()) {
       case 'legendary': return 'bg-yellow-100 text-yellow-800';
-      case 'elite': return 'bg-purple-100 text-purple-800';
-      case 'veteran': return 'bg-blue-100 text-blue-800';
+      case 'veteran': return 'bg-emerald-100 text-emerald-800';
+      case 'pro': return 'bg-blue-100 text-blue-800';
+      case 'elite': return 'bg-amber-100 text-amber-800';
       case 'rookie': return 'bg-gray-100 text-gray-800';
       default: return 'bg-gray-100 text-gray-800';
     }
@@ -274,9 +275,10 @@ export const AdminPlayers: React.FC = () => {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="Legendary">Legendary</SelectItem>
-                      <SelectItem value="Rookie">Rookie</SelectItem>
                       <SelectItem value="Veteran">Veteran</SelectItem>
+                      <SelectItem value="Pro">Pro</SelectItem>
                       <SelectItem value="Elite">Elite</SelectItem>
+                      <SelectItem value="Rookie">Rookie</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>

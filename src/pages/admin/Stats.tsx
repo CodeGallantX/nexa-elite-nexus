@@ -218,8 +218,11 @@ export const AdminStats: React.FC = () => {
                   </TableCell>
                   <TableCell>
                     <Badge className={
-                      player.tier === 'Elite' ? 'bg-purple-100 text-purple-800' :
-                      player.tier === 'Veteran' ? 'bg-blue-100 text-blue-800' :
+                      player.tier === 'Legendary' ? 'bg-yellow-100 text-yellow-800' :
+                      player.tier === 'Veteran' ? 'bg-emerald-100 text-emerald-800' :
+                      player.tier === 'Pro' ? 'bg-blue-100 text-blue-800' :
+                      player.tier === 'Elite' ? 'bg-amber-100 text-amber-800' :
+                      player.tier === 'Rookie' ? 'bg-gray-100 text-gray-800' :
                       'bg-gray-100 text-gray-800'
                     }>
                       {player.tier || 'Rookie'}
