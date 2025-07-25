@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -22,6 +23,7 @@ interface ChatMessage {
   reply_to_message?: string;
   profiles: {
     username: string;
+    id: string;
     ign: string;
     role: string;
   };
@@ -39,11 +41,14 @@ export const Chat: React.FC = () => {
   const [showMobileNav, setShowMobileNav] = useState(false);
   const [selectedChannel, setSelectedChannel] = useState('general');
   const [contextMenu, setContextMenu] = useState<{
+    message: ChatMessage | null;
     x: number;
     y: number;
-    message: ChatMessage | null;
-  }>({ x: 0, y: 0, message: null });
+    position: 'top' | 'bottom';
+  }>({ message: null, x: 0, y: 0, position: 'bottom' });
   const [replyTo, setReplyTo] = useState<ChatMessage | null>(null);
+  const [highlightedMessageId, setHighlightedMessageId] = useState<string | null>(null);
+  const [imageModal, setImageModal] = useState<{ url: string; name: string } | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -60,7 +65,7 @@ export const Chat: React.FC = () => {
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (contextMenuRef.current && !contextMenuRef.current.contains(event.target as Node)) {
-        setContextMenu({ x: 0, y: 0, message: null });
+        setContextMenu({ message: null, x: 0, y: 0, position: 'bottom' });
       }
     };
 
@@ -72,32 +77,57 @@ export const Chat: React.FC = () => {
   useEffect(() => {
     const scrollArea = scrollAreaRef.current?.viewportElement;
     const handleScroll = () => {
-      setContextMenu({ x: 0, y: 0, message: null });
+      setContextMenu({ message: null, x: 0, y: 0, position: 'bottom' });
     };
 
     scrollArea?.addEventListener('scroll', handleScroll);
     return () => scrollArea?.removeEventListener('scroll', handleScroll);
   }, []);
 
+  // Close image modal on Escape key
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setImageModal(null);
+    };
+    document.addEventListener('keydown', handleEscape);
+    return () => document.removeEventListener('keydown', handleEscape);
+  }, []);
+
   // Fetch chat messages
   const { data: messages = [], isLoading } = useQuery({
     queryKey: ['chat-messages', selectedChannel],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('chat_messages')
-        .select(`
-          *,
-          profiles (
-            username,
-            ign,
-            role
-          )
-        `)
-        .eq('channel', selectedChannel)
-        .order('created_at', { ascending: true });
+      try {
+        const { data, error } = await supabase
+          .from('chat_messages')
+          .select(`
+            *,
+            profiles (
+              username,
+              id,
+              ign,
+              role
+            )
+          `)
+          .eq('channel', selectedChannel)
+          .order('created_at', { ascending: true });
 
-      if (error) throw error;
-      return data as ChatMessage[];
+        if (error) {
+          console.error('Supabase query error:', error);
+          throw error;
+        }
+        return data as ChatMessage[];
+      } catch (err: any) {
+        toast({
+          title: "Failed to load messages",
+          description: err.message || 'An error occurred while fetching messages.',
+          variant: 'destructive',
+        });
+        throw err;
+      }
+    },
+    onError: (error: any) => {
+      console.error('useQuery error:', error);
     },
   });
 
@@ -112,7 +142,7 @@ export const Chat: React.FC = () => {
     }) => {
       const { error } = await supabase
         .from('chat_messages')
-        .insert([{
+        .insert({
           user_id: user?.id,
           channel: selectedChannel,
           message,
@@ -120,7 +150,7 @@ export const Chat: React.FC = () => {
           attachment_type: attachmentType,
           attachment_name: attachmentName,
           reply_to_id: replyToId,
-        }]);
+        });
 
       if (error) throw error;
     },
@@ -135,7 +165,7 @@ export const Chat: React.FC = () => {
       toast({
         title: "Failed to send message",
         description: error.message,
-        variant: "destructive",
+        variant: 'destructive',
       });
     },
   });
@@ -143,27 +173,51 @@ export const Chat: React.FC = () => {
   // Delete message mutation
   const deleteMessageMutation = useMutation({
     mutationFn: async (messageId: string) => {
-      const { error } = await supabase
+      if (!user?.id) {
+        throw new Error('User not authenticated');
+      }
+
+      const { error, count } = await supabase
         .from('chat_messages')
         .delete()
         .eq('id', messageId)
-        .eq('user_id', user?.id);
+        .eq('user_id', user.id)
+        .select()
+        .single();
 
       if (error) throw error;
+      if (!count) {
+        throw new Error('Message not found or you do not have permission to delete it');
+      }
+    },
+    onMutate: async (messageId: string) => {
+      await queryClient.cancelQueries({ queryKey: ['chat-messages', selectedChannel] });
+      const previousMessages = queryClient.getQueryData<ChatMessage[]>(['chat-messages', selectedChannel]);
+      
+      queryClient.setQueryData(['chat-messages', selectedChannel], (old: ChatMessage[] | undefined) =>
+        old ? old.filter((msg) => msg.id !== messageId) : []
+      );
+
+      return { previousMessages };
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['chat-messages'] });
       toast({
         title: "Message deleted",
         variant: "default",
       });
     },
-    onError: (error: any) => {
+    onError: (error: any, messageId, context: any) => {
+      queryClient.setQueryData(['chat-messages', selectedChannel], context.previousMessages);
       toast({
         title: "Failed to delete message",
-        description: error.message,
+        description: error.message === 'Message not found or you do not have permission to delete it'
+          ? 'You can only delete your own messages.'
+          : error.message,
         variant: "destructive",
       });
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['chat-messages', selectedChannel] });
     },
   });
 
@@ -253,66 +307,72 @@ export const Chat: React.FC = () => {
   // Handle context menu
   const handleContextMenu = (event: React.MouseEvent, msg: ChatMessage) => {
     event.preventDefault();
+    console.log('Context menu triggered for message:', msg.id);
     const messageElement = messageRefs.current.get(msg.id);
-    if (!messageElement) return;
+    if (!messageElement) {
+      console.error('Message element not found for ID:', msg.id);
+      return;
+    }
 
     const rect = messageElement.getBoundingClientRect();
     const scrollArea = scrollAreaRef.current?.viewportElement;
-    const scrollTop = scrollArea?.scrollTop || 0;
-
-    // Calculate position to keep menu within viewport
-    const menuWidth = 160; // Approximate context menu width
-    const menuHeight = msg.user_id === user?.id ? 120 : 80; // Approximate height based on number of options
-    let x = event.pageX;
-    let y = rect.top + window.scrollY - scrollTop + rect.height;
-
-    // Adjust x position if menu would overflow right edge
-    if (x + menuWidth > window.innerWidth) {
-      x = window.innerWidth - menuWidth - 10;
-    }
-    // Adjust y position if menu would overflow bottom edge
-    if (y + menuHeight > window.innerHeight + window.scrollY) {
-      y = rect.top + window.scrollY - scrollTop - menuHeight - 10;
+    if (!scrollArea) {
+      console.error('ScrollArea not found');
+      return;
     }
 
-    // Ensure x and y are not negative
-    x = Math.max(10, x);
-    y = Math.max(10, y);
+    const scrollAreaRect = scrollArea.getBoundingClientRect();
+    const menuWidth = 160;
+    const menuHeight = msg.user_id === user?.id ? 120 : 80;
 
-    setContextMenu({ x, y, message: msg });
+    // Center horizontally on the bubble
+    const x = rect.left + (rect.width / 2) - (menuWidth / 2);
+    let y = rect.bottom + 5; // Below bubble
+    let position: 'top' | 'bottom' = 'bottom';
+    if (y + menuHeight > scrollAreaRect.bottom - 10) {
+      y = rect.top - menuHeight - 5; // Above bubble
+      position = 'top';
+    }
+
+    // Ensure menu stays within ScrollArea horizontally
+    const adjustedX = Math.max(scrollAreaRect.left + 10, Math.min(x, scrollAreaRect.right - menuWidth - 10));
+
+    console.log('Setting context menu at:', { x: adjustedX, y, position });
+    setContextMenu({ message: msg, x: adjustedX, y, position });
   };
 
   // Handle long press for mobile
   const handleTouchStart = (event: React.TouchEvent, msg: ChatMessage) => {
-    // Prevent scrolling during long press
+    console.log('Touch start for message:', msg.id);
     const scrollArea = scrollAreaRef.current?.viewportElement;
     const preventScroll = (e: Event) => e.preventDefault();
     scrollArea?.addEventListener('touchmove', preventScroll, { passive: false });
 
     const timeout = setTimeout(() => {
       const messageElement = messageRefs.current.get(msg.id);
-      if (!messageElement) return;
+      if (!messageElement || !scrollArea) {
+        console.error('Message element or ScrollArea not found for ID:', msg.id);
+        scrollArea?.removeEventListener('touchmove', preventScroll);
+        return;
+      }
 
       const rect = messageElement.getBoundingClientRect();
-      const scrollTop = scrollArea?.scrollTop || 0;
-
-      const menuWidth = 160;
+      const scrollAreaRect = scrollArea.getBoundingClientRect();
+      const menuWidth = 140;
       const menuHeight = msg.user_id === user?.id ? 120 : 80;
-      let x = event.touches[0].pageX;
-      let y = rect.top + window.scrollY - scrollTop + rect.height;
 
-      // Adjust for viewport boundaries
-      if (x + menuWidth > window.innerWidth) {
-        x = window.innerWidth - menuWidth - 10;
-      }
-      if (y + menuHeight > window.innerHeight + window.scrollY) {
-        y = rect.top + window.scrollY - scrollTop - menuHeight - 10;
+      const x = rect.left + (rect.width / 2) - (menuWidth / 2);
+      let y = rect.bottom + 5;
+      let position: 'top' | 'bottom' = 'bottom';
+      if (y + menuHeight > scrollAreaRect.bottom - 10) {
+        y = rect.top - menuHeight - 5;
+        position = 'top';
       }
 
-      x = Math.max(10, x);
-      y = Math.max(10, y);
+      const adjustedX = Math.max(scrollAreaRect.left + 10, Math.min(x, scrollAreaRect.right - menuWidth - 10));
 
-      setContextMenu({ x, y, message: msg });
+      console.log('Setting context menu (touch) at:', { x: adjustedX, y, position });
+      setContextMenu({ message: msg, x: adjustedX, y, position });
       scrollArea?.removeEventListener('touchmove', preventScroll);
     }, 500);
 
@@ -322,20 +382,31 @@ export const Chat: React.FC = () => {
     };
   };
 
+  // Handle reply click to scroll to original message
+  const handleReplyClick = (replyToId: string) => {
+    const messageElement = messageRefs.current.get(replyToId);
+    if (messageElement) {
+      messageElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      setHighlightedMessageId(replyToId);
+      setTimeout(() => setHighlightedMessageId(null), 2000);
+    }
+  };
+
   // Handle copy message
   const handleCopyMessage = (text: string) => {
     navigator.clipboard.writeText(text);
     toast({
       title: "Message copied",
       variant: "default",
+      duration: 2000,
     });
-    setContextMenu({ x: 0, y: 0, message: null });
+    setContextMenu({ message: null, x: 0, y: 0, position: 'bottom' });
   };
 
   // Handle reply
   const handleReply = (msg: ChatMessage) => {
     setReplyTo(msg);
-    setContextMenu({ x: 0, y: 0, message: null });
+    setContextMenu({ message: null, x: 0, y: 0, position: 'bottom' });
     const input = document.querySelector('input[placeholder="Type your message..."]') as HTMLInputElement;
     input?.focus();
   };
@@ -343,7 +414,7 @@ export const Chat: React.FC = () => {
   // Handle delete message
   const handleDeleteMessage = (messageId: string) => {
     deleteMessageMutation.mutate(messageId);
-    setContextMenu({ x: 0, y: 0, message: null });
+    setContextMenu({ message: null, x: 0, y: 0, position: 'bottom' });
   };
 
   // Auto-scroll to bottom
@@ -368,7 +439,7 @@ export const Chat: React.FC = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [queryClient]);
+  }, [queryClient, selectedChannel]);
 
   const renderAttachment = (msg: ChatMessage) => {
     if (!msg.attachment_url) return null;
@@ -385,7 +456,7 @@ export const Chat: React.FC = () => {
               src={msg.attachment_url} 
               alt={msg.attachment_name}
               className="w-full h-full object-cover rounded-lg cursor-pointer hover:opacity-80"
-              onClick={() => window.open(msg.attachment_url, '_blank')}
+              onClick={() => setImageModal({ url: msg.attachment_url, name: msg.attachment_name || 'image' })}
             />
           </div>
         )}
@@ -417,8 +488,119 @@ export const Chat: React.FC = () => {
     );
   };
 
+  const renderContextMenu = () => {
+    if (!contextMenu.message) {
+      console.log('Context menu not rendered: no message selected');
+      return null;
+    }
+
+    return createPortal(
+      <div
+        ref={contextMenuRef}
+        className="fixed z-[1000] w-40 max-w-full bg-card border border-border rounded-lg shadow-lg sm:w-48"
+        style={{ left: `${contextMenu.x}px`, top: `${contextMenu.y}px` }}
+      >
+        <div className="flex flex-col p-1">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="justify-start text-sm hover:bg-accent"
+            onClick={() => handleReply(contextMenu.message!)}
+          >
+            <CornerDownLeft className="w-4 h-4 mr-2" />
+            Reply
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="justify-start text-sm hover:bg-accent"
+            onClick={() => handleCopyMessage(contextMenu.message!.message)}
+          >
+            <Copy className="w-4 h-4 mr-2" />
+            Copy
+          </Button>
+          {contextMenu.message.user_id === user?.id && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="justify-start text-sm text-destructive hover:bg-destructive/10"
+              onClick={() => handleDeleteMessage(contextMenu.message!.id)}
+            >
+              <Trash2 className="w-4 h-4 mr-2" />
+              Delete
+            </Button>
+          )}
+        </div>
+      </div>,
+      document.body
+    );
+  };
+
+  const renderImageModal = () => {
+    if (!imageModal) return null;
+
+    return createPortal(
+      <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/70">
+        <div className="relative max-w-[90vw] max-h-[90vh] bg-card rounded-lg p-4">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="absolute top-2 right-2 text-white"
+            onClick={() => setImageModal(null)}
+          >
+            <X className="w-6 h-6" />
+          </Button>
+          <img
+            src={imageModal.url}
+            alt={imageModal.name}
+            className="max-w-full max-h-[80vh] object-contain"
+          />
+          <div className="flex justify-center mt-4">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                const link = document.createElement('a');
+                link.href = imageModal.url;
+                link.download = imageModal.name;
+                link.click();
+              }}
+            >
+              <Download className="w-4 h-4 mr-2" />
+              Download
+            </Button>
+          </div>
+        </div>
+      </div>,
+      document.body
+    );
+  };
+
   return (
     <div className="flex flex-col h-full relative">
+      <style>
+        {`
+          .chat-bubble::after {
+            content: '';
+            position: absolute;
+            bottom: 0.5rem;
+            width: 0.75rem;
+            height: 0.75rem;
+            clip-path: polygon(0 0, 100% 0, 100% 100%);
+          }
+          .chat-bubble.outgoing::after {
+            right: -0.5rem;
+            background: #DCF8C6;
+            transform: rotate(-45deg);
+          }
+          .chat-bubble.incoming::after {
+            left: -0.5rem;
+            background: #F2F2F2;
+            transform: rotate(45deg);
+          }
+        `}
+      </style>
+
       {/* Background logo with reduced opacity */}
       <div 
         className="fixed inset-0 pointer-events-none z-0"
@@ -495,11 +677,11 @@ export const Chat: React.FC = () => {
                     onTouchStart={(e) => handleTouchStart(e, msg)}
                   >
                     <div
-                      className={`max-w-[85%] sm:max-w-[70%] p-3 rounded-lg ${
+                      className={`relative p-3 rounded-lg max-w-[85%] sm:max-w-[70%] ${
                         msg.user_id === user?.id
-                          ? 'bg-primary text-white ml-auto'
-                          : 'bg-muted'
-                      }`}
+                          ? 'chat-bubble outgoing bg-green-100 text-black ml-auto'
+                          : 'chat-bubble incoming bg-gray-100 text-black'
+                      } ${highlightedMessageId === msg.id ? 'ring-2 ring-yellow-400' : ''}`}
                     >
                       {msg.user_id !== user?.id && (
                         <div className="text-xs font-medium mb-1 text-primary">
@@ -513,7 +695,10 @@ export const Chat: React.FC = () => {
                       )}
                       
                       {msg.reply_to_id && (
-                        <div className="mb-2 p-2 bg-background/20 rounded text-xs">
+                        <div
+                          className="mb-2 p-2 bg-background/20 rounded text-xs cursor-pointer hover:bg-background/30"
+                          onClick={() => handleReplyClick(msg.reply_to_id!)}
+                        >
                           <div className="font-medium">
                             Replying to {messages.find(m => m.id === msg.reply_to_id)?.profiles.ign}
                           </div>
@@ -527,7 +712,7 @@ export const Chat: React.FC = () => {
                       {renderAttachment(msg)}
                       
                       <div className={`text-xs mt-1 ${
-                        msg.user_id === user?.id ? 'text-white/70' : 'text-muted-foreground'
+                        msg.user_id === user?.id ? 'text-black/70' : 'text-muted-foreground'
                       }`}>
                         {new Date(msg.created_at).toLocaleTimeString([], { 
                           hour: '2-digit', 
@@ -541,47 +726,6 @@ export const Chat: React.FC = () => {
               </div>
             )}
           </ScrollArea>
-
-          {/* Context menu */}
-          {contextMenu.message && (
-            <div
-              ref={contextMenuRef}
-              className="fixed bg-card border border-border rounded-lg shadow-lg z-50 w-40 sm:w-48"
-              style={{ top: contextMenu.y, left: contextMenu.x }}
-            >
-              <div className="flex flex-col p-1">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="justify-start text-sm hover:bg-accent"
-                  onClick={() => handleReply(contextMenu.message!)}
-                >
-                  <CornerDownLeft className="w-4 h-4 mr-2" />
-                  Reply
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="justify-start text-sm hover:bg-accent"
-                  onClick={() => handleCopyMessage(contextMenu.message!.message)}
-                >
-                  <Copy className="w-4 h-4 mr-2" />
-                  Copy
-                </Button>
-                {contextMenu.message.user_id === user?.id && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="justify-start text-sm text-destructive hover:bg-destructive/10"
-                    onClick={() => handleDeleteMessage(contextMenu.message!.id)}
-                  >
-                    <Trash2 className="w-4 h-4 mr-2" />
-                    Delete
-                  </Button>
-                )}
-              </div>
-            </div>
-          )}
 
           {/* Reply preview */}
           {replyTo && (
@@ -676,6 +820,9 @@ export const Chat: React.FC = () => {
         accept="image/*,video/*,.pdf,.doc,.docx,.txt"
         onChange={handleFileSelect}
       />
+
+      {renderContextMenu()}
+      {renderImageModal()}
     </div>
   );
 };
