@@ -18,13 +18,14 @@ import {
   Search,
   Filter,
   MapPin,
-  Zap
+  Swords,
+  Component
 } from 'lucide-react';
 
 interface Event {
   id: string;
   name: string;
-  type: 'MP' | 'BR' | 'Mixed';
+  type: 'MP' | 'BR' | 'Tournament' | 'Scrims';
   date: string;
   time: string;
   description?: string;
@@ -157,8 +158,9 @@ export const Scrims: React.FC = () => {
   const getTypeIcon = (type: string) => {
     switch (type) {
       case 'MP': return Target;
-      case 'BR': return Trophy;
-      case 'Mixed': return Zap;
+      case 'BR': return Swords;
+      case 'Tournament': return Trophy;
+      case 'Scrims': return Component;
       default: return Crosshair;
     }
   };
@@ -236,7 +238,8 @@ export const Scrims: React.FC = () => {
             <SelectItem value="all">All Types</SelectItem>
             <SelectItem value="MP">Multiplayer</SelectItem>
             <SelectItem value="BR">Battle Royale</SelectItem>
-            <SelectItem value="Mixed">Mixed</SelectItem>
+            <SelectItem value="Tournament">Tournament</SelectItem>
+            <SelectItem value="Scrims">Scrims</SelectItem>
           </SelectContent>
         </Select>
 

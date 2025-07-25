@@ -1,11 +1,10 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Send, Paperclip, X, Download, File, Video, Image, Users } from 'lucide-react';
+import { Send, Paperclip, X, Download, File, Video, Image, Users, CornerDownLeft, Copy, Trash2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -19,6 +18,8 @@ interface ChatMessage {
   attachment_type?: string;
   attachment_name?: string;
   created_at: string;
+  reply_to_id?: string;
+  reply_to_message?: string;
   profiles: {
     username: string;
     ign: string;
@@ -37,14 +38,46 @@ export const Chat: React.FC = () => {
   const [uploading, setUploading] = useState(false);
   const [showMobileNav, setShowMobileNav] = useState(false);
   const [selectedChannel, setSelectedChannel] = useState('general');
-  
+  const [contextMenu, setContextMenu] = useState<{
+    x: number;
+    y: number;
+    message: ChatMessage | null;
+  }>({ x: 0, y: 0, message: null });
+  const [replyTo, setReplyTo] = useState<ChatMessage | null>(null);
+
   const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const contextMenuRef = useRef<HTMLDivElement>(null);
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const messageRefs = useRef<Map<string, HTMLDivElement>>(new Map());
 
   // Mark chat as seen when component mounts
   useEffect(() => {
     markChatAsSeen();
   }, [markChatAsSeen]);
+
+  // Handle clicks outside context menu
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (contextMenuRef.current && !contextMenuRef.current.contains(event.target as Node)) {
+        setContextMenu({ x: 0, y: 0, message: null });
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Close context menu on scroll
+  useEffect(() => {
+    const scrollArea = scrollAreaRef.current?.viewportElement;
+    const handleScroll = () => {
+      setContextMenu({ x: 0, y: 0, message: null });
+    };
+
+    scrollArea?.addEventListener('scroll', handleScroll);
+    return () => scrollArea?.removeEventListener('scroll', handleScroll);
+  }, []);
 
   // Fetch chat messages
   const { data: messages = [], isLoading } = useQuery({
@@ -70,11 +103,12 @@ export const Chat: React.FC = () => {
 
   // Send message mutation
   const sendMessageMutation = useMutation({
-    mutationFn: async ({ message, attachmentUrl, attachmentType, attachmentName }: {
+    mutationFn: async ({ message, attachmentUrl, attachmentType, attachmentName, replyToId }: {
       message: string;
       attachmentUrl?: string;
       attachmentType?: string;
       attachmentName?: string;
+      replyToId?: string;
     }) => {
       const { error } = await supabase
         .from('chat_messages')
@@ -85,6 +119,7 @@ export const Chat: React.FC = () => {
           attachment_url: attachmentUrl,
           attachment_type: attachmentType,
           attachment_name: attachmentName,
+          reply_to_id: replyToId,
         }]);
 
       if (error) throw error;
@@ -93,12 +128,39 @@ export const Chat: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ['chat-messages'] });
       setMessage('');
       setSelectedFile(null);
-      // Update last seen timestamp
+      setReplyTo(null);
       markChatAsSeen();
     },
     onError: (error: any) => {
       toast({
         title: "Failed to send message",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Delete message mutation
+  const deleteMessageMutation = useMutation({
+    mutationFn: async (messageId: string) => {
+      const { error } = await supabase
+        .from('chat_messages')
+        .delete()
+        .eq('id', messageId)
+        .eq('user_id', user?.id);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['chat-messages'] });
+      toast({
+        title: "Message deleted",
+        variant: "default",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Failed to delete message",
         description: error.message,
         variant: "destructive",
       });
@@ -128,7 +190,6 @@ export const Chat: React.FC = () => {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    // Check file size (20MB limit)
     if (file.size > 20 * 1024 * 1024) {
       toast({
         title: "File too large",
@@ -138,7 +199,6 @@ export const Chat: React.FC = () => {
       return;
     }
 
-    // Check file type
     const allowedTypes = [
       'image/jpeg', 'image/png', 'image/webp', 'image/gif',
       'video/mp4', 'video/webm',
@@ -177,6 +237,7 @@ export const Chat: React.FC = () => {
         attachmentUrl,
         attachmentType,
         attachmentName,
+        replyToId: replyTo?.id,
       });
     } catch (error: any) {
       toast({
@@ -187,6 +248,102 @@ export const Chat: React.FC = () => {
     } finally {
       setUploading(false);
     }
+  };
+
+  // Handle context menu
+  const handleContextMenu = (event: React.MouseEvent, msg: ChatMessage) => {
+    event.preventDefault();
+    const messageElement = messageRefs.current.get(msg.id);
+    if (!messageElement) return;
+
+    const rect = messageElement.getBoundingClientRect();
+    const scrollArea = scrollAreaRef.current?.viewportElement;
+    const scrollTop = scrollArea?.scrollTop || 0;
+
+    // Calculate position to keep menu within viewport
+    const menuWidth = 160; // Approximate context menu width
+    const menuHeight = msg.user_id === user?.id ? 120 : 80; // Approximate height based on number of options
+    let x = event.pageX;
+    let y = rect.top + window.scrollY - scrollTop + rect.height;
+
+    // Adjust x position if menu would overflow right edge
+    if (x + menuWidth > window.innerWidth) {
+      x = window.innerWidth - menuWidth - 10;
+    }
+    // Adjust y position if menu would overflow bottom edge
+    if (y + menuHeight > window.innerHeight + window.scrollY) {
+      y = rect.top + window.scrollY - scrollTop - menuHeight - 10;
+    }
+
+    // Ensure x and y are not negative
+    x = Math.max(10, x);
+    y = Math.max(10, y);
+
+    setContextMenu({ x, y, message: msg });
+  };
+
+  // Handle long press for mobile
+  const handleTouchStart = (event: React.TouchEvent, msg: ChatMessage) => {
+    // Prevent scrolling during long press
+    const scrollArea = scrollAreaRef.current?.viewportElement;
+    const preventScroll = (e: Event) => e.preventDefault();
+    scrollArea?.addEventListener('touchmove', preventScroll, { passive: false });
+
+    const timeout = setTimeout(() => {
+      const messageElement = messageRefs.current.get(msg.id);
+      if (!messageElement) return;
+
+      const rect = messageElement.getBoundingClientRect();
+      const scrollTop = scrollArea?.scrollTop || 0;
+
+      const menuWidth = 160;
+      const menuHeight = msg.user_id === user?.id ? 120 : 80;
+      let x = event.touches[0].pageX;
+      let y = rect.top + window.scrollY - scrollTop + rect.height;
+
+      // Adjust for viewport boundaries
+      if (x + menuWidth > window.innerWidth) {
+        x = window.innerWidth - menuWidth - 10;
+      }
+      if (y + menuHeight > window.innerHeight + window.scrollY) {
+        y = rect.top + window.scrollY - scrollTop - menuHeight - 10;
+      }
+
+      x = Math.max(10, x);
+      y = Math.max(10, y);
+
+      setContextMenu({ x, y, message: msg });
+      scrollArea?.removeEventListener('touchmove', preventScroll);
+    }, 500);
+
+    return () => {
+      clearTimeout(timeout);
+      scrollArea?.removeEventListener('touchmove', preventScroll);
+    };
+  };
+
+  // Handle copy message
+  const handleCopyMessage = (text: string) => {
+    navigator.clipboard.writeText(text);
+    toast({
+      title: "Message copied",
+      variant: "default",
+    });
+    setContextMenu({ x: 0, y: 0, message: null });
+  };
+
+  // Handle reply
+  const handleReply = (msg: ChatMessage) => {
+    setReplyTo(msg);
+    setContextMenu({ x: 0, y: 0, message: null });
+    const input = document.querySelector('input[placeholder="Type your message..."]') as HTMLInputElement;
+    input?.focus();
+  };
+
+  // Handle delete message
+  const handleDeleteMessage = (messageId: string) => {
+    deleteMessageMutation.mutate(messageId);
+    setContextMenu({ x: 0, y: 0, message: null });
   };
 
   // Auto-scroll to bottom
@@ -224,23 +381,23 @@ export const Chat: React.FC = () => {
       <div className="mt-2">
         {isImage && (
           <div className="max-w-xs max-h-xs">
-          <img 
-            src={msg.attachment_url} 
-            alt={msg.attachment_name}
-            className="w-full h-full object-cover rounded-lg cursor-pointer hover:opacity-80"
-            onClick={() => window.open(msg.attachment_url, '_blank')}
+            <img 
+              src={msg.attachment_url} 
+              alt={msg.attachment_name}
+              className="w-full h-full object-cover rounded-lg cursor-pointer hover:opacity-80"
+              onClick={() => window.open(msg.attachment_url, '_blank')}
             />
-            </div>
+          </div>
         )}
         
         {isVideo && (
           <div className="max-w-xs max-h-xs">
-          <video 
-            src={msg.attachment_url} 
-            controls 
-            className="w-full h-full rounded-lg"
+            <video 
+              src={msg.attachment_url} 
+              controls 
+              className="w-full h-full rounded-lg"
             />
-            </div>
+          </div>
         )}
         
         {(isPdf || (!isImage && !isVideo)) && (
@@ -272,7 +429,7 @@ export const Chat: React.FC = () => {
       />
 
       {/* Mobile navigation toggle */}
-      <div className="mb-4">
+      <div className="mb-4 px-4 sm:px-6">
         <Button
           variant="outline"
           size="sm"
@@ -286,7 +443,7 @@ export const Chat: React.FC = () => {
 
       {/* Mobile channel list */}
       {showMobileNav && (
-        <Card className=" mb-4 bg-card/50 border-border/30">
+        <Card className="mb-4 mx-4 sm:mx-6 bg-card/50 border-border/30">
           <CardContent className="p-4">
             <div className="space-y-2">
               <Button onClick={() => setSelectedChannel('general')} variant="ghost" className={`w-full justify-start ${selectedChannel === 'general' ? "text-primary" : "text-white"}`}>
@@ -302,16 +459,14 @@ export const Chat: React.FC = () => {
         </Card>
       )}
 
-      <Card className="flex-1 bg-card/50 border-border/30 backdrop-blur-sm relative z-10">
-        <CardHeader className="border-b border-border/30">
-          <CardTitle className="flex flex-col md:flex-row items-start md:items-center justify-between">
-            {selectedChannel == 'admin' ? (
-            <span className="text-primary"># Admin Chat</span>
-            )
-            : (
+      <Card className="flex-1 mx-4 sm:mx-6 bg-card/50 border-border/30 backdrop-blur-sm relative z-10">
+        <CardHeader className="border-b border-border/30 px-4 sm:px-6">
+          <CardTitle className="flex flex-col sm:flex-row items-start sm:items-center justify-between">
+            {selectedChannel === 'admin' ? (
+              <span className="text-primary"># Admin Chat</span>
+            ) : (
               <span className="text-primary"># General Chat</span>
-            )
-}
+            )}
             <div className="text-sm text-muted-foreground">
               {messages?.length || 0} message{messages?.length === 1 ? '' : "s"}
             </div>
@@ -320,7 +475,7 @@ export const Chat: React.FC = () => {
         
         <CardContent className="flex-1 p-0 flex flex-col">
           {/* Messages */}
-          <ScrollArea className="flex-1 p-4">
+          <ScrollArea className="flex-1 p-4 sm:p-6" ref={scrollAreaRef}>
             {isLoading ? (
               <div className="flex items-center justify-center py-8">
                 <div className="text-muted-foreground">Loading messages...</div>
@@ -334,10 +489,13 @@ export const Chat: React.FC = () => {
                 {messages.map((msg) => (
                   <div
                     key={msg.id}
+                    ref={(el) => el && messageRefs.current.set(msg.id, el)}
                     className={`flex ${msg.user_id === user?.id ? 'justify-end' : 'justify-start'}`}
+                    onContextMenu={(e) => handleContextMenu(e, msg)}
+                    onTouchStart={(e) => handleTouchStart(e, msg)}
                   >
                     <div
-                      className={`max-w-[70%] p-3 rounded-lg ${
+                      className={`max-w-[85%] sm:max-w-[70%] p-3 rounded-lg ${
                         msg.user_id === user?.id
                           ? 'bg-primary text-white ml-auto'
                           : 'bg-muted'
@@ -351,6 +509,17 @@ export const Chat: React.FC = () => {
                               ADMIN
                             </span>
                           )}
+                        </div>
+                      )}
+                      
+                      {msg.reply_to_id && (
+                        <div className="mb-2 p-2 bg-background/20 rounded text-xs">
+                          <div className="font-medium">
+                            Replying to {messages.find(m => m.id === msg.reply_to_id)?.profiles.ign}
+                          </div>
+                          <div className="truncate">
+                            {messages.find(m => m.id === msg.reply_to_id)?.message}
+                          </div>
                         </div>
                       )}
                       
@@ -373,17 +542,80 @@ export const Chat: React.FC = () => {
             )}
           </ScrollArea>
 
+          {/* Context menu */}
+          {contextMenu.message && (
+            <div
+              ref={contextMenuRef}
+              className="fixed bg-card border border-border rounded-lg shadow-lg z-50 w-40 sm:w-48"
+              style={{ top: contextMenu.y, left: contextMenu.x }}
+            >
+              <div className="flex flex-col p-1">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="justify-start text-sm hover:bg-accent"
+                  onClick={() => handleReply(contextMenu.message!)}
+                >
+                  <CornerDownLeft className="w-4 h-4 mr-2" />
+                  Reply
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="justify-start text-sm hover:bg-accent"
+                  onClick={() => handleCopyMessage(contextMenu.message!.message)}
+                >
+                  <Copy className="w-4 h-4 mr-2" />
+                  Copy
+                </Button>
+                {contextMenu.message.user_id === user?.id && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="justify-start text-sm text-destructive hover:bg-destructive/10"
+                    onClick={() => handleDeleteMessage(contextMenu.message!.id)}
+                  >
+                    <Trash2 className="w-4 h-4 mr-2" />
+                    Delete
+                  </Button>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Reply preview */}
+          {replyTo && (
+            <div className="p-4 border-t border-border/30">
+              <div className="flex items-center justify-between p-2 bg-muted rounded-lg max-w-full">
+                <div className="flex items-center space-x-2 flex-1 min-w-0">
+                  <CornerDownLeft className="w-4 h-4 flex-shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-medium truncate">Replying to {replyTo.profiles.ign}</div>
+                    <div className="text-xs truncate">{replyTo.message}</div>
+                  </div>
+                </div>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => setReplyTo(null)}
+                >
+                  <X className="w-4 h-4" />
+                </Button>
+              </div>
+            </div>
+          )}
+
           {/* File preview */}
           {selectedFile && (
             <div className="p-4 border-t border-border/30">
-              <div className="flex items-center justify-between p-2 bg-muted rounded-lg">
-                <div className="flex items-center space-x-2">
+              <div className="flex items-center justify-between p-2 bg-muted rounded-lg max-w-full">
+                <div className="flex items-center space-x-2 flex-1 min-w-0">
                   {selectedFile.type.startsWith('image/') ? (
-                    <Image className="w-4 h-4" />
+                    <Image className="w-4 h-4 flex-shrink-0" />
                   ) : selectedFile.type.startsWith('video/') ? (
-                    <Video className="w-4 h-4" />
+                    <Video className="w-4 h-4 flex-shrink-0" />
                   ) : (
-                    <File className="w-4 h-4" />
+                    <File className="w-4 h-4 flex-shrink-0" />
                   )}
                   <span className="text-sm truncate">{selectedFile.name}</span>
                 </div>

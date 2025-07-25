@@ -280,7 +280,8 @@ export const Loadouts: React.FC = () => {
                   <SelectContent>
                     <SelectItem value="MP">Multiplayer</SelectItem>
                     <SelectItem value="BR">Battle Royale</SelectItem>
-                    <SelectItem value="Mixed">Mixed</SelectItem>
+                    <SelectItem value="Tournament">Tournament</SelectItem>
+                    <SelectItem value="Scrims">Scrims</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -338,7 +339,8 @@ export const Loadouts: React.FC = () => {
             <SelectItem value="all">All Modes</SelectItem>
             <SelectItem value="MP">Multiplayer</SelectItem>
             <SelectItem value="BR">Battle Royale</SelectItem>
-            <SelectItem value="Mixed">Mixed</SelectItem>
+            <SelectItem value="Tournament">Tournament</SelectItem>
+            <SelectItem value="Scrims">Scrims</SelectItem>
           </SelectContent>
         </Select>
       </div>

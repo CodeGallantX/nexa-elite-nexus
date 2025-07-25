@@ -23,7 +23,7 @@ import {
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
-type AttendanceMode = 'MP' | 'BR' | 'Mixed';
+type AttendanceMode = 'MP' | 'BR' | 'Tournament' | 'Scrims';
 
 export const AdminAttendance: React.FC = () => {
   const { toast } = useToast();
@@ -191,7 +191,7 @@ export const AdminAttendance: React.FC = () => {
           <div className="flex flex-col md:flex-row gap-4 items-center">
             <Label className="font-rajdhani text-sm font-medium">Attendance Mode:</Label>
             <div className="flex rounded-lg bg-background/50 p-1">
-              {(['MP', 'BR', 'Mixed'] as AttendanceMode[]).map((mode) => (
+              {(['MP', 'BR', 'Tournament', "Scrims"] as AttendanceMode[]).map((mode) => (
                 <Button
                   key={mode}
                   variant={attendanceMode === mode ? "default" : "ghost"}

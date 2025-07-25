@@ -274,7 +274,8 @@ export const Settings: React.FC = () => {
                 <SelectContent>
                   <SelectItem value="MP">Multiplayer</SelectItem>
                   <SelectItem value="BR">Battle Royale</SelectItem>
-                  <SelectItem value="Mixed">Both</SelectItem>
+                  <SelectItem value="Tournament">Tournament</SelectItem>
+                  <SelectItem value="Scrims">Scrims</SelectItem>
                 </SelectContent>
               </Select>
             </div>
