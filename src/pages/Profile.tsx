@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { 
@@ -57,6 +58,86 @@ interface ProfileData {
   player_uid?: string;
 }
 
+// Device and brand data (from Onboarding.tsx)
+const deviceData = {
+  iPhone: [
+    "iPhone X",
+    "iPhone XR",
+    "iPhone XS",
+    "iPhone XS Max",
+    "iPhone 11",
+    "iPhone 11 Pro",
+    "iPhone 11 Pro Max",
+    "iPhone SE (2nd generation)",
+    "iPhone 12 mini",
+    "iPhone 12",
+    "iPhone 12 Pro",
+    "iPhone 12 Pro Max",
+    "iPhone 13 mini",
+    "iPhone 13",
+    "iPhone 13 Pro",
+    "iPhone 13 Pro Max",
+    "iPhone SE (3rd generation)",
+    "iPhone 14",
+    "iPhone 14 Plus",
+    "iPhone 14 Pro",
+    "iPhone 14 Pro Max",
+    "iPhone 15",
+    "iPhone 15 Plus",
+    "iPhone 15 Pro",
+    "iPhone 15 Pro Max",
+    "iPhone 16",
+    "iPhone 16 Plus",
+    "iPhone 16 Pro",
+    "iPhone 16 Pro Max",
+    "iPhone 17",
+    "iPhone 17 Plus",
+    "iPhone 17 Pro",
+    "iPhone 17 Pro Max"
+  ],
+  Android: ['Samsung', 'Xiaomi', 'Infinix', 'Redmi', 'Itel', 'Tecno', 'Nokia', 'OnePlus', 'Huawei', 'Oppo', 'Vivo', 'Realme', 'Honor', 'Nothing'],
+  iPad: [
+    "iPad (5th generation)",
+    "iPad (6th generation)",
+    "iPad (7th generation)",
+    "iPad (8th generation)",
+    "iPad (9th generation)",
+    "iPad (10th generation)",
+    "iPad (11th generation)",
+    "iPad mini (5th generation)",
+    "iPad mini (6th generation)",
+    "iPad mini (7th generation)",
+    "iPad Air (3rd generation)",
+    "iPad Air (4th generation)",
+    "iPad Air (5th generation)",
+    "iPad Air (6th generation)",
+    "iPad Pro 10.5-inch",
+    "iPad Pro 12.9-inch (2nd generation)",
+    "iPad Pro 11-inch (1st generation)",
+    "iPad Pro 12.9-inch (3rd generation)",
+    "iPad Pro 11-inch (2nd generation)",
+    "iPad Pro 12.9-inch (4th generation)",
+    "iPad Pro 11-inch (3rd generation)",
+    "iPad Pro 12.9-inch (5th generation)",
+    "iPad Pro 11-inch (4th generation)",
+    "iPad Pro 12.9-inch (6th generation)",
+    "iPad Pro 11-inch (M4, 5th generation)",
+    "iPad Pro 13-inch (M4, 7th generation)"
+  ]
+};
+
+// Game modes
+const gameModes = ['BR', 'MP', 'Both'];
+
+// Social media platforms
+const socialPlatforms = ['Instagram', 'YouTube', 'Twitter', 'Discord', 'TikTok'];
+
+// Bank options (from Onboarding.tsx)
+const bankOptions = [
+  'Opay', 'Palmpay', 'Moniepoint', 'Kuda', 'Access Bank', 'GTBank',
+  'First Bank', 'UBA', 'Zenith Bank', 'Fidelity Bank'
+];
+
 export const Profile: React.FC = () => {
   const { profile, updateProfile, resetPassword, user } = useAuth();
   const { toast } = useToast();
@@ -69,7 +150,8 @@ export const Profile: React.FC = () => {
     ign: '',
     tiktok_handle: '',
     preferred_mode: '',
-    device: '',
+    deviceType: '',
+    deviceName: '',
     player_uid: '',
     social_links: {} as SocialLinks,
     banking_info: {} as BankingInfo
@@ -83,12 +165,23 @@ export const Profile: React.FC = () => {
   useEffect(() => {
     setIsClient(true);
     if (profile) {
+      // Parse device into deviceType and deviceName
+      let deviceType = '';
+      let deviceName = profile.device || '';
+      if (deviceData.iPhone.includes(deviceName)) {
+        deviceType = 'iPhone';
+      } else if (deviceData.Android.includes(deviceName)) {
+        deviceType = 'Android';
+      } else if (deviceData.iPad.includes(deviceName)) {
+        deviceType = 'iPad';
+      }
       setFormData({
         username: profile.username || '',
         ign: profile.ign || '',
         tiktok_handle: profile.tiktok_handle || '',
         preferred_mode: profile.preferred_mode || '',
-        device: profile.device || '',
+        deviceType,
+        deviceName,
         player_uid: profile.player_uid || '',
         social_links: profile.social_links || {},
         banking_info: profile.banking_info || {}
@@ -100,7 +193,8 @@ export const Profile: React.FC = () => {
     if (profile) {
       try {
         const updateData = {
-          ...formData
+          ...formData,
+          device: formData.deviceName || formData.deviceType // Combine deviceType and deviceName
         };
         await updateProfile(updateData);
         setEditing(false);
@@ -283,6 +377,17 @@ export const Profile: React.FC = () => {
     }));
   };
 
+  const getDeviceOptions = () => {
+    if (formData.deviceType === 'iPhone') {
+      return deviceData.iPhone;
+    } else if (formData.deviceType === 'Android') {
+      return deviceData.Android;
+    } else if (formData.deviceType === 'iPad') {
+      return deviceData.iPad;
+    }
+    return [];
+  };
+
   // Avoid rendering during SSR until client-side hydration
   if (!isClient || !profile) {
     return (
@@ -349,15 +454,15 @@ export const Profile: React.FC = () => {
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
-                <div className="p-3 bg-white/5 rounded-lg">
+                <div className="p-3 bg-gray-900 rounded-lg">
                   <div className="text-2xl font-bold text-[#FF1F44]">{profile.kills?.toLocaleString() || 0}</div>
                   <div className="text-sm text-gray-400">Total Kills</div>
                 </div>
-                <div className="p-3 bg-white/5 rounded-lg">
+                <div className="p-3 bg-gray-900 rounded-lg">
                   <div className="text-2xl font-bold text-[#FF1F44]">{profile.attendance || 0}%</div>
                   <div className="text-sm text-gray-400">Attendance</div>
                 </div>
-                <div className="p-3 bg-white/5 rounded-lg">
+                <div className="p-3 bg-gray-900 rounded-lg">
                   <div className="text-2xl font-bold text-[#FF1F44]">
                     {profile.date_joined ? 
                       Math.floor((Date.now() - new Date(profile.date_joined).getTime()) / (1000 * 60 * 60 * 24)) 
@@ -390,7 +495,7 @@ export const Profile: React.FC = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Game Information */}
-        <Card className="bg-white/5 border-white/10 backdrop-blur-sm">
+        <Card className="bg-gray-900 border-white/10 backdrop-blur-sm">
           <CardHeader>
             <CardTitle className="text-white flex items-center">
               <Target className="w-5 h-5 mr-2 text-[#FF1F44]" />
@@ -405,7 +510,7 @@ export const Profile: React.FC = () => {
                   <Input
                     value={formData.ign}
                     onChange={(e) => setFormData(prev => ({ ...prev, ign: e.target.value }))}
-                    className="mt-1 bg-white/5 border-white/20 text-white"
+                    className="mt-1 bg-gray-900 border-white/20 text-white"
                     placeholder="Your in-game name"
                   />
                 ) : (
@@ -418,7 +523,7 @@ export const Profile: React.FC = () => {
                   <Input
                     value={formData.username}
                     onChange={(e) => setFormData(prev => ({ ...prev, username: e.target.value }))}
-                    className="mt-1 bg-white/5 border-white/20 text-white"
+                    className="mt-1 bg-gray-900 border-white/20 text-white"
                     placeholder="Your username"
                   />
                 ) : (
@@ -438,7 +543,7 @@ export const Profile: React.FC = () => {
                   <Input
                     value={formData.player_uid}
                     onChange={(e) => setFormData(prev => ({ ...prev, player_uid: e.target.value }))}
-                    className="mt-1 bg-white/5 border-white/20 text-white"
+                    className="mt-1 bg-gray-900 border-white/20 text-white"
                     placeholder="Player UID"
                   />
                 ) : (
@@ -449,41 +554,81 @@ export const Profile: React.FC = () => {
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label className="text-gray-300">Gaming Device</Label>
+                <Label className="text-gray-300">Device Type</Label>
                 {editing ? (
-                  <Input
-                    value={formData.device}
-                    onChange={(e) => setFormData(prev => ({ ...prev, device: e.target.value }))}
-                    className="mt-1 bg-white/5 border-white/20 text-white"
-                    placeholder="e.g., iPhone, Android"
-                  />
+                  <Select
+                    value={formData.deviceType}
+                    onValueChange={(value) => setFormData(prev => ({ ...prev, deviceType: value, deviceName: '' }))}
+                  >
+                    <SelectTrigger className="mt-1 bg-gray-900 border-white/20 text-white">
+                      <SelectValue placeholder="Select device type" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-gray-900 border-white/20 text-white">
+                      <SelectItem value="iPhone">iPhone</SelectItem>
+                      <SelectItem value="Android">Android</SelectItem>
+                      <SelectItem value="iPad">iPad</SelectItem>
+                    </SelectContent>
+                  </Select>
                 ) : (
                   <div className="flex items-center mt-1">
                     <Smartphone className="w-4 h-4 mr-2 text-[#FF1F44]" />
-                    <span className="text-white">{profile.device || 'Not specified'}</span>
+                    <span className="text-white">{formData.deviceType || 'Not specified'}</span>
                   </div>
                 )}
               </div>
               <div>
-                <Label className="text-gray-300">Game Mode</Label>
+                <Label className="text-gray-300">Device Name</Label>
                 {editing ? (
-                  <Input
-                    value={formData.preferred_mode}
-                    onChange={(e) => setFormData(prev => ({ ...prev, preferred_mode: e.target.value }))}
-                    className="mt-1 bg-white/5 border-white/20 text-white"
-                    placeholder="e.g., Battle Royale, MP"
-                  />
+                  <Select
+                    value={formData.deviceName}
+                    onValueChange={(value) => setFormData(prev => ({ ...prev, deviceName: value }))}
+                    disabled={!formData.deviceType}
+                  >
+                    <SelectTrigger className="mt-1 bg-gray-900 border-white/20 text-white">
+                      <SelectValue placeholder={formData.deviceType ? "Select device name" : "Select device type first"} />
+                    </SelectTrigger>
+                    <SelectContent className="bg-gray-900 border-white/20 text-white">
+                      {getDeviceOptions().map(option => (
+                        <SelectItem key={option} value={option}>{option}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 ) : (
-                  <div className="text-white font-medium mt-1">{profile.preferred_mode || 'Not specified'}</div>
+                  <div className="text-white font-medium mt-1">{formData.deviceName || 'Not specified'}</div>
                 )}
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div>
+                <Label className="text-gray-300">Game Mode</Label>
+                {editing ? (
+                  <Select
+                    value={formData.preferred_mode}
+                    onValueChange={(value) => setFormData(prev => ({ ...prev, preferred_mode: value }))}
+                  >
+                    <SelectTrigger className="mt-1 bg-gray-900 border-white/20 text-white">
+                      <SelectValue placeholder="Select game mode" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-gray-900 border-white/20 text-white">
+                      {gameModes.map(mode => (
+                        <SelectItem key={mode} value={mode}>
+                          {mode === 'BR' ? 'Battle Royale' : mode === 'MP' ? 'Multiplayer' : 'Both'}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <div className="text-white font-medium mt-1">{profile.preferred_mode || 'Not specified'}</div>
+                )}
+              </div>
+              <div>
                 <Label className="text-gray-300">Tier</Label>
                 <div className="text-white font-medium mt-1">{profile.tier || 'Not specified'}</div>
               </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label className="text-gray-300">Grade</Label>
                 <div className="text-white font-medium mt-1">{profile.grade || 'Not specified'}</div>
@@ -493,7 +638,7 @@ export const Profile: React.FC = () => {
         </Card>
 
         {/* Account Details */}
-        <Card className="bg-white/5 border-white/10 backdrop-blur-sm">
+        <Card className="bg-gray-900 border-white/10 backdrop-blur-sm">
           <CardHeader>
             <CardTitle className="text-white flex items-center">
               <User className="w-5 h-5 mr-2 text-[#FF1F44]" />
@@ -554,7 +699,7 @@ export const Profile: React.FC = () => {
         </Card>
 
         {/* Social Media */}
-        <Card className="bg-white/5 border-white/10 backdrop-blur-sm">
+        <Card className="bg-gray-900 border-white/10 backdrop-blur-sm">
           <CardHeader>
             <CardTitle className="text-white flex items-center">
               <ExternalLink className="w-5 h-5 mr-2 text-[#FF1F44]" />
@@ -569,7 +714,7 @@ export const Profile: React.FC = () => {
                   id="tiktok"
                   value={formData.tiktok_handle}
                   onChange={(e) => setFormData(prev => ({ ...prev, tiktok_handle: e.target.value }))}
-                  className="mt-1 bg-white/5 border-white/20 text-white"
+                  className="mt-1 bg-gray-900 border-white/20 text-white"
                   placeholder="@username"
                 />
               ) : (
@@ -604,7 +749,7 @@ export const Profile: React.FC = () => {
                             ...prev,
                             social_links: { ...prev.social_links, [platform]: e.target.value }
                           }))}
-                          className="ml-2 bg-white/5 border-white/20 text-white w-64"
+                          className="ml-2 bg-gray-900 border-white/20 text-white w-64"
                         />
                       ) : (
                         <span className="ml-2 text-white font-medium">
@@ -638,17 +783,24 @@ export const Profile: React.FC = () => {
 
             {editing && (
               <div className="pt-4 border-t border-white/10 flex items-center space-x-2">
-                <Input
-                  placeholder="Platform (e.g., Instagram)"
+                <Select
                   value={newSocialPlatform}
-                  onChange={(e) => setNewSocialPlatform(e.target.value)}
-                  className="bg-white/5 border-white/20 text-white"
-                />
+                  onValueChange={setNewSocialPlatform}
+                >
+                  <SelectTrigger className="bg-gray-900 border-white/20 text-white">
+                    <SelectValue placeholder="Select platform" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-gray-900 border-white/20 text-white">
+                    {socialPlatforms.map(platform => (
+                      <SelectItem key={platform} value={platform}>{platform}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
                 <Input
                   placeholder="Handle (e.g., @username)"
                   value={newSocialHandle}
                   onChange={(e) => setNewSocialHandle(e.target.value)}
-                  className="bg-white/5 border-white/20 text-white"
+                  className="bg-gray-900 border-white/20 text-white"
                 />
                 <Button
                   onClick={addSocialLink}
@@ -663,7 +815,7 @@ export const Profile: React.FC = () => {
         </Card>
 
         {/* Banking Information */}
-        <Card className="bg-white/5 border-white/10 backdrop-blur-sm">
+        <Card className="bg-gray-900 border-white/10 backdrop-blur-sm">
           <CardHeader>
             <CardTitle className="text-white flex items-center">
               <Trophy className="w-5 h-5 mr-2 text-[#FF1F44]" />
@@ -684,7 +836,7 @@ export const Profile: React.FC = () => {
                             ...prev,
                             banking_info: { ...prev.banking_info, [key]: e.target.value }
                           }))}
-                          className="bg-white/5 border-white/20 text-white w-64"
+                          className="bg-gray-900 border-white/20 text-white w-64"
                         />
                       ) : (
                         <span className="text-white font-medium">{value}</span>
@@ -707,18 +859,42 @@ export const Profile: React.FC = () => {
 
             {editing && (
               <div className="pt-4 border-t border-white/10 flex items-center space-x-2">
-                <Input
-                  placeholder="Field (e.g., Bank Name)"
+                <Select
                   value={newBankingKey}
-                  onChange={(e) => setNewBankingKey(e.target.value)}
-                  className="bg-white/5 border-white/20 text-white"
-                />
-                <Input
-                  placeholder="Value"
-                  value={newBankingValue}
-                  onChange={(e) => setNewBankingValue(e.target.value)}
-                  className="bg-white/5 border-white/20 text-white"
-                />
+                  onValueChange={(value) => setNewBankingKey(value)}
+                >
+                  <SelectTrigger className="bg-gray-900 border-white/20 text-white">
+                    <SelectValue placeholder="Select bank field" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-gray-900 border-white/20 text-white">
+                    <SelectItem value="bank_name">Bank Name</SelectItem>
+                    <SelectItem value="account_name">Account Name</SelectItem>
+                    <SelectItem value="account_number">Account Number</SelectItem>
+                    <SelectItem value="real_name">Real Name</SelectItem>
+                  </SelectContent>
+                </Select>
+                {newBankingKey === 'bank_name' ? (
+                  <Select
+                    value={newBankingValue}
+                    onValueChange={(value) => setNewBankingValue(value)}
+                  >
+                    <SelectTrigger className="bg-gray-900 border-white/20 text-white">
+                      <SelectValue placeholder="Select bank" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-gray-900 border-white/20 text-white">
+                      {bankOptions.map(bank => (
+                        <SelectItem key={bank} value={bank}>{bank}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <Input
+                    placeholder="Value"
+                    value={newBankingValue}
+                    onChange={(e) => setNewBankingValue(e.target.value)}
+                    className="bg-gray-900 border-white/20 text-white"
+                  />
+                )}
                 <Button
                   onClick={addBankingInfo}
                   className="bg-[#FF1F44] hover:bg-red-600 text-white"
