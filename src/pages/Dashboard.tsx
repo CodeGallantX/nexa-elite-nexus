@@ -73,13 +73,13 @@ export const Dashboard: React.FC = () => {
 
   const getGradeColor = (grade: string) => {
     const colors = {
-      'S': 'text-yellow-400',
-      'A': 'text-green-400',
-      'B': 'text-blue-400',
-      'C': 'text-orange-400',
-      'D': 'text-red-400'
+      'Legendary': 'text-yellow-400',
+      'Veteran': 'text-green-400',
+      'Pro': 'text-blue-400',
+      'Elite': 'text-orange-400',
+      'Rookie': 'text-red-400'
     };
-    return colors[grade as keyof typeof colors] || 'text-gray-400';
+    return colors[grade as keyof typeof colors] || 'text-red-400';
   };
 
   const featuredAnnouncement = announcements[0];
@@ -95,12 +95,20 @@ export const Dashboard: React.FC = () => {
           <p className="text-gray-400">Your tactical command center awaits</p>
         </div>
         <div className="flex items-center space-x-4">
-          <div className={`px-4 py-2 rounded-lg bg-black/30 border ${getGradeColor(profile?.grade || 'D')} border-current/30`}>
+          <div className={`px-4 py-2 rounded-lg bg-black/30 border ${getGradeColor(profile?.grade || 'Rookie')} border-current/30`}>
             <div className="text-center">
-              <div className={`text-2xl font-bold ${getGradeColor(profile?.grade || 'D')}`}>
+              <div className={`text-2xl font-bold ${getGradeColor(profile?.grade || 'Rookie')}`}>
                 {profile?.grade}
               </div>
               <div className="text-xs text-gray-400">GRADE</div>
+            </div>
+          </div>
+          <div className="px-4 py-2 rounded-lg bg-black/30 border border-blue-400/30">
+            <div className="text-center">
+              <div className="text-2xl font-bold text-blue-400">
+                {profile?.tier}
+              </div>
+              <div className="text-xs text-gray-400">TIER</div>
             </div>
           </div>
         </div>

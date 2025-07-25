@@ -35,7 +35,7 @@ export const AdminStats: React.FC = () => {
   }));
 
   const tierDistribution = playerStats?.reduce((acc, player) => {
-    const tier = player.tier || 'Rookie';
+    const tier = `Tier ${player.tier || '4'}`;
     acc[tier] = (acc[tier] || 0) + 1;
     return acc;
   }, {} as Record<string, number>) || {};
@@ -218,14 +218,13 @@ export const AdminStats: React.FC = () => {
                   </TableCell>
                   <TableCell>
                     <Badge className={
-                      player.tier === 'Legendary' ? 'bg-yellow-100 text-yellow-800' :
-                      player.tier === 'Veteran' ? 'bg-emerald-100 text-emerald-800' :
-                      player.tier === 'Pro' ? 'bg-blue-100 text-blue-800' :
-                      player.tier === 'Elite' ? 'bg-amber-100 text-amber-800' :
-                      player.tier === 'Rookie' ? 'bg-gray-100 text-gray-800' :
+                      player.tier === '1' ? 'bg-yellow-100 text-yellow-800' :
+                      player.tier === '2' ? 'bg-emerald-100 text-emerald-800' :
+                      player.tier === '3' ? 'bg-blue-100 text-blue-800' :
+                      player.tier === '4' ? 'bg-amber-100 text-amber-800' :
                       'bg-gray-100 text-gray-800'
                     }>
-                      {player.tier || 'Rookie'}
+                      Tier {player.tier || '4'}
                     </Badge>
                   </TableCell>
                   <TableCell className="text-white font-medium">{player.totalEventKills || 0}</TableCell>
@@ -234,12 +233,13 @@ export const AdminStats: React.FC = () => {
                   <TableCell className="text-white">{player.attendance || 0}%</TableCell>
                   <TableCell>
                     <Badge className={
-                      player.grade === 'A' ? 'bg-green-100 text-green-800' :
-                      player.grade === 'B' ? 'bg-blue-100 text-blue-800' :
-                      player.grade === 'C' ? 'bg-yellow-100 text-yellow-800' :
+                      player.grade === 'Legendary' ? 'bg-yellow-100 text-yellow-800' :
+                      player.grade === 'Veteran' ? 'bg-green-100 text-green-800' :
+                      player.grade === 'Pro' ? 'bg-blue-100 text-blue-800' :
+                      player.grade === 'Elite' ? 'bg-orange-100 text-orange-800' :
                       'bg-red-100 text-red-800'
                     }>
-                      {player.grade || 'D'}
+                      {player.grade || 'Rookie'}
                     </Badge>
                   </TableCell>
                 </TableRow>

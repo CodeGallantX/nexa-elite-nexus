@@ -51,13 +51,22 @@ export const AdminPlayers: React.FC = () => {
     }
   };
 
+  const getGradeColor = (grade: string) => {
+    switch (grade) {
+      case 'Legendary': return 'bg-yellow-100 text-yellow-800';
+      case 'Veteran': return 'bg-green-100 text-green-800';
+      case 'Pro': return 'bg-blue-100 text-blue-800';
+      case 'Elite': return 'bg-orange-100 text-orange-800';
+      case 'Rookie': return 'bg-red-100 text-red-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
+  };
   const getTierColor = (tier: string) => {
-    switch (tier?.toLowerCase()) {
-      case 'legendary': return 'bg-yellow-100 text-yellow-800';
-      case 'veteran': return 'bg-emerald-100 text-emerald-800';
-      case 'pro': return 'bg-blue-100 text-blue-800';
-      case 'elite': return 'bg-amber-100 text-amber-800';
-      case 'rookie': return 'bg-gray-100 text-gray-800';
+    switch (tier) {
+      case '1': return 'bg-yellow-100 text-yellow-800';
+      case '2': return 'bg-emerald-100 text-emerald-800';
+      case '3': return 'bg-blue-100 text-blue-800';
+      case '4': return 'bg-amber-100 text-amber-800';
       default: return 'bg-gray-100 text-gray-800';
     }
   };
@@ -150,8 +159,8 @@ export const AdminPlayers: React.FC = () => {
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    <Badge className={getTierColor(player.tier || 'rookie')}>
-                      {player.tier || 'Rookie'}
+                    <Badge className={getTierColor(player.tier || '4')}>
+                      Tier {player.tier || '4'}
                     </Badge>
                   </TableCell>
                   <TableCell className="text-white">{player.kills || 0}</TableCell>
@@ -201,7 +210,7 @@ export const AdminPlayers: React.FC = () => {
                                 </div>
                                 <div>
                                   <label className="text-gray-300 text-sm">Grade</label>
-                                  <p className="text-white">{selectedPlayer.grade || 'N/A'}</p>
+                                  <p className="text-white">{selectedPlayer.grade || 'Rookie'}</p>
                                 </div>
                               </div>
                             </div>
@@ -274,11 +283,10 @@ export const AdminPlayers: React.FC = () => {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="Legendary">Legendary</SelectItem>
-                      <SelectItem value="Veteran">Veteran</SelectItem>
-                      <SelectItem value="Pro">Pro</SelectItem>
-                      <SelectItem value="Elite">Elite</SelectItem>
-                      <SelectItem value="Rookie">Rookie</SelectItem>
+                      <SelectItem value="1">Tier 1</SelectItem>
+                      <SelectItem value="2">Tier 2</SelectItem>
+                      <SelectItem value="3">Tier 3</SelectItem>
+                      <SelectItem value="4">Tier 4</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -292,11 +300,11 @@ export const AdminPlayers: React.FC = () => {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="A">A</SelectItem>
-                      <SelectItem value="B">B</SelectItem>
-                      <SelectItem value="C">C</SelectItem>
-                      <SelectItem value="D">D</SelectItem>
-                      <SelectItem value="F">F</SelectItem>
+                      <SelectItem value="Legendary">Legendary</SelectItem>
+                      <SelectItem value="Veteran">Veteran</SelectItem>
+                      <SelectItem value="Pro">Pro</SelectItem>
+                      <SelectItem value="Elite">Elite</SelectItem>
+                      <SelectItem value="Rookie">Rookie</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>

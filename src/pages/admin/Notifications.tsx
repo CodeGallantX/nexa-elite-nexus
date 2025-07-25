@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -12,35 +13,28 @@ import {
   Key,
   Clock,
   CheckCircle,
-  AlertCircle,
-  Trash2
+  AlertCircle
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
+
 export const AdminNotifications: React.FC = () => {
   const { toast } = useToast();
-  const [notifications, setNotifications] = useState<any[]>([]);
+  const [notifications, setNotifications] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [filter, setFilter] = useState('all');
 
   useEffect(() => {
     const fetchNotifications = async () => {
       const { data, error } = await supabase
-        .from('notifications')
-        .select("*")
-        .order("created_at", { ascending: false });
+      .from('notifications')
+      .select("*")
+      .order("created_at", {ascending: false});
     
       if (error) {
-        console.error("Error fetching notifications:", error.message);
-        toast({
-          title: "Error",
-          description: "Failed to fetch notifications",
-          variant: "destructive",
-        });
-        return;
-      }
-      
-        const formatted = data?.map((n: any) => ({
+        console.error("Error fetching notifications:", error.message)
+      } else {
+        const formatted = data.map((n) => ({
           id: n.id,
           type: n.type,
           message: n.message,
@@ -49,14 +43,13 @@ export const AdminNotifications: React.FC = () => {
           timestamp: n.created_at,
           status: n.read ? 'read' : 'unread',
           action: n.action_data?.action || '',
-        })) || [];
-      }));
-    setNotifications(formatted);
+        }));
+        setNotifications(formatted);
       }
     };
 
     fetchNotifications();
-  }, []); // Empty dependency array to run once on mount
+  })
 
   const getNotificationIcon = (type: string) => {
     switch (type) {
@@ -72,7 +65,7 @@ export const AdminNotifications: React.FC = () => {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'unread':
-        return 'bg-blue-500/20 text-blue-400 border-blue-400 border-blue-500/50';
+        return 'bg-blue-500/20 text-blue-400 border-blue-500/50';
       case 'read':
         return 'bg-gray-500/20 text-gray-400 border-gray-500/50';
       case 'responded':
@@ -80,11 +73,9 @@ export const AdminNotifications: React.FC = () => {
       default:
         return 'bg-gray-500/20 text-gray-400 border-gray-500/50';
     }
-};
-
   };
 
-const  const handleCopyCode = (code: string, notificationId: string) => {
+  const handleCopyCode = (code: string, notificationId: string) => {
     navigator.clipboard.writeText(code);
     
     // Mark as responded
@@ -111,70 +102,42 @@ const  const handleCopyCode = (code: string, notificationId: string) => {
   };
 
   const markAsRead = async (notificationId: string) => {
-    const { error } = await supabase
-      .from("notifications")
-      .update({ read: true })
-      .eq('id', notificationId);
+    await supabase
+    .from("notifications")
+    .update({ read:true })
+    .eq('id', notificationId)
     
-    if (error) {
-      console.error("Error marking notification as read:", error.message);
-      toast({
-        title: "Error",
-        description: "Failed to mark notification as read",
-        variant: "destructive",
-      });
-      return;
-    }
-
     setNotifications(prev =>
       prev.map(n => n.id === notificationId ? { ...n, status: 'read' } : n)
     );
   };
 
   const markAllAsRead = async () => {
-    const { error } = await supabase
-      .from("notifications")
-      .update({ read: true });
+    const { data, error } = await supabase.auth.getUser()
+    const user = data?.user;
 
-    if (error) {
-      console.error("Error marking all notifications as read:", error.message);
-      toast({
-        title: "Error",
-        description: "Failed to mark all notifications as read",
-        variant: "destructive",
-      });
+    if (error || !user) {
+      console.error("Failed to get user:", error)
       return;
     }
+
+    const  { error:updateError } = await supabase
+      .from("notifications")
+      .update({ read:true })
+      .eq('id', user?.id)
+
+      if (updateError) {
+        console.error("Error performing action:", error)
+        return;
+      }
       
-    setNotifications(prev =>
-      prev.map(n => ({ ...n, status: 'read' }))
-    );
-    toast({
-      title: "All Marked as Read",
-      description: "All notifications have been marked as read",
-    });
-  };
-
-  const clearAllNotifications = async () => {
-    const { error } = await supabase
-      .from("notifications")
-      .delete();
-
-    if (error) {
-      console.error("Error clearing notifications:", error.message);
+      setNotifications(prev =>
+        prev.map(n => ({ ...n, status: 'read' }))
+      );
       toast({
-        title: "Error",
-        description: "Failed to clear notifications",
-        variant: "destructive",
+        title: "All Marked as Read",
+        description: "All notifications have been marked as read",
       });
-      return;
-    }
-
-    setNotifications([]);
-    toast({
-      title: "Notifications Cleared",
-      description: "All notifications have been cleared",
-    });
   };
 
   const filteredNotifications = notifications.filter(notification => {
@@ -220,29 +183,19 @@ const  const handleCopyCode = (code: string, notificationId: string) => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+      <div className="flex flex-col md:flex-row items-start md:items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-foreground font-orbitron mb-2">Notifications</h1>
           <p className="text-muted-foreground font-rajdhani">Manage clan notifications and requests</p>
         </div>
-        <div className="flex gap-2">
-          <Button 
-            onClick={markAllAsRead}
-            variant="outline"
-            className="font-rajdhani"
-          >
-            <CheckCircle className="w-4 h-4 mr-2" />
-            Mark All Read
-          </Button>
-          <Button 
-            onClick={clearAllNotifications}
-            variant="destructive"
-            className="font-rajdhani"
-          >
-            <Trash2 className="w-4 h-4 mr-2" />
-            Clear All
-          </Button>
-        </div>
+        <Button 
+          onClick={markAllAsRead}
+          variant="outline"
+          className="font-rajdhani"
+        >
+          <CheckCircle className="w-4 h-4 mr-2" />
+          Mark All Read
+        </Button>
       </div>
 
       {/* Stats Cards */}
@@ -336,6 +289,9 @@ const  const handleCopyCode = (code: string, notificationId: string) => {
                       <div className="flex-1">
                         <div className="flex items-center space-x-2 mb-1">
                           <p className="text-foreground font-rajdhani">{notification.message}</p>
+                          {/* <Badge className={getStatusColor(notification.status)}>
+                            {notification.status}
+                          </Badge> */}
                         </div>
                         <div className="flex items-center space-x-2 text-sm text-muted-foreground">
                           <Clock className="w-3 h-3" />
@@ -344,7 +300,7 @@ const  const handleCopyCode = (code: string, notificationId: string) => {
                       </div>
                     </div>
                     
-                    <div className="flex flex-col md:flex-row items-center space-y-2 md:space-y-0 md:space-x-2 ml-4">
+                    <div className="flex flex-col md:flex-row items-center spacemd:space-x-2 ml-4">
                       {notification.type === 'access_code_request' && notification.accessCode && (
                         <Button
                           size="sm"
@@ -378,6 +334,7 @@ const  const handleCopyCode = (code: string, notificationId: string) => {
                           Mark Read
                         </Button>
                       )}
+                      
                     </div>
                   </div>
                 </div>
