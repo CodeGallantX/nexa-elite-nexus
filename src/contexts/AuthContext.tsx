@@ -7,7 +7,7 @@ interface UserProfile {
   id: string;
   username: string;
   ign: string;
-  player_uid: string;
+  player_uid?: string;
   role: 'admin' | 'player' | 'moderator';
   avatar_url?: string;
   tiktok_handle?: string;

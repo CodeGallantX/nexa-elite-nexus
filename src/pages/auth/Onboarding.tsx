@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -58,7 +57,7 @@ const deviceData = {
   "iPhone 16 Pro",
   "iPhone 16 Pro Max",
 
-  // 2025 (Speculative, based on Apple’s naming pattern)
+  // 2025 (Speculative, based on Apple's naming pattern)
   "iPhone 17",
   "iPhone 17 Plus",
   "iPhone 17 Pro",
@@ -104,6 +103,9 @@ const classOptions = {
   MP: ['Anchor', 'Support', 'Objective', 'Slayer']
 };
 
+const gradeOptions = ['Legendary', 'Veteran', 'Pro', 'Elite', 'Rookie'];
+const tierOptions = ['1', '2', '3', '4'];
+
 const bankOptions = [
   'Opay', 'Palmpay', 'Moniepoint', 'Kuda', 'Access Bank', 'GTBank', 
   'First Bank', 'UBA', 'Zenith Bank', 'Fidelity Bank'
@@ -125,6 +127,8 @@ export const Onboarding: React.FC = () => {
     mpClass: '',
     bestGun: '',
     favoriteLoadout: '',
+    grade: 'Rookie',
+    tier: '4',
     dateJoined: new Date().toISOString().split('T')[0],
     // Social Media (TikTok compulsory)
     tiktok: '',
@@ -181,6 +185,8 @@ export const Onboarding: React.FC = () => {
         tiktok_handle: formData.tiktok,
         preferred_mode: formData.mode,
         device: formData.deviceType === 'Android' ? formData.androidBrand : formData.androidBrand,
+        grade: formData.grade,
+        tier: formData.tier,
         social_links: {
           tiktok: formData.tiktok,
           youtube: formData.youtube,
@@ -435,6 +441,36 @@ export const Onboarding: React.FC = () => {
                     className="bg-background/50 border-border/50 text-foreground font-rajdhani"
                     placeholder="Assault + SMG"
                   />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="grade" className="text-foreground font-rajdhani">Grade</Label>
+                  <Select value={formData.grade} onValueChange={(value) => handleInputChange('grade', value)}>
+                    <SelectTrigger className="bg-background/50 border-border/50 text-foreground font-rajdhani">
+                      <SelectValue placeholder="Select grade" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {gradeOptions.map(grade => (
+                        <SelectItem key={grade} value={grade}>{grade}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label htmlFor="tier" className="text-foreground font-rajdhani">Tier</Label>
+                  <Select value={formData.tier} onValueChange={(value) => handleInputChange('tier', value)}>
+                    <SelectTrigger className="bg-background/50 border-border/50 text-foreground font-rajdhani">
+                      <SelectValue placeholder="Select tier" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {tierOptions.map(tier => (
+                        <SelectItem key={tier} value={tier}>Tier {tier}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
             </div>
