@@ -578,7 +578,7 @@ export const Chat: React.FC = () => {
 
   return (
     <div className="flex flex-col h-full relative">
-      <style>
+      {/* <style>
         {`
           .chat-bubble::after {
             content: '';
@@ -599,7 +599,7 @@ export const Chat: React.FC = () => {
             transform: rotate(45deg);
           }
         `}
-      </style>
+      </style> */}
 
       {/* Background logo with reduced opacity */}
       <div 
@@ -679,8 +679,8 @@ export const Chat: React.FC = () => {
                     <div
                       className={`relative p-3 rounded-lg max-w-[85%] sm:max-w-[70%] ${
                         msg.user_id === user?.id
-                          ? 'chat-bubble outgoing bg-green-100 text-black ml-auto'
-                          : 'chat-bubble incoming bg-gray-100 text-black'
+                          ? 'chat-bubble outgoing bg-primary text-white ml-auto'
+                          : 'chat-bubble incoming bg-gray-800 text-white'
                       } ${highlightedMessageId === msg.id ? 'ring-2 ring-yellow-400' : ''}`}
                     >
                       {msg.user_id !== user?.id && (
@@ -712,7 +712,7 @@ export const Chat: React.FC = () => {
                       {renderAttachment(msg)}
                       
                       <div className={`text-xs mt-1 ${
-                        msg.user_id === user?.id ? 'text-black/70' : 'text-muted-foreground'
+                        msg.user_id === user?.id ? 'text-gray-100' : 'text-gray-50'
                       }`}>
                         {new Date(msg.created_at).toLocaleTimeString([], { 
                           hour: '2-digit', 
