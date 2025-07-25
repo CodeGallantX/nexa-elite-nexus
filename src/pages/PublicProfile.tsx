@@ -55,13 +55,13 @@ export const PublicProfile: React.FC = () => {
 
   const getGradeColor = (grade: string) => {
     const colors = {
-      'Legendary': 'text-yellow-400 border-yellow-400/50 bg-yellow-400/20',
-      'Veteran': 'text-green-400 border-green-400/50 bg-green-400/20',
-      'Pro': 'text-blue-400 border-blue-400/50 bg-blue-400/20',
-      'Elite': 'text-orange-400 border-orange-400/50 bg-orange-400/20',
-      'Rookie': 'text-red-400 border-red-400/50 bg-red-400/20'
+      'S': 'text-yellow-400 border-yellow-400/50 bg-yellow-400/20',
+      'A': 'text-green-400 border-green-400/50 bg-green-400/20',
+      'B': 'text-blue-400 border-blue-400/50 bg-blue-400/20',
+      'C': 'text-orange-400 border-orange-400/50 bg-orange-400/20',
+      'D': 'text-red-400 border-red-400/50 bg-red-400/20'
     };
-    return colors[grade as keyof typeof colors] || 'text-red-400 border-red-400/50 bg-red-400/20';
+    return colors[grade as keyof typeof colors] || 'text-gray-400 border-gray-400/50 bg-gray-400/20';
   };
 
   const getModeColor = (mode: string) => {
@@ -106,10 +106,7 @@ export const PublicProfile: React.FC = () => {
                 <div className="flex items-center space-x-4 mb-2">
                   <h1 className="text-3xl font-orbitron font-bold text-foreground">Ɲ・乂{user.ign}</h1>
                   <Badge className={getGradeColor(user.grade)}>
-                    {user.grade}
-                  </Badge>
-                  <Badge className="text-blue-400 border-blue-400/50 bg-blue-400/20">
-                    Tier {user.tier}
+                    Grade {user.grade}
                   </Badge>
                 </div>
                 <p className="text-xl text-primary font-rajdhani mb-2">{user.tier}</p>
