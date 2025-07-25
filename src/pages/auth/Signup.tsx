@@ -1,26 +1,25 @@
-
-import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Shield, Mail, Lock, User, Key, Clock } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
+import React, { useState, useEffect } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Shield, Mail, Lock, User, Key, Clock } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 export const Signup: React.FC = () => {
   const [formData, setFormData] = useState({
-    username: '',
-    email: '',
-    password: '',
-    confirmPassword: '',
-    accessCode: ''
+    username: "",
+    email: "",
+    password: "",
+    confirmPassword: "",
+    accessCode: "",
   });
   const [loading, setLoading] = useState(false);
   const [codeRequested, setCodeRequested] = useState(false);
   const [countdown, setCountdown] = useState(0);
-  const [generatedCode, setGeneratedCode] = useState('');
+  const [generatedCode, setGeneratedCode] = useState("");
 
   const { signup } = useAuth();
   const navigate = useNavigate();
@@ -35,8 +34,8 @@ export const Signup: React.FC = () => {
   }, [countdown]);
 
   const generateAccessCode = () => {
-    const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-    let code = '';
+    const characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+    let code = "";
     for (let i = 0; i < 6; i++) {
       code += characters.charAt(Math.floor(Math.random() * characters.length));
     }
@@ -59,38 +58,37 @@ export const Signup: React.FC = () => {
     try {
       // Store OTP in database
       const { error: insertError } = await supabase
-        .from('access_codes')
+        .from("access_codes")
         .insert({
           code,
           requested_by: formData.email,
           expires_at: expiresAt.toISOString(),
           used: false,
-          is_active: true
+          is_active: true,
         });
 
       if (insertError) throw insertError;
 
       // Create notification for admin
       const { error: notificationError } = await supabase
-        .from('notifications')
+        .from("notifications")
         .insert({
-          type: 'access_code_request',
-          title: 'New Access Code Request',
+          type: "access_code_request",
+          title: "New Access Code Request",
           message: `${formData.email} has requested an access code`,
           data: {
             email: formData.email,
             code: code,
-            requested_at: new Date().toISOString()
-          }
+            requested_at: new Date().toISOString(),
+          },
         });
 
-      if (notificationError) console.error('Notification error:', notificationError);
+      if (notificationError)
+        console.error("Notification error:", notificationError);
 
       setGeneratedCode(code);
       setCodeRequested(true);
       setCountdown(60);
-
-
 
       toast({
         title: "Access Code Requested",
@@ -107,7 +105,7 @@ export const Signup: React.FC = () => {
         });
       }
     } catch (error) {
-      console.error('Error requesting access code:', error);
+      console.error("Error requesting access code:", error);
       toast({
         title: "Error",
         description: "Failed to request access code. Please try again.",
@@ -119,28 +117,27 @@ export const Signup: React.FC = () => {
   const validateAccessCode = async (code: string): Promise<boolean> => {
     try {
       // Use the database function to validate
-      const { data, error } = await supabase
-        .rpc('validate_access_code', {
-          code_input: code,
-          email_input: formData.email
-        });
+      const { data, error } = await supabase.rpc("validate_access_code", {
+        code_input: code,
+        email_input: formData.email,
+      });
 
       if (error) {
-        console.error('Error validating access code:', error);
+        console.error("Error validating access code:", error);
         return false;
       }
 
       return data === true;
     } catch (error) {
-      console.error('Error validating access code:', error);
+      console.error("Error validating access code:", error);
       return false;
     }
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [e.target.name]: e.target.value
+      [e.target.name]: e.target.value,
     }));
   };
 
@@ -160,7 +157,9 @@ export const Signup: React.FC = () => {
     }
 
     // Validate access code against database
-    const isValidCode = await validateAccessCode(formData.accessCode) || formData.accessCode === generatedCode;
+    const isValidCode =
+      (await validateAccessCode(formData.accessCode)) ||
+      formData.accessCode === generatedCode;
 
     if (!isValidCode) {
       toast({
@@ -177,21 +176,21 @@ export const Signup: React.FC = () => {
         username: formData.username,
         email: formData.email,
         password: formData.password,
-        ign: formData.username // Default IGN to username
+        ign: formData.username, // Default IGN to username
       });
 
       if (success) {
         // Mark access code as used
-        await supabase.rpc('mark_access_code_used', {
+        await supabase.rpc("mark_access_code_used", {
           code_input: formData.accessCode,
-          email_input: formData.email
+          email_input: formData.email,
         });
 
         toast({
           title: "Welcome to NeXa_Esports!",
           description: "Check your email to verify your account.",
         });
-        navigate('/auth/email-confirmation');
+        navigate("/auth/email-confirmation");
       }
     } catch (error) {
       toast({
@@ -225,7 +224,9 @@ export const Signup: React.FC = () => {
               Join NeXa_Esports
             </span>
           </h1>
-          <p className="text-muted-foreground font-rajdhani">Begin your tactical journey</p>
+          <p className="text-muted-foreground font-rajdhani">
+            Begin your tactical journey
+          </p>
         </div>
 
         {/* Form */}
@@ -233,7 +234,12 @@ export const Signup: React.FC = () => {
           <div className="p-8 bg-card/50 backdrop-blur-sm rounded-xl border border-border/30">
             <div className="space-y-4">
               <div>
-                <Label htmlFor="username" className="text-foreground mb-2 block font-rajdhani">Username</Label>
+                <Label
+                  htmlFor="username"
+                  className="text-foreground mb-2 block font-rajdhani"
+                >
+                  Username
+                </Label>
                 <div className="relative">
                   <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-5 h-5" />
                   <Input
@@ -250,7 +256,12 @@ export const Signup: React.FC = () => {
               </div>
 
               <div>
-                <Label htmlFor="email" className="text-foreground mb-2 block font-rajdhani">Email</Label>
+                <Label
+                  htmlFor="email"
+                  className="text-foreground mb-2 block font-rajdhani"
+                >
+                  Email
+                </Label>
                 <div className="relative">
                   <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-5 h-5" />
                   <Input
@@ -267,7 +278,12 @@ export const Signup: React.FC = () => {
               </div>
 
               <div>
-                <Label htmlFor="password" className="text-foreground mb-2 block font-rajdhani">Password</Label>
+                <Label
+                  htmlFor="password"
+                  className="text-foreground mb-2 block font-rajdhani"
+                >
+                  Password
+                </Label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-5 h-5" />
                   <Input
@@ -284,7 +300,12 @@ export const Signup: React.FC = () => {
               </div>
 
               <div>
-                <Label htmlFor="confirmPassword" className="text-foreground mb-2 block font-rajdhani">Confirm Password</Label>
+                <Label
+                  htmlFor="confirmPassword"
+                  className="text-foreground mb-2 block font-rajdhani"
+                >
+                  Confirm Password
+                </Label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-5 h-5" />
                   <Input
@@ -303,7 +324,12 @@ export const Signup: React.FC = () => {
               {/* Access Code Section */}
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <Label htmlFor="accessCode" className="text-foreground font-rajdhani">Access Code</Label>
+                  <Label
+                    htmlFor="accessCode"
+                    className="text-foreground font-rajdhani"
+                  >
+                    Access Code
+                  </Label>
                   <Button
                     type="button"
                     variant="ghost"
@@ -318,7 +344,7 @@ export const Signup: React.FC = () => {
                         {countdown}s
                       </>
                     ) : (
-                      'Request Access Code'
+                      "Request Access Code"
                     )}
                   </Button>
                 </div>
@@ -343,7 +369,7 @@ export const Signup: React.FC = () => {
                 disabled={loading}
                 className="w-full bg-gradient-to-r from-primary to-red-600 hover:from-red-600 hover:to-primary text-white py-3 font-rajdhani"
               >
-                {loading ? 'Creating Account...' : 'Join the Elite'}
+                {loading ? "Creating Account..." : "Join the Elite"}
               </Button>
             </div>
           </div>
@@ -352,12 +378,18 @@ export const Signup: React.FC = () => {
         {/* Links */}
         <div className="mt-6 text-center space-y-2">
           <p className="text-muted-foreground font-rajdhani">
-            Already a member?{' '}
-            <Link to="/auth/login" className="text-primary hover:text-red-300 font-medium">
+            Already a member?{" "}
+            <Link
+              to="/auth/login"
+              className="text-primary hover:text-red-300 font-medium"
+            >
               Sign in
             </Link>
           </p>
-          <Link to="/" className="text-muted-foreground hover:text-foreground text-sm font-rajdhani">
+          <Link
+            to="/"
+            className="text-muted-foreground hover:text-foreground text-sm font-rajdhani"
+          >
             ← Back to home
           </Link>
         </div>
