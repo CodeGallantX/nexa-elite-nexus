@@ -6,96 +6,87 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
-import { Shield, ChevronRight, ChevronLeft, Gamepad2, Users, User } from 'lucide-react';
+import { Shield, ChevronRight, ChevronLeft, Gamepad2, Users, User, HelpCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 
 // Device and brand data
 const deviceData = {
   iPhone: [
-  "iPhone X",
-
-  // 2018
-  "iPhone XR",
-  "iPhone XS",
-  "iPhone XS Max",
-
-  // 2019
-  "iPhone 11",
-  "iPhone 11 Pro",
-  "iPhone 11 Pro Max",
-
-  // 2020
-  "iPhone SE (2nd generation)",
-  "iPhone 12 mini",
-  "iPhone 12",
-  "iPhone 12 Pro",
-  "iPhone 12 Pro Max",
-
-  // 2021
-  "iPhone 13 mini",
-  "iPhone 13",
-  "iPhone 13 Pro",
-  "iPhone 13 Pro Max",
-
-  // 2022
-  "iPhone SE (3rd generation)",
-  "iPhone 14",
-  "iPhone 14 Plus",
-  "iPhone 14 Pro",
-  "iPhone 14 Pro Max",
-
-  // 2023
-  "iPhone 15",
-  "iPhone 15 Plus",
-  "iPhone 15 Pro",
-  "iPhone 15 Pro Max",
-
-  // 2024 (Expected)
-  "iPhone 16",
-  "iPhone 16 Plus",
-  "iPhone 16 Pro",
-  "iPhone 16 Pro Max",
-
-  // 2025 (Speculative, based on Apple's naming pattern)
-  "iPhone 17",
-  "iPhone 17 Plus",
-  "iPhone 17 Pro",
-  "iPhone 17 Pro Max"],
+    "iPhone X",
+    // 2018
+    "iPhone XR",
+    "iPhone XS",
+    "iPhone XS Max",
+    // 2019
+    "iPhone 11",
+    "iPhone 11 Pro",
+    "iPhone 11 Pro Max",
+    // 2020
+    "iPhone SE (2nd generation)",
+    "iPhone 12 mini",
+    "iPhone 12",
+    "iPhone 12 Pro",
+    "iPhone 12 Pro Max",
+    // 2021
+    "iPhone 13 mini",
+    "iPhone 13",
+    "iPhone 13 Pro",
+    "iPhone 13 Pro Max",
+    // 2022
+    "iPhone SE (3rd generation)",
+    "iPhone 14",
+    "iPhone 14 Plus",
+    "iPhone 14 Pro",
+    "iPhone 14 Pro Max",
+    // 2023
+    "iPhone 15",
+    "iPhone 15 Plus",
+    "iPhone 15 Pro",
+    "iPhone 15 Pro Max",
+    // 2024 (Expected)
+    "iPhone 16",
+    "iPhone 16 Plus",
+    "iPhone 16 Pro",
+    "iPhone 16 Pro Max",
+    // 2025 (Speculative)
+    "iPhone 17",
+    "iPhone 17 Plus",
+    "iPhone 17 Pro",
+    "iPhone 17 Pro Max"
+  ],
   Android: ['Samsung', 'Xiaomi', 'Infinix', 'Redmi', 'Itel', 'Tecno', 'Nokia', 'OnePlus', 'Huawei', 'Oppo', 'Vivo', 'Realme', 'Honor', 'Nothing'],
   iPad: [
-  "iPad (5th generation)",        // 2017
-  "iPad (6th generation)",        // 2018
-  "iPad (7th generation)",        // 2019
-  "iPad (8th generation)",        // 2020
-  "iPad (9th generation)",        // 2021
-  "iPad (10th generation)",       // 2022
-  "iPad (11th generation)",       // 2025 (expected)
-
-  // 📱 iPad mini
-  "iPad mini (5th generation)",   // 2019
-  "iPad mini (6th generation)",   // 2021
-  "iPad mini (7th generation)",   // 2025 (expected)
-
-  // 📱 iPad Air
-  "iPad Air (3rd generation)",    // 2019
-  "iPad Air (4th generation)",    // 2020
-  "iPad Air (5th generation)",    // 2022
-  "iPad Air (6th generation)",    // 2024
-
-  // 💼 iPad Pro
-  "iPad Pro 10.5-inch",                         // 2017
-  "iPad Pro 12.9-inch (2nd generation)",        // 2017
-  "iPad Pro 11-inch (1st generation)",          // 2018
-  "iPad Pro 12.9-inch (3rd generation)",        // 2018
-  "iPad Pro 11-inch (2nd generation)",          // 2020
-  "iPad Pro 12.9-inch (4th generation)",        // 2020
-  "iPad Pro 11-inch (3rd generation)",          // 2021
-  "iPad Pro 12.9-inch (5th generation)",        // 2021
-  "iPad Pro 11-inch (4th generation)",          // 2022
-  "iPad Pro 12.9-inch (6th generation)",        // 2022
-  "iPad Pro 11-inch (M4, 5th generation)",      // 2024
-  "iPad Pro 13-inch (M4, 7th generation)" ]
+    "iPad (5th generation)",
+    "iPad (6th generation)",
+    "iPad (7th generation)",
+    "iPad (8th generation)",
+    "iPad (9th generation)",
+    "iPad (10th generation)",
+    "iPad (11th generation)",
+    // iPad mini
+    "iPad mini (5th generation)",
+    "iPad mini (6th generation)",
+    "iPad mini (7th generation)",
+    // iPad Air
+    "iPad Air (3rd generation)",
+    "iPad Air (4th generation)",
+    "iPad Air (5th generation)",
+    "iPad Air (6th generation)",
+    // iPad Pro
+    "iPad Pro 10.5-inch",
+    "iPad Pro 12.9-inch (2nd generation)",
+    "iPad Pro 11-inch (1st generation)",
+    "iPad Pro 12.9-inch (3rd generation)",
+    "iPad Pro 11-inch (2nd generation)",
+    "iPad Pro 12.9-inch (4th generation)",
+    "iPad Pro 11-inch (3rd generation)",
+    "iPad Pro 12.9-inch (5th generation)",
+    "iPad Pro 11-inch (4th generation)",
+    "iPad Pro 12.9-inch (6th generation)",
+    "iPad Pro 11-inch (M4, 5th generation)",
+    "iPad Pro 13-inch (M4, 7th generation)"
+  ]
 };
 
 const classOptions = {
@@ -103,11 +94,8 @@ const classOptions = {
   MP: ['Anchor', 'Support', 'Objective', 'Slayer']
 };
 
-const gradeOptions = ['Legendary', 'Veteran', 'Pro', 'Elite', 'Rookie'];
-const tierOptions = ['1', '2', '3', '4'];
-
 const bankOptions = [
-  'Opay', 'Palmpay', 'Moniepoint', 'Kuda', 'Access Bank', 'GTBank', 
+  'Opay', 'Palmpay', 'Moniepoint', 'Kuda', 'Access Bank', 'GTBank',
   'First Bank', 'UBA', 'Zenith Bank', 'Fidelity Bank'
 ];
 
@@ -116,6 +104,7 @@ export const Onboarding: React.FC = () => {
   const { profile, updateProfile } = useAuth();
   const { toast } = useToast();
   const [currentStep, setCurrentStep] = useState(1);
+  const [playerUidError, setPlayerUidError] = useState('');
   const [formData, setFormData] = useState({
     // Gaming Info
     ign: '',
@@ -127,8 +116,8 @@ export const Onboarding: React.FC = () => {
     mpClass: '',
     bestGun: '',
     favoriteLoadout: '',
-    grade: 'Rookie',
-    tier: '4',
+    grade: 'Rookie', // Non-editable default
+    tier: '4', // Non-editable default
     dateJoined: new Date().toISOString().split('T')[0],
     // Social Media (TikTok compulsory)
     tiktok: '',
@@ -143,10 +132,21 @@ export const Onboarding: React.FC = () => {
     bankName: ''
   });
 
+  const validatePlayerUid = (uid: string): boolean => {
+    // Example: Allow alphanumeric, 6-20 characters, e.g., "CDM001234567"
+    const regex = /^[a-zA-Z0-9]{6,20}$/;
+    if (!regex.test(uid)) {
+      setPlayerUidError('Player UID must be 6-20 alphanumeric characters (e.g., CDM001234567)');
+      return false;
+    }
+    setPlayerUidError('');
+    return true;
+  };
+
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => {
       const newData = { ...prev, [field]: value };
-      
+
       // Reset dependent fields when parent changes
       if (field === 'deviceType') {
         newData.androidBrand = '';
@@ -155,13 +155,24 @@ export const Onboarding: React.FC = () => {
         newData.brClass = '';
         newData.mpClass = '';
       }
-      
+      if (field === 'player_uid') {
+        validatePlayerUid(value);
+      }
+
       return newData;
     });
   };
 
   const handleNext = () => {
     if (currentStep < 3) {
+      if (currentStep === 1 && !validatePlayerUid(formData.player_uid)) {
+        toast({
+          title: "Invalid Player UID",
+          description: playerUidError,
+          variant: "destructive",
+        });
+        return;
+      }
       setCurrentStep(currentStep + 1);
     } else {
       handleComplete();
@@ -179,14 +190,23 @@ export const Onboarding: React.FC = () => {
       const { data: user } = await supabase.auth.getUser();
       if (!user.user) throw new Error('No authenticated user');
 
+      if (!validatePlayerUid(formData.player_uid)) {
+        toast({
+          title: "Invalid Player UID",
+          description: playerUidError,
+          variant: "destructive",
+        });
+        return;
+      }
+
       const profileUpdates = {
         ign: formData.ign,
         player_uid: formData.player_uid,
         tiktok_handle: formData.tiktok,
         preferred_mode: formData.mode,
         device: formData.deviceType === 'Android' ? formData.androidBrand : formData.androidBrand,
-        grade: formData.grade,
-        tier: formData.tier,
+        grade: formData.grade, // Default: 'Rookie'
+        tier: formData.tier, // Default: '4'
         social_links: {
           tiktok: formData.tiktok,
           youtube: formData.youtube,
@@ -203,7 +223,7 @@ export const Onboarding: React.FC = () => {
       };
 
       const success = await updateProfile(profileUpdates);
-      
+
       if (success) {
         toast({
           title: "Welcome to NeXa_Esports!",
@@ -226,17 +246,22 @@ export const Onboarding: React.FC = () => {
   const isStepValid = () => {
     switch (currentStep) {
       case 1:
-        return formData.ign && formData.player_uid && formData.deviceType && 
+        return formData.ign &&
+               formData.player_uid &&
+               validatePlayerUid(formData.player_uid) &&
+               formData.deviceType &&
                (formData.deviceType === 'Android' ? formData.androidBrand : true) &&
-               formData.mode && 
-               (formData.mode === 'BR' ? formData.brClass : 
-                formData.mode === 'MP' ? formData.mpClass : 
+               formData.mode &&
+               (formData.mode === 'BR' ? formData.brClass :
+                formData.mode === 'MP' ? formData.mpClass :
                 (formData.brClass && formData.mpClass));
       case 2:
         return formData.tiktok; // TikTok is compulsory
       case 3:
-        return formData.realName && formData.accountName && 
-               formData.accountNumber && formData.bankName;
+        return formData.realName &&
+               formData.accountName &&
+               formData.accountNumber &&
+               formData.bankName;
       default:
         return false;
     }
@@ -314,14 +339,25 @@ export const Onboarding: React.FC = () => {
                 </div>
 
                 <div>
-                  <Label htmlFor="player_uid" className="text-foreground font-rajdhani">Player UID *</Label>
+                  <Label htmlFor="player_uid" className="text-foreground font-rajdhani flex items-center">
+                    Player UID *
+                    <span className="ml-2 text-muted-foreground" title="Your unique in-game ID from Call of Duty Mobile (e.g., CDM001234567)">
+                      <HelpCircle className="w-4 h-4" />
+                    </span>
+                  </Label>
                   <Input
                     id="player_uid"
                     value={formData.player_uid}
                     onChange={(e) => handleInputChange('player_uid', e.target.value)}
-                    className="bg-background/50 border-border/50 text-foreground font-rajdhani"
+                    className={`bg-background/50 border-border/50 text-foreground font-rajdhani ${playerUidError ? 'border-destructive' : ''}`}
                     placeholder="CDM001234567"
                   />
+                  {playerUidError && (
+                    <p className="text-destructive text-sm mt-1 font-rajdhani">{playerUidError}</p>
+                  )}
+                  <p className="text-muted-foreground text-sm mt-1 font-rajdhani">
+                    Enter your unique in-game ID from Call of Duty Mobile.
+                  </p>
                 </div>
 
                 <div>
@@ -338,35 +374,18 @@ export const Onboarding: React.FC = () => {
                   </Select>
                 </div>
 
-                {formData.deviceType === 'Android' && (
+                {(formData.deviceType === 'Android' || formData.deviceType === 'iPhone' || formData.deviceType === 'iPad') && (
                   <div>
-                    <Label htmlFor="androidBrand" className="text-foreground font-rajdhani">Android Brand *</Label>
+                    <Label htmlFor="androidBrand" className="text-foreground font-rajdhani">
+                      {formData.deviceType === 'Android' ? 'Android Brand *' : 'Device Model *'}
+                    </Label>
                     <Select value={formData.androidBrand} onValueChange={(value) => handleInputChange('androidBrand', value)}>
                       <SelectTrigger className="bg-background/50 border-border/50 text-foreground font-rajdhani">
-                        <SelectValue placeholder="Select Android brand" />
+                        <SelectValue placeholder={formData.deviceType === 'Android' ? 'Select Android brand' : 'Select device model'} />
                       </SelectTrigger>
                       <SelectContent>
-                        {deviceData.Android.map(brand => (
-                          <SelectItem key={brand} value={brand}>{brand}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                )}
-
-                {(formData.deviceType === 'iPhone' || formData.deviceType === 'iPad') && (
-                  <div>
-                    <Label htmlFor="deviceModel" className="text-foreground font-rajdhani">Device Model *</Label>
-                    <Select 
-                      value={formData.androidBrand} 
-                      onValueChange={(value) => handleInputChange('androidBrand', value)}
-                    >
-                      <SelectTrigger className="bg-background/50 border-border/50 text-foreground font-rajdhani">
-                        <SelectValue placeholder="Select device model" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {getDeviceOptions().map(model => (
-                          <SelectItem key={model} value={model}>{model}</SelectItem>
+                        {getDeviceOptions().map(option => (
+                          <SelectItem key={option} value={option}>{option}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
@@ -446,31 +465,12 @@ export const Onboarding: React.FC = () => {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="grade" className="text-foreground font-rajdhani">Grade</Label>
-                  <Select value={formData.grade} onValueChange={(value) => handleInputChange('grade', value)}>
-                    <SelectTrigger className="bg-background/50 border-border/50 text-foreground font-rajdhani">
-                      <SelectValue placeholder="Select grade" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {gradeOptions.map(grade => (
-                        <SelectItem key={grade} value={grade}>{grade}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Label className="text-foreground font-rajdhani">Grade</Label>
+                  <p className="text-foreground font-rajdhani mt-1">{formData.grade}</p>
                 </div>
-
                 <div>
-                  <Label htmlFor="tier" className="text-foreground font-rajdhani">Tier</Label>
-                  <Select value={formData.tier} onValueChange={(value) => handleInputChange('tier', value)}>
-                    <SelectTrigger className="bg-background/50 border-border/50 text-foreground font-rajdhani">
-                      <SelectValue placeholder="Select tier" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {tierOptions.map(tier => (
-                        <SelectItem key={tier} value={tier}>Tier {tier}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Label className="text-foreground font-rajdhani">Tier</Label>
+                  <p className="text-foreground font-rajdhani mt-1">{formData.tier}</p>
                 </div>
               </div>
             </div>

@@ -48,7 +48,7 @@ export const Chat: React.FC = () => {
   }>({ message: null, x: 0, y: 0, position: 'bottom' });
   const [replyTo, setReplyTo] = useState<ChatMessage | null>(null);
   const [highlightedMessageId, setHighlightedMessageId] = useState<string | null>(null);
-  const [imageModal, setImageModal] = useState<{ url: string; name: string } | null>(null);
+  const [mediaModal, setMediaModal] = useState<{ url: string; name: string; type: string } | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -84,10 +84,10 @@ export const Chat: React.FC = () => {
     return () => scrollArea?.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Close image modal on Escape key
+  // Close media modal on Escape key
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setImageModal(null);
+      if (e.key === 'Escape') setMediaModal(null);
     };
     document.addEventListener('keydown', handleEscape);
     return () => document.removeEventListener('keydown', handleEscape);
@@ -326,16 +326,16 @@ export const Chat: React.FC = () => {
     const menuHeight = msg.user_id === user?.id ? 120 : 80;
 
     // Center horizontally on the bubble
-    const x = rect.left + (rect.width / 2) - (menuWidth / 2);
-    let y = rect.bottom + 5; // Below bubble
+    const x = rect.left + (rect.width / 2) - (menuWidth / 2) - scrollAreaRect.left + scrollArea.scrollLeft;
+    let y = rect.bottom + scrollArea.scrollTop - scrollAreaRect.top + 8; // Below bubble with offset
     let position: 'top' | 'bottom' = 'bottom';
-    if (y + menuHeight > scrollAreaRect.bottom - 10) {
-      y = rect.top - menuHeight - 5; // Above bubble
+    if (y + menuHeight > scrollAreaRect.height - 10) {
+      y = rect.top + scrollArea.scrollTop - scrollAreaRect.top - menuHeight - 8; // Above bubble with offset
       position = 'top';
     }
 
     // Ensure menu stays within ScrollArea horizontally
-    const adjustedX = Math.max(scrollAreaRect.left + 10, Math.min(x, scrollAreaRect.right - menuWidth - 10));
+    const adjustedX = Math.max(10, Math.min(x, scrollAreaRect.width - menuWidth - 10));
 
     console.log('Setting context menu at:', { x: adjustedX, y, position });
     setContextMenu({ message: msg, x: adjustedX, y, position });
@@ -361,15 +361,15 @@ export const Chat: React.FC = () => {
       const menuWidth = 140;
       const menuHeight = msg.user_id === user?.id ? 120 : 80;
 
-      const x = rect.left + (rect.width / 2) - (menuWidth / 2);
-      let y = rect.bottom + 5;
+      const x = rect.left + (rect.width / 2) - (menuWidth / 2) - scrollAreaRect.left + scrollArea.scrollLeft;
+      let y = rect.bottom + scrollArea.scrollTop - scrollAreaRect.top + 8;
       let position: 'top' | 'bottom' = 'bottom';
-      if (y + menuHeight > scrollAreaRect.bottom - 10) {
-        y = rect.top - menuHeight - 5;
+      if (y + menuHeight > scrollAreaRect.height - 10) {
+        y = rect.top + scrollArea.scrollTop - scrollAreaRect.top - menuHeight - 8;
         position = 'top';
       }
 
-      const adjustedX = Math.max(scrollAreaRect.left + 10, Math.min(x, scrollAreaRect.right - menuWidth - 10));
+      const adjustedX = Math.max(10, Math.min(x, scrollAreaRect.width - menuWidth - 10));
 
       console.log('Setting context menu (touch) at:', { x: adjustedX, y, position });
       setContextMenu({ message: msg, x: adjustedX, y, position });
@@ -449,32 +449,32 @@ export const Chat: React.FC = () => {
     const isPdf = msg.attachment_type === 'application/pdf';
 
     return (
-      <div className="mt-2">
+      <div className="mt-1">
         {isImage && (
-          <div className="max-w-xs max-h-xs">
+          <div className="max-w-[200px] max-h-[200px]">
             <img 
               src={msg.attachment_url} 
               alt={msg.attachment_name}
-              className="w-full h-full object-cover rounded-lg cursor-pointer hover:opacity-80"
-              onClick={() => setImageModal({ url: msg.attachment_url, name: msg.attachment_name || 'image' })}
+              className="w-full h-full object-cover rounded-md cursor-pointer hover:opacity-80"
+              onClick={() => setMediaModal({ url: msg.attachment_url, name: msg.attachment_name || 'image', type: 'image' })}
             />
           </div>
         )}
         
         {isVideo && (
-          <div className="max-w-xs max-h-xs">
+          <div className="max-w-[200px] max-h-[200px]">
             <video 
               src={msg.attachment_url} 
-              controls 
-              className="w-full h-full rounded-lg"
+              className="w-full h-full rounded-md cursor-pointer"
+              onClick={() => setMediaModal({ url: msg.attachment_url, name: msg.attachment_name || 'video', type: 'video' })}
             />
           </div>
         )}
         
         {(isPdf || (!isImage && !isVideo)) && (
-          <div className="flex items-center space-x-2 p-2 bg-background/20 rounded-lg max-w-xs">
+          <div className="flex items-center space-x-2 p-1 bg-background/20 rounded-md max-w-[200px]">
             <File className="w-4 h-4 text-primary" />
-            <span className="text-sm flex-1 truncate">{msg.attachment_name}</span>
+            <span className="text-xs flex-1 truncate">{msg.attachment_name}</span>
             <Button
               size="sm"
               variant="ghost"
@@ -497,7 +497,7 @@ export const Chat: React.FC = () => {
     return createPortal(
       <div
         ref={contextMenuRef}
-        className="fixed z-[1000] w-40 max-w-full bg-card border border-border rounded-lg shadow-lg sm:w-48"
+        className="fixed z-[2000] w-40 max-w-full bg-card border border-border rounded-lg shadow-lg sm:w-48"
         style={{ left: `${contextMenu.x}px`, top: `${contextMenu.y}px` }}
       >
         <div className="flex flex-col p-1">
@@ -536,8 +536,8 @@ export const Chat: React.FC = () => {
     );
   };
 
-  const renderImageModal = () => {
-    if (!imageModal) return null;
+  const renderMediaModal = () => {
+    if (!mediaModal) return null;
 
     return createPortal(
       <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/70">
@@ -546,23 +546,31 @@ export const Chat: React.FC = () => {
             variant="ghost"
             size="sm"
             className="absolute top-2 right-2 text-white"
-            onClick={() => setImageModal(null)}
+            onClick={() => setMediaModal(null)}
           >
             <X className="w-6 h-6" />
           </Button>
-          <img
-            src={imageModal.url}
-            alt={imageModal.name}
-            className="max-w-full max-h-[80vh] object-contain"
-          />
+          {mediaModal.type === 'image' ? (
+            <img
+              src={mediaModal.url}
+              alt={mediaModal.name}
+              className="max-w-full max-h-[80vh] object-contain"
+            />
+          ) : (
+            <video
+              src={mediaModal.url}
+              controls
+              className="max-w-full max-h-[80vh] object-contain"
+            />
+          )}
           <div className="flex justify-center mt-4">
             <Button
               variant="outline"
               size="sm"
               onClick={() => {
                 const link = document.createElement('a');
-                link.href = imageModal.url;
-                link.download = imageModal.name;
+                link.href = mediaModal.url;
+                link.download = mediaModal.name;
                 link.click();
               }}
             >
@@ -577,24 +585,28 @@ export const Chat: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col h-full relative">
+    <div className="flex flex-col h-full relative py-6 px-4 sm:px-8">
       <style>
         {`
+          .chat-bubble {
+            border-radius: 0.5rem;
+            position: relative;
+          }
           .chat-bubble::after {
             content: '';
             position: absolute;
-            bottom: 0.5rem;
-            width: 0.75rem;
-            height: 0.75rem;
+            bottom: 0.25rem;
+            width: 0.5rem;
+            height: 0.5rem;
             clip-path: polygon(0 0, 100% 0, 100% 100%);
           }
           .chat-bubble.outgoing::after {
-            right: -0.5rem;
+            right: -0.25rem;
             background: #DCF8C6;
             transform: rotate(-45deg);
           }
           .chat-bubble.incoming::after {
-            left: -0.5rem;
+            left: -0.25rem;
             background: #F2F2F2;
             transform: rotate(45deg);
           }
@@ -611,7 +623,7 @@ export const Chat: React.FC = () => {
       />
 
       {/* Mobile navigation toggle */}
-      <div className="mb-4 px-4 sm:px-6">
+      <div className="mb-6">
         <Button
           variant="outline"
           size="sm"
@@ -625,7 +637,7 @@ export const Chat: React.FC = () => {
 
       {/* Mobile channel list */}
       {showMobileNav && (
-        <Card className="mb-4 mx-4 sm:mx-6 bg-card/50 border-border/30">
+        <Card className="mb-6 bg-card/50 border-border/30">
           <CardContent className="p-4">
             <div className="space-y-2">
               <Button onClick={() => setSelectedChannel('general')} variant="ghost" className={`w-full justify-start ${selectedChannel === 'general' ? "text-primary" : "text-white"}`}>
@@ -641,8 +653,8 @@ export const Chat: React.FC = () => {
         </Card>
       )}
 
-      <Card className="flex-1 mx-4 sm:mx-6 bg-card/50 border-border/30 backdrop-blur-sm relative z-10">
-        <CardHeader className="border-b border-border/30 px-4 sm:px-6">
+      <Card className="flex-1 bg-card/50 border-border/30 backdrop-blur-sm relative z-10">
+        <CardHeader className="border-b border-border/30 px-6 py-4">
           <CardTitle className="flex flex-col sm:flex-row items-start sm:items-center justify-between">
             {selectedChannel === 'admin' ? (
               <span className="text-primary"># Admin Chat</span>
@@ -657,17 +669,17 @@ export const Chat: React.FC = () => {
         
         <CardContent className="flex-1 p-0 flex flex-col">
           {/* Messages */}
-          <ScrollArea className="flex-1 p-4 sm:p-6" ref={scrollAreaRef}>
+          <ScrollArea className="flex-1 p-6" ref={scrollAreaRef}>
             {isLoading ? (
-              <div className="flex items-center justify-center py-8">
+              <div className="flex items-center justify-center py-12">
                 <div className="text-muted-foreground">Loading messages...</div>
               </div>
             ) : messages.length === 0 ? (
-              <div className="flex items-center justify-center py-8">
+              <div className="flex items-center justify-center py-12">
                 <div className="text-muted-foreground">No messages yet. Start the conversation!</div>
               </div>
             ) : (
-              <div className="space-y-4">
+              <div className="space-y-6">
                 {messages.map((msg) => (
                   <div
                     key={msg.id}
@@ -677,14 +689,14 @@ export const Chat: React.FC = () => {
                     onTouchStart={(e) => handleTouchStart(e, msg)}
                   >
                     <div
-                      className={`relative p-3 rounded-lg max-w-[85%] sm:max-w-[70%] ${
+                      className={`relative p-2 rounded-lg max-w-[85%] sm:max-w-[75%] ${
                         msg.user_id === user?.id
-                          ? 'chat-bubble outgoing bg-green-100 text-black ml-auto'
-                          : 'chat-bubble incoming bg-gray-100 text-black'
+                          ? 'chat-bubble outgoing bg-primary text-white ml-auto'
+                          : 'chat-bubble incoming bg-gray-800 text-white'
                       } ${highlightedMessageId === msg.id ? 'ring-2 ring-yellow-400' : ''}`}
                     >
                       {msg.user_id !== user?.id && (
-                        <div className="text-xs font-medium mb-1 text-primary">
+                        <div className="text-xs font-medium mb-0.5 text-primary">
                           Ɲ・乂{msg.profiles.ign}
                           {msg.profiles.role === 'admin' && (
                             <span className="ml-1 px-1 py-0.5 bg-red-500 text-white text-xs rounded">
@@ -696,7 +708,7 @@ export const Chat: React.FC = () => {
                       
                       {msg.reply_to_id && (
                         <div
-                          className="mb-2 p-2 bg-background/20 rounded text-xs cursor-pointer hover:bg-background/30"
+                          className="mb-1 p-1.5 bg-background/20 rounded text-xs cursor-pointer hover:bg-background/30"
                           onClick={() => handleReplyClick(msg.reply_to_id!)}
                         >
                           <div className="font-medium">
@@ -711,8 +723,8 @@ export const Chat: React.FC = () => {
                       <div className="text-sm">{msg.message}</div>
                       {renderAttachment(msg)}
                       
-                      <div className={`text-xs mt-1 ${
-                        msg.user_id === user?.id ? 'text-black/70' : 'text-muted-foreground'
+                      <div className={`text-xs mt-0.5 ${
+                        msg.user_id === user?.id ? 'text-gray-300' : 'text-gray-50'
                       }`}>
                         {new Date(msg.created_at).toLocaleTimeString([], { 
                           hour: '2-digit', 
@@ -776,7 +788,7 @@ export const Chat: React.FC = () => {
 
           {/* Message input */}
           <div className="p-4 border-t border-border/30">
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center space-x-3">
               <Button
                 variant="outline"
                 size="sm"
@@ -822,7 +834,7 @@ export const Chat: React.FC = () => {
       />
 
       {renderContextMenu()}
-      {renderImageModal()}
+      {renderMediaModal()}
     </div>
   );
 };
