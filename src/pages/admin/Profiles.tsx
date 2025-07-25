@@ -134,7 +134,7 @@ export const AdminProfiles: React.FC = () => {
                               </div>
                               <div>
                                 <label className="text-gray-300 text-sm">Tier</label>
-                                <Badge className="ml-2 bg-purple-100 text-purple-800">{selectedPlayer.tier || 'Rookie'}</Badge>
+                                <Badge className="ml-2 bg-purple-100 text-purple-800">Tier {selectedPlayer.tier || '4'}</Badge>
                               </div>
                               <div>
                                 <label className="text-gray-300 text-sm">Device</label>
@@ -146,7 +146,7 @@ export const AdminProfiles: React.FC = () => {
                               </div>
                               <div>
                                 <label className="text-gray-300 text-sm">Grade</label>
-                                <Badge className="ml-2 bg-green-100 text-green-800">{selectedPlayer.grade || 'D'}</Badge>
+                                <Badge className="ml-2 bg-green-100 text-green-800">{selectedPlayer.grade || 'Rookie'}</Badge>
                               </div>
                             </CardContent>
                           </Card>
@@ -257,7 +257,7 @@ export const AdminProfiles: React.FC = () => {
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-gray-300 text-sm">Tier</span>
-                  <Badge className="bg-purple-100 text-purple-800">{player.tier || 'Rookie'}</Badge>
+                  <Badge className="bg-purple-100 text-purple-800">Tier {player.tier || '4'}</Badge>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-gray-300 text-sm">Kills</span>
@@ -266,6 +266,10 @@ export const AdminProfiles: React.FC = () => {
                 <div className="flex items-center justify-between">
                   <span className="text-gray-300 text-sm">Attendance</span>
                   <span className="text-white font-semibold">{player.attendance || 0}%</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-gray-300 text-sm">Grade</span>
+                  <Badge className="bg-green-100 text-green-800">{player.grade || 'Rookie'}</Badge>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-gray-300 text-sm">Joined</span>

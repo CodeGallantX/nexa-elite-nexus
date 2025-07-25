@@ -313,11 +313,11 @@ export const Settings: React.FC = () => {
                   <div className="text-xs text-gray-400">Attendance</div>
                 </div>
                 <div className="text-center p-3 bg-background/20 rounded-lg">
-                  <div className="text-lg font-bold text-yellow-400">{profile?.grade || 'D'}</div>
+                  <div className="text-lg font-bold text-yellow-400">{profile?.grade || 'Rookie'}</div>
                   <div className="text-xs text-gray-400">Grade</div>
                 </div>
                 <div className="text-center p-3 bg-background/20 rounded-lg">
-                  <div className="text-lg font-bold text-blue-400">{profile?.tier || 'Rookie'}</div>
+                  <div className="text-lg font-bold text-blue-400">Tier {profile?.tier || '4'}</div>
                   <div className="text-xs text-gray-400">Tier</div>
                 </div>
               </div>

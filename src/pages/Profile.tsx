@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -6,6 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -24,7 +25,8 @@ import {
   Instagram,
   Youtube,
   Twitter,
-  Share2
+  Share2,
+  CreditCard
 } from 'lucide-react';
 
 export const Profile: React.FC = () => {
@@ -36,18 +38,39 @@ export const Profile: React.FC = () => {
     tiktok_handle: profile?.tiktok_handle || '',
     preferred_mode: profile?.preferred_mode || '',
     device: profile?.device || '',
-    kills: profile?.kills?.toString() || '0',
     ign: profile?.ign || '',
     username: profile?.username || '',
-    social_links: profile?.social_links || {},
-    banking_info: profile?.banking_info || {}
+    player_uid: profile?.player_uid || '',
+    grade: profile?.grade || 'Rookie',
+    tier: profile?.tier || '4',
+    social_links: {
+      tiktok: profile?.social_links?.tiktok || '',
+      youtube: profile?.social_links?.youtube || '',
+      discord: profile?.social_links?.discord || '',
+      x: profile?.social_links?.x || '',
+      instagram: profile?.social_links?.instagram || ''
+    },
+    banking_info: {
+      real_name: profile?.banking_info?.real_name || '',
+      account_name: profile?.banking_info?.account_name || '',
+      account_number: profile?.banking_info?.account_number || '',
+      bank_name: profile?.banking_info?.bank_name || ''
+    }
   });
 
   const handleSave = async () => {
     if (profile) {
       const updateData = {
-        ...formData,
-        kills: parseInt(formData.kills) || 0
+        tiktok_handle: formData.tiktok_handle,
+        preferred_mode: formData.preferred_mode,
+        device: formData.device,
+        ign: formData.ign,
+        username: formData.username,
+        player_uid: formData.player_uid,
+        grade: formData.grade,
+        tier: formData.tier,
+        social_links: formData.social_links,
+        banking_info: formData.banking_info
       };
       await updateProfile(updateData);
       setEditing(false);
@@ -94,11 +117,11 @@ export const Profile: React.FC = () => {
 
   const getGradeColor = (grade: string) => {
     const colors = {
-      'S': 'bg-yellow-500',
-      'A': 'bg-green-500',
-      'B': 'bg-blue-500',
-      'C': 'bg-orange-500',
-      'D': 'bg-red-500'
+      'Legendary': 'bg-yellow-500',
+      'Veteran': 'bg-green-500',
+      'Pro': 'bg-blue-500',
+      'Elite': 'bg-orange-500',
+      'Rookie': 'bg-red-500'
     };
     return colors[grade as keyof typeof colors] || 'bg-gray-500';
   };
@@ -217,11 +240,11 @@ export const Profile: React.FC = () => {
               <p className="text-gray-300 mb-4">{profile.username}</p>
               
               <div className="flex flex-wrap justify-center md:justify-start gap-3 mb-4">
-                <Badge className={`${getGradeColor(profile.grade || 'D')} text-white`}>
-                  Grade {profile.grade}
+                <Badge className={`${getGradeColor(profile.grade || 'Rookie')} text-white`}>
+                  {profile.grade}
                 </Badge>
                 <Badge variant="outline" className="border-[#FF1F44]/50 text-[#FF1F44]">
-                  {profile.tier}
+                  Tier {profile.tier}
                 </Badge>
                 <Badge variant="outline" className="border-white/30 text-white">
                   {profile.device || 'Mobile'}
@@ -251,12 +274,27 @@ export const Profile: React.FC = () => {
 <div className='flex flex-col items-start justify-center'>
             {/* Edit Button */}
             <Button
-              onClick={() => setEditing(!editing)}
+              onClick={() => {
+                if (editing) {
+                  handleSave();
+                } else {
+                  setEditing(true);
+                }
+              }}
               className="bg-white/10 hover:bg-white/20 text-white border border-white/20"
             >
               {editing ? <Save className="w-4 h-4 mr-2" /> : <Edit3 className="w-4 h-4 mr-2" />}
               {editing ? 'Save' : 'Edit Profile'}
             </Button>
+            {editing && (
+              <Button
+                onClick={() => setEditing(false)}
+                variant="outline"
+                className="mt-2 border-white/30 text-white hover:bg-white/10"
+              >
+                Cancel
+              </Button>
+            )}
             <Button
               onClick={() => navigate('/profile/:id/')}
               className="bg-white/10 hover:bg-white/20 text-white border border-white/20"
@@ -311,21 +349,21 @@ export const Profile: React.FC = () => {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label className="text-gray-300">Total Kills</Label>
-                {editing ? (
-                  <Input
-                    type="number"
-                    value={formData.kills}
-                    onChange={(e) => setFormData(prev => ({ ...prev, kills: e.target.value }))}
-                    className="mt-1 bg-white/5 border-white/20 text-white"
-                    placeholder="0"
-                  />
-                ) : (
-                  <div className="text-white font-medium mt-1">{profile.kills?.toLocaleString()}</div>
-                )}
+                <div className="text-white font-medium mt-1">{profile.kills?.toLocaleString()}</div>
+                <div className="text-xs text-gray-400 mt-1">Managed by admin</div>
               </div>
               <div>
                 <Label className="text-gray-300">Player UID</Label>
-                <div className="text-white font-medium mt-1">{profile.id.slice(0, 8)}...</div>
+                {editing ? (
+                  <Input
+                    value={formData.player_uid}
+                    onChange={(e) => setFormData(prev => ({ ...prev, player_uid: e.target.value }))}
+                    className="mt-1 bg-white/5 border-white/20 text-white"
+                    placeholder="CDM001234567"
+                  />
+                ) : (
+                  <div className="text-white font-medium mt-1">{profile.player_uid || 'Not set'}</div>
+                )}
               </div>
             </div>
 
@@ -363,8 +401,55 @@ export const Profile: React.FC = () => {
 
             <div className="grid grid-cols-2 gap-4">
               <div>
+                <Label className="text-gray-300">Grade</Label>
+                {editing ? (
+                  <Select 
+                    value={formData.grade} 
+                    onValueChange={(value) => setFormData(prev => ({ ...prev, grade: value }))}
+                  >
+                    <SelectTrigger className="mt-1 bg-white/5 border-white/20 text-white">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Legendary">Legendary</SelectItem>
+                      <SelectItem value="Veteran">Veteran</SelectItem>
+                      <SelectItem value="Pro">Pro</SelectItem>
+                      <SelectItem value="Elite">Elite</SelectItem>
+                      <SelectItem value="Rookie">Rookie</SelectItem>
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <div className="text-white font-medium mt-1">{profile.grade}</div>
+                )}
+              </div>
+              <div>
+                <Label className="text-gray-300">Tier</Label>
+                {editing ? (
+                  <Select 
+                    value={formData.tier} 
+                    onValueChange={(value) => setFormData(prev => ({ ...prev, tier: value }))}
+                  >
+                    <SelectTrigger className="mt-1 bg-white/5 border-white/20 text-white">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="1">Tier 1</SelectItem>
+                      <SelectItem value="2">Tier 2</SelectItem>
+                      <SelectItem value="3">Tier 3</SelectItem>
+                      <SelectItem value="4">Tier 4</SelectItem>
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <div className="text-white font-medium mt-1">Tier {profile.tier}</div>
+                )}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
                 <Label className="text-gray-300">Role</Label>
                 <div className="text-white font-medium mt-1 capitalize">{profile.role}</div>
+                <div className="text-xs text-gray-400 mt-1">Managed by admin</div>
               </div>
               <div>
                 <Label className="text-gray-300">Date Joined</Label>
@@ -416,46 +501,233 @@ export const Profile: React.FC = () => {
               )}
             </div>
 
-            {/* All Social Links (stored in social_links JSON field) */}
-            {profile.social_links && (
-              <div className="space-y-3">
-                {Object.entries(profile.social_links as Record<string, string>).map(([platform, handle]) => (
-                  <div key={platform}>
-                    <Label className="text-gray-300 capitalize">{platform}</Label>
-                    <div className="flex items-center mt-1">
-                      {getSocialIcon(platform)}
-                      <span className="ml-2 text-white font-medium">
-                        {formatSocialLink(handle, platform) ? (
-                          <a 
-                            href={formatSocialLink(handle, platform) || '#'}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-[#FF1F44] hover:text-red-300 transition-colors"
-                          >
-                            {handle}
-                          </a>
-                        ) : handle}
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
+            {/* YouTube */}
+            <div>
+              <Label htmlFor="youtube" className="text-gray-300">YouTube</Label>
+              {editing ? (
+                <Input
+                  id="youtube"
+                  value={formData.social_links.youtube}
+                  onChange={(e) => setFormData(prev => ({ 
+                    ...prev, 
+                    social_links: { ...prev.social_links, youtube: e.target.value }
+                  }))}
+                  className="mt-1 bg-white/5 border-white/20 text-white"
+                  placeholder="Channel name"
+                />
+              ) : (
+                <div className="flex items-center mt-1">
+                  {getSocialIcon('youtube')}
+                  <span className="ml-2 text-white font-medium">
+                    {profile.social_links?.youtube ? (
+                      <a 
+                        href={formatSocialLink(profile.social_links.youtube, 'youtube') || '#'}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-[#FF1F44] hover:text-red-300 transition-colors"
+                      >
+                        {profile.social_links.youtube}
+                      </a>
+                    ) : 'Not provided'}
+                  </span>
+                </div>
+              )}
+            </div>
+
+            {/* Discord */}
+            <div>
+              <Label htmlFor="discord" className="text-gray-300">Discord</Label>
+              {editing ? (
+                <Input
+                  id="discord"
+                  value={formData.social_links.discord}
+                  onChange={(e) => setFormData(prev => ({ 
+                    ...prev, 
+                    social_links: { ...prev.social_links, discord: e.target.value }
+                  }))}
+                  className="mt-1 bg-white/5 border-white/20 text-white"
+                  placeholder="username#1234"
+                />
+              ) : (
+                <div className="flex items-center mt-1">
+                  {getSocialIcon('discord')}
+                  <span className="ml-2 text-white font-medium">
+                    {profile.social_links?.discord || 'Not provided'}
+                  </span>
+                </div>
+              )}
+            </div>
+
+            {/* X (Twitter) */}
+            <div>
+              <Label htmlFor="x" className="text-gray-300">X (Twitter)</Label>
+              {editing ? (
+                <Input
+                  id="x"
+                  value={formData.social_links.x}
+                  onChange={(e) => setFormData(prev => ({ 
+                    ...prev, 
+                    social_links: { ...prev.social_links, x: e.target.value }
+                  }))}
+                  className="mt-1 bg-white/5 border-white/20 text-white"
+                  placeholder="@username"
+                />
+              ) : (
+                <div className="flex items-center mt-1">
+                  {getSocialIcon('x')}
+                  <span className="ml-2 text-white font-medium">
+                    {profile.social_links?.x ? (
+                      <a 
+                        href={formatSocialLink(profile.social_links.x, 'x') || '#'}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-[#FF1F44] hover:text-red-300 transition-colors"
+                      >
+                        {profile.social_links.x}
+                      </a>
+                    ) : 'Not provided'}
+                  </span>
+                </div>
+              )}
+            </div>
+
+            {/* Instagram */}
+            <div>
+              <Label htmlFor="instagram" className="text-gray-300">Instagram</Label>
+              {editing ? (
+                <Input
+                  id="instagram"
+                  value={formData.social_links.instagram}
+                  onChange={(e) => setFormData(prev => ({ 
+                    ...prev, 
+                    social_links: { ...prev.social_links, instagram: e.target.value }
+                  }))}
+                  className="mt-1 bg-white/5 border-white/20 text-white"
+                  placeholder="@username"
+                />
+              ) : (
+                <div className="flex items-center mt-1">
+                  {getSocialIcon('instagram')}
+                  <span className="ml-2 text-white font-medium">
+                    {profile.social_links?.instagram ? (
+                      <a 
+                        href={formatSocialLink(profile.social_links.instagram, 'instagram') || '#'}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-[#FF1F44] hover:text-red-300 transition-colors"
+                      >
+                        {profile.social_links.instagram}
+                      </a>
+                    ) : 'Not provided'}
+                  </span>
+                </div>
+              )}
+            </div>
 
             {/* Banking Info */}
-            {profile.banking_info && (
-              <div className="pt-4 border-t border-white/10">
+            <div className="pt-4 border-t border-white/10">
+              <div className="flex items-center mb-4">
+                <CreditCard className="w-5 h-5 mr-2 text-[#FF1F44]" />
                 <Label className="text-gray-300">Banking Information</Label>
-                <div className="mt-2 space-y-2">
-                  {Object.entries(profile.banking_info as Record<string, string>).map(([key, value]) => (
-                    <div key={key} className="flex justify-between">
-                      <span className="text-gray-400 capitalize">{key.replace('_', ' ')}:</span>
-                      <span className="text-white font-medium">{value}</span>
-                    </div>
-                  ))}
-                </div>
               </div>
-            )}
+              
+              {editing ? (
+                <div className="space-y-3">
+                  <div>
+                    <Label className="text-gray-300 text-sm">Real Name</Label>
+                    <Input
+                      value={formData.banking_info.real_name}
+                      onChange={(e) => setFormData(prev => ({ 
+                        ...prev, 
+                        banking_info: { ...prev.banking_info, real_name: e.target.value }
+                      }))}
+                      className="mt-1 bg-white/5 border-white/20 text-white"
+                      placeholder="Full legal name"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-gray-300 text-sm">Account Name</Label>
+                    <Input
+                      value={formData.banking_info.account_name}
+                      onChange={(e) => setFormData(prev => ({ 
+                        ...prev, 
+                        banking_info: { ...prev.banking_info, account_name: e.target.value }
+                      }))}
+                      className="mt-1 bg-white/5 border-white/20 text-white"
+                      placeholder="Account holder name"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-gray-300 text-sm">Account Number</Label>
+                    <Input
+                      value={formData.banking_info.account_number}
+                      onChange={(e) => setFormData(prev => ({ 
+                        ...prev, 
+                        banking_info: { ...prev.banking_info, account_number: e.target.value }
+                      }))}
+                      className="mt-1 bg-white/5 border-white/20 text-white"
+                      placeholder="1234567890"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-gray-300 text-sm">Bank Name</Label>
+                    <Select 
+                      value={formData.banking_info.bank_name} 
+                      onValueChange={(value) => setFormData(prev => ({ 
+                        ...prev, 
+                        banking_info: { ...prev.banking_info, bank_name: value }
+                      }))}
+                    >
+                      <SelectTrigger className="mt-1 bg-white/5 border-white/20 text-white">
+                        <SelectValue placeholder="Select bank" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Opay">Opay</SelectItem>
+                        <SelectItem value="Palmpay">Palmpay</SelectItem>
+                        <SelectItem value="Moniepoint">Moniepoint</SelectItem>
+                        <SelectItem value="Kuda">Kuda</SelectItem>
+                        <SelectItem value="Access Bank">Access Bank</SelectItem>
+                        <SelectItem value="GTBank">GTBank</SelectItem>
+                        <SelectItem value="First Bank">First Bank</SelectItem>
+                        <SelectItem value="UBA">UBA</SelectItem>
+                        <SelectItem value="Zenith Bank">Zenith Bank</SelectItem>
+                        <SelectItem value="Fidelity Bank">Fidelity Bank</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {profile.banking_info?.real_name && (
+                    <div className="flex justify-between">
+                      <span className="text-gray-400">Real Name:</span>
+                      <span className="text-white font-medium">{profile.banking_info.real_name}</span>
+                    </div>
+                  )}
+                  {profile.banking_info?.account_name && (
+                    <div className="flex justify-between">
+                      <span className="text-gray-400">Account Name:</span>
+                      <span className="text-white font-medium">{profile.banking_info.account_name}</span>
+                    </div>
+                  )}
+                  {profile.banking_info?.account_number && (
+                    <div className="flex justify-between">
+                      <span className="text-gray-400">Account Number:</span>
+                      <span className="text-white font-medium">{profile.banking_info.account_number}</span>
+                    </div>
+                  )}
+                  {profile.banking_info?.bank_name && (
+                    <div className="flex justify-between">
+                      <span className="text-gray-400">Bank:</span>
+                      <span className="text-white font-medium">{profile.banking_info.bank_name}</span>
+                    </div>
+                  )}
+                  {!profile.banking_info?.real_name && !profile.banking_info?.account_name && (
+                    <div className="text-gray-400 text-sm">No banking information provided</div>
+                  )}
+                </div>
+              )}
+            </div>
 
             {/* Password Reset */}
             <div className="pt-4 border-t border-white/10">
