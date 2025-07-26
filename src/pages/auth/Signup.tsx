@@ -69,23 +69,6 @@ export const Signup: React.FC = () => {
 
       if (insertError) throw insertError;
 
-      // Create notification for admin
-      const { error: notificationError } = await supabase
-        .from("notifications")
-        .insert({
-          type: "access_code_request",
-          title: "New Access Code Request",
-          message: `${formData.email} has requested an access code`,
-          data: {
-            email: formData.email,
-            code: code,
-            requested_at: new Date().toISOString(),
-          },
-        });
-
-      if (notificationError)
-        console.error("Notification error:", notificationError);
-
       setGeneratedCode(code);
       setCodeRequested(true);
       setCountdown(60);
