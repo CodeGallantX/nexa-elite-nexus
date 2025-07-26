@@ -115,26 +115,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => subscription.unsubscribe();
   }, []);
 
-  supabase.auth.getSession().then(({ data: { session } }) => {
-    console.log('Initial session check:', session?.user?.email);
-    setSession(session);
-    setUser(session?.user ?? null);
-    if (session?.user) {
-      fetchProfile(session.user.id);
-    }
-    setLoading(false);
-  }).catch((error) => {
-    console.error('Session initialization error:', error);
-    if (error.message && error.message.includes('Invalid Refresh Token')) {
-      console.log('Clearing invalid session data');
-      localStorage.clear();
-      supabase.auth.signOut();
-      setUser(null);
-      setSession(null);
-      setProfile(null);
-    }
-    setLoading(false);
-  });
+  const login = async (email: string, password: string): Promise<boolean> => {
+    try {
+      console.log('Attempting login for:', email);
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) {
         console.error('Login error:', error);
         toast({
           title: "Login Failed",
