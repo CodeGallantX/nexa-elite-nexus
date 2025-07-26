@@ -25,7 +25,6 @@ export const Signup: React.FC = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  // Countdown timer effect
   useEffect(() => {
     if (countdown > 0) {
       const timer = setTimeout(() => setCountdown(countdown - 1), 1000);
@@ -53,19 +52,16 @@ export const Signup: React.FC = () => {
     }
 
     const code = generateAccessCode();
-    const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes from now
+    const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
 
     try {
-      // Store OTP in database
-      const { error: insertError } = await supabase
-        .from("access_codes")
-        .insert({
-          code,
-          requested_by: formData.email,
-          expires_at: expiresAt.toISOString(),
-          used: false,
-          is_active: true,
-        });
+      const { error: insertError } = await supabase.from("access_codes").insert({
+        code,
+        requested_by: formData.email,
+        expires_at: expiresAt.toISOString(),
+        used: false,
+        is_active: true,
+      });
 
       if (insertError) throw insertError;
 
@@ -99,17 +95,14 @@ export const Signup: React.FC = () => {
 
   const validateAccessCode = async (code: string): Promise<boolean> => {
     try {
-      // Use the database function to validate
       const { data, error } = await supabase.rpc("validate_access_code", {
         code_input: code,
         email_input: formData.email,
       });
-
       if (error) {
         console.error("Error validating access code:", error);
         return false;
       }
-
       return data === true;
     } catch (error) {
       console.error("Error validating access code:", error);
@@ -118,17 +111,13 @@ export const Signup: React.FC = () => {
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData((prev) => ({
-      ...prev,
-      [e.target.name]: e.target.value,
-    }));
+    setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
-    // Validation
     if (formData.password !== formData.confirmPassword) {
       toast({
         title: "Password Mismatch",
@@ -139,7 +128,6 @@ export const Signup: React.FC = () => {
       return;
     }
 
-    // Validate access code against database
     const isValidCode =
       (await validateAccessCode(formData.accessCode)) ||
       formData.accessCode === generatedCode;
@@ -155,27 +143,28 @@ export const Signup: React.FC = () => {
     }
 
     try {
-      const success = await signup({
-        username: formData.username,
+      const { data, error } = await supabase.auth.signUp({
         email: formData.email,
         password: formData.password,
-        ign: formData.username, // Default IGN to username
+        options: {
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
+        },
       });
 
-      if (success) {
-        // Mark access code as used
-        await supabase.rpc("mark_access_code_used", {
-          code_input: formData.accessCode,
-          email_input: formData.email,
-        });
+      if (error) throw error;
 
-        toast({
-          title: "Welcome to NeXa_Esports!",
-          description: "Check your email to verify your account.",
-        });
-        navigate("/auth/email-confirmation");
-      }
+      await supabase.rpc("mark_access_code_used", {
+        code_input: formData.accessCode,
+        email_input: formData.email,
+      });
+
+      toast({
+        title: "Welcome to NeXa_Esports!",
+        description: "Check your email to verify your account.",
+      });
+      navigate("/auth/email-confirmation");
     } catch (error) {
+      console.error("Signup error:", error);
       toast({
         title: "Signup Error",
         description: "Something went wrong. Please try again.",
