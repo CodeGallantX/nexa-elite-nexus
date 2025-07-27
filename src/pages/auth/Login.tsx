@@ -43,11 +43,38 @@ export const Login: React.FC = () => {
       
       const success = await login(loginEmail, password);
       if (success) {
+        // Get user session to check email confirmation
+        const { data: { session } } = await supabase.auth.getSession();
+        
+        if (session?.user && !session.user.email_confirmed_at) {
+          toast({
+            title: "Email Not Confirmed",
+            description: "Please check your email and click the confirmation link.",
+            variant: "destructive",
+          });
+          navigate('/auth/email-confirmation');
+          return;
+        }
+
         toast({
           title: "Welcome back, warrior!",
           description: "Successfully logged into NeXa_Esports",
         });
-        navigate('/dashboard');
+        
+        // Check if user needs onboarding
+        if (session?.user) {
+          const { data: profileData } = await supabase
+            .from('profiles')
+            .select('ign, player_uid, role')
+            .eq('id', session.user.id)
+            .single();
+          
+          if (!profileData?.ign || !profileData?.player_uid) {
+            navigate('/auth/onboarding');
+          } else {
+            navigate(profileData.role === 'admin' ? '/admin' : '/dashboard');
+          }
+        }
       }
     } catch (error) {
       console.error('Login error:', error);

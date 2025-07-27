@@ -21,6 +21,21 @@ import {
 export const Dashboard: React.FC = () => {
   const { profile, user } = useAuth();
 
+  // Ensure user has completed onboarding
+  React.useEffect(() => {
+    if (user && (!profile?.ign || !profile?.player_uid)) {
+      // User hasn't completed onboarding, redirect them
+      window.location.href = '/auth/onboarding';
+    }
+  }, [user, profile]);
+
+  if (!profile?.ign || !profile?.player_uid) {
+    return (
+      <div className="flex items-center justify-center min-h-96">
+        <div className="text-white">Setting up your profile...</div>
+      </div>
+    );
+  }
   // Fetch user's scrims/events
   const { data: userEvents = [] } = useQuery({
     queryKey: ['user-events', user?.id],

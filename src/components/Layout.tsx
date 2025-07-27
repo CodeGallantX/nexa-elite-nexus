@@ -28,6 +28,10 @@ export const Layout: React.FC<LayoutProps> = ({ children, showSidebar = false })
     return <Navigate to="/auth/login" replace />;
   }
 
+  // Check if user's email is confirmed
+  if (!user.email_confirmed_at) {
+    return <Navigate to="/auth/email-confirmation" replace />;
+  }
   if (!showSidebar) {
     return <div className="min-h-screen bg-background">{children}</div>;
   }

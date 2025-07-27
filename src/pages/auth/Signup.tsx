@@ -158,9 +158,24 @@ export const Signup: React.FC = () => {
         email_input: formData.email,
       });
 
+      // Create initial profile record
+      if (data.user) {
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .insert([{
+            id: data.user.id,
+            username: formData.username,
+            ign: formData.username, // Will be updated in onboarding
+            role: 'player'
+          }]);
+        
+        if (profileError) {
+          console.error('Error creating profile:', profileError);
+        }
+      }
       toast({
         title: "Welcome to NeXa_Esports!",
-        description: "Check your email to verify your account.",
+        description: "Check your email and click the confirmation link to complete your registration.",
       });
       navigate("/auth/email-confirmation");
     } catch (error) {

@@ -37,22 +37,15 @@ export const EmailConfirmation: React.FC = () => {
             {/* Instructions */}
             <div className="bg-primary/10 border border-primary/30 rounded-lg p-4">
               <p className="text-primary text-sm font-rajdhani">
-                After verifying your email, you'll be redirected to complete your onboarding process.
+                Click the verification link in your email to complete your registration and access the onboarding process.
               </p>
             </div>
 
             {/* Action Buttons */}
             <div className="space-y-3">
-              <Button asChild className="w-full bg-gradient-to-r from-primary to-red-600 hover:from-red-600 hover:to-primary text-white font-rajdhani">
-                <Link to="/auth/onboarding">
-                  Continue to Onboarding
-                  <ArrowRight className="w-4 h-4 ml-2" />
-                </Link>
-              </Button>
-              
               <Button asChild variant="outline" className="w-full border-border/50 text-foreground hover:bg-background/50 font-rajdhani">
                 <Link to="/auth/login">
-                  Back to Login
+                  Already verified? Login
                 </Link>
               </Button>
             </div>

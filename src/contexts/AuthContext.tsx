@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useNavigate } from 'react-router-dom';
 
 interface UserProfile {
   id: string;
@@ -60,6 +61,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   const fetchProfile = async (userId: string) => {
     try {
@@ -87,14 +89,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        console.log('Auth state changed:', event, session?.user?.email);
+        console.log('Auth state changed:', event, session?.user?.email, session?.user?.email_confirmed_at);
         setSession(session);
         setUser(session?.user ?? null);
         
         if (session?.user) {
-          setTimeout(() => {
-            fetchProfile(session.user.id);
-          }, 0);
+          // Handle email confirmation redirect
+          if (event === 'SIGNED_IN' && session.user.email_confirmed_at) {
+            await fetchProfile(session.user.id);
+            // Check if user needs onboarding
+            const { data: profileData } = await supabase
+              .from('profiles')
+              .select('ign, player_uid')
+              .eq('id', session.user.id)
+              .single();
+            
+            if (!profileData?.ign || !profileData?.player_uid) {
+              navigate('/auth/onboarding');
+            } else {
+              navigate('/dashboard');
+            }
+          } else if (session.user.email_confirmed_at) {
+            await fetchProfile(session.user.id);
+          }
         } else {
           setProfile(null);
         }
@@ -149,7 +166,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signup = async (signupData: SignupData): Promise<boolean> => {
     try {
       console.log('Attempting signup for:', signupData.email);
-      const redirectUrl = `${window.location.origin}/auth/email-confirmation`;
+      const redirectUrl = `${window.location.origin}/auth/onboarding`;
       
       const { data, error } = await supabase.auth.signUp({
         email: signupData.email,
@@ -179,7 +196,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (data.user && !data.session) {
         toast({
           title: "Check Your Email",
-          description: "Please check your email to confirm your account.",
+          description: "Please check your email and click the confirmation link to complete your registration.",
         });
       }
       

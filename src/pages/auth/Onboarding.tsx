@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Shield, ChevronRight, ChevronLeft, Gamepad2, Users, User, HelpCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { useEffect } from 'react';
 
 // Device and brand data
 const deviceData = {
@@ -90,10 +91,11 @@ const bankOptions = [
 
 export const Onboarding: React.FC = () => {
   const navigate = useNavigate();
-  const { profile, updateProfile } = useAuth();
+  const { profile, updateProfile, user } = useAuth();
   const { toast } = useToast();
   const [currentStep, setCurrentStep] = useState(1);
   const [playerUidError, setPlayerUidError] = useState('');
+  const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     ign: '',
     player_uid: '',
@@ -118,6 +120,28 @@ export const Onboarding: React.FC = () => {
     bankName: ''
   });
 
+  // Check if user is authenticated and email is confirmed
+  useEffect(() => {
+    if (!user) {
+      navigate('/auth/login');
+      return;
+    }
+    
+    if (!user.email_confirmed_at) {
+      toast({
+        title: "Email Not Confirmed",
+        description: "Please confirm your email before completing onboarding.",
+        variant: "destructive",
+      });
+      navigate('/auth/email-confirmation');
+      return;
+    }
+
+    // Check if user already completed onboarding
+    if (profile?.ign && profile?.player_uid) {
+      navigate('/dashboard');
+    }
+  }, [user, profile, navigate, toast]);
   const validatePlayerUid = (uid: string): boolean => {
     const regex = /^[a-zA-Z0-9]{6,20}$/;
     if (!regex.test(uid)) {
@@ -168,9 +192,9 @@ export const Onboarding: React.FC = () => {
   };
 
   const handleComplete = async () => {
+    setLoading(true);
     try {
-      const { data: user } = await supabase.auth.getUser();
-      if (!user.user) throw new Error('No authenticated user');
+      if (!user) throw new Error('No authenticated user');
 
       if (!validatePlayerUid(formData.player_uid)) {
         toast({
@@ -178,6 +202,7 @@ export const Onboarding: React.FC = () => {
           description: playerUidError,
           variant: "destructive",
         });
+        setLoading(false);
         return;
       }
 
@@ -204,14 +229,28 @@ export const Onboarding: React.FC = () => {
         }
       };
 
-      const success = await updateProfile(profileUpdates);
+      // Update profile directly with Supabase
+      const { error } = await supabase
+        .from('profiles')
+        .update(profileUpdates)
+        .eq('id', user.id);
 
-      if (success) {
+      if (error) {
+        throw error;
+      } else {
         toast({
           title: "Welcome to NeXa_Esports!",
           description: "Your profile has been set up successfully.",
         });
-        navigate(profile?.role === 'admin' ? '/admin' : '/dashboard');
+        
+        // Refresh the profile data
+        const { data: updatedProfile } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', user.id)
+          .single();
+        
+        navigate(updatedProfile?.role === 'admin' ? '/admin' : '/dashboard');
       }
     } catch (error) {
       console.error('Error completing onboarding:', error);
@@ -220,6 +259,8 @@ export const Onboarding: React.FC = () => {
         description: "Failed to complete onboarding. Please try again.",
         variant: "destructive",
       });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -601,9 +642,10 @@ export const Onboarding: React.FC = () => {
             <Button
               onClick={handleNext}
               disabled={!isStepValid()}
+              disabled={loading || !isStepValid()}
               className="bg-primary hover:bg-primary/90 text-white font-rajdhani"
             >
-              {currentStep === 3 ? 'Complete Setup' : 'Next'}
+              {loading ? 'Setting up...' : currentStep === 3 ? 'Complete Setup' : 'Next'}
               {currentStep < 3 && <ChevronRight className="w-4 h-4 ml-2" />}
             </Button>
           </div>
