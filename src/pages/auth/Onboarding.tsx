@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -9,7 +9,6 @@ import { Label } from '@/components/ui/label';
 import { Shield, ChevronRight, ChevronLeft, Gamepad2, Users, User, HelpCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { useEffect } from 'react';
 
 // Device and brand data
 const deviceData = {
@@ -89,7 +88,7 @@ const bankOptions = [
   'First Bank', 'UBA', 'Zenith Bank', 'Fidelity Bank'
 ];
 
-export const Onboarding: React.FC = () => {
+export const Onboarding: React.FC = React.memo(() => {
   const navigate = useNavigate();
   const { profile, updateProfile, user } = useAuth();
   const { toast } = useToast();
@@ -122,6 +121,8 @@ export const Onboarding: React.FC = () => {
 
   // Check if user is authenticated and email is confirmed
   useEffect(() => {
+    if (loading) return;
+    
     if (!user) {
       navigate('/auth/login');
       return;
@@ -141,8 +142,9 @@ export const Onboarding: React.FC = () => {
     if (profile?.ign && profile?.player_uid) {
       navigate('/dashboard');
     }
-  }, [user, profile, navigate, toast]);
-  const validatePlayerUid = (uid: string): boolean => {
+  }, [user, profile?.ign, profile?.player_uid, navigate, toast, loading]);
+
+  const validatePlayerUid = useCallback((uid: string): boolean => {
     const regex = /^[a-zA-Z0-9]{6,20}$/;
     if (!regex.test(uid)) {
       setPlayerUidError('Player UID must be 6-20 alphanumeric characters (e.g., CDM001234567)');
@@ -150,9 +152,9 @@ export const Onboarding: React.FC = () => {
     }
     setPlayerUidError('');
     return true;
-  };
+  }, []);
 
-  const handleInputChange = (field: string, value: string) => {
+  const handleInputChange = useCallback((field: string, value: string) => {
     setFormData(prev => {
       const newData = { ...prev, [field]: value };
       if (field === 'deviceType') {
@@ -167,9 +169,9 @@ export const Onboarding: React.FC = () => {
       }
       return newData;
     });
-  };
+  }, [validatePlayerUid]);
 
-  const handleNext = () => {
+  const handleNext = useCallback(() => {
     if (currentStep < 3) {
       if (currentStep === 1 && !validatePlayerUid(formData.player_uid)) {
         toast({
@@ -183,15 +185,15 @@ export const Onboarding: React.FC = () => {
     } else {
       handleComplete();
     }
-  };
+  }, [currentStep, formData.player_uid, playerUidError, toast, validatePlayerUid]);
 
-  const handleBack = () => {
+  const handleBack = useCallback(() => {
     if (currentStep > 1) {
       setCurrentStep(currentStep - 1);
     }
-  };
+  }, [currentStep]);
 
-  const handleComplete = async () => {
+  const handleComplete = useCallback(async () => {
     setLoading(true);
     try {
       if (!user) throw new Error('No authenticated user');
@@ -229,7 +231,6 @@ export const Onboarding: React.FC = () => {
         }
       };
 
-      // Update profile directly with Supabase
       const { error } = await supabase
         .from('profiles')
         .update(profileUpdates)
@@ -243,7 +244,6 @@ export const Onboarding: React.FC = () => {
           description: "Your profile has been set up successfully.",
         });
         
-        // Refresh the profile data
         const { data: updatedProfile } = await supabase
           .from('profiles')
           .select('*')
@@ -262,9 +262,9 @@ export const Onboarding: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [formData, navigate, toast, user, validatePlayerUid, playerUidError]);
 
-  const isStepValid = () => {
+  const isStepValid = useMemo(() => {
     switch (currentStep) {
       case 1:
         return formData.ign &&
@@ -286,9 +286,9 @@ export const Onboarding: React.FC = () => {
       default:
         return false;
     }
-  };
+  }, [currentStep, formData, validatePlayerUid]);
 
-  const getDeviceOptions = () => {
+  const getDeviceOptions = useCallback(() => {
     if (formData.deviceType === 'iPhone') {
       return deviceData.iPhone;
     } else if (formData.deviceType === 'Android') {
@@ -296,13 +296,12 @@ export const Onboarding: React.FC = () => {
     } else if (formData.deviceType === 'iPad') {
       return deviceData.iPad;
     }
-    return []; // Always return an array
-  };
+    return [];
+  }, [formData.deviceType]);
 
   const stepIcons = [Gamepad2, Users, User];
   const stepTitles = ['Gaming Setup', 'Social Media', 'Banking Info'];
 
-  // Default fallback render if currentStep is invalid
   if (![1, 2, 3].includes(currentStep)) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-4">
@@ -641,7 +640,6 @@ export const Onboarding: React.FC = () => {
             </Button>
             <Button
               onClick={handleNext}
-              disabled={!isStepValid()}
               disabled={loading || !isStepValid()}
               className="bg-primary hover:bg-primary/90 text-white font-rajdhani"
             >
@@ -653,4 +651,4 @@ export const Onboarding: React.FC = () => {
       </Card>
     </div>
   );
-};
+});
