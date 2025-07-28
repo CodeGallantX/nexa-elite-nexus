@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -12,51 +13,43 @@ import {
   Key,
   Clock,
   CheckCircle,
-  AlertCircle,
-  Trash2
+  AlertCircle
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
+
 export const AdminNotifications: React.FC = () => {
   const { toast } = useToast();
-  const [notifications, setNotifications] = useState<any[]>([]);
+  const [notifications, setNotifications] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [filter, setFilter] = useState('all');
-  const [isClearModalOpen, setIsClearModalOpen] = useState(false);
 
   useEffect(() => {
     const fetchNotifications = async () => {
       const { data, error } = await supabase
-        .from('notifications')
-        .select("*")
-        .order("created_at", { ascending: false });
-
+      .from('notifications')
+      .select("*")
+      .order("created_at", {ascending: false});
+    
       if (error) {
-        console.error("Error fetching notifications:", error.message);
-        toast({
-          title: "Error",
-          description: "Failed to fetch notifications",
-          variant: "destructive",
-        });
-        return;
+        console.error("Error fetching notifications:", error.message)
+      } else {
+        const formatted = data.map((n) => ({
+          id: n.id,
+          type: n.type,
+          message: n.message,
+          playerName: n.data?.playerName || 'Unknown',
+          accessCode: n.data?.accessCode || '',
+          timestamp: n.created_at,
+          status: n.read ? 'read' : 'unread',
+          action: n.action_data?.action || '',
+        }));
+        setNotifications(formatted);
       }
-
-      const formatted = data?.map((n: any) => ({
-        id: n.id,
-        type: n.type,
-        message: n.message,
-        playerName: n.data?.playerName || 'Unknown',
-        accessCode: n.data?.accessCode || '',
-        timestamp: n.created_at,
-        status: n.read ? 'read' : 'unread',
-        action: n.action_data?.action || '',
-      })) || [];
-
-      setNotifications(formatted);
     };
 
     fetchNotifications();
-  }, []);
+  })
 
   const getNotificationIcon = (type: string) => {
     switch (type) {
@@ -72,7 +65,7 @@ export const AdminNotifications: React.FC = () => {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'unread':
-        return 'bg-blue-500/20 text-blue-400 border-blue-400 border-blue-500/50';
+        return 'bg-blue-500/20 text-blue-400 border-blue-500/50';
       case 'read':
         return 'bg-gray-500/20 text-gray-400 border-gray-500/50';
       case 'responded':
@@ -85,6 +78,7 @@ export const AdminNotifications: React.FC = () => {
   const handleCopyCode = (code: string, notificationId: string) => {
     navigator.clipboard.writeText(code);
     
+    // Mark as responded
     setNotifications(prev =>
       prev.map(n => n.id === notificationId ? { ...n, status: 'responded' } : n)
     );
@@ -96,6 +90,7 @@ export const AdminNotifications: React.FC = () => {
   };
 
   const handleViewPlayer = (playerName: string, notificationId: string) => {
+    // Mark as read
     setNotifications(prev =>
       prev.map(n => n.id === notificationId ? { ...n, status: 'read' } : n)
     );
@@ -107,73 +102,42 @@ export const AdminNotifications: React.FC = () => {
   };
 
   const markAsRead = async (notificationId: string) => {
-    const { error } = await supabase
-      .from("notifications")
-      .update({ read: true })
-      .eq('id', notificationId);
+    await supabase
+    .from("notifications")
+    .update({ read:true })
+    .eq('id', notificationId)
     
-    if (error) {
-      console.error("Error marking notification as read:", error.message);
-      toast({
-        title: "Error",
-        description: "Failed to mark notification as read",
-        variant: "destructive",
-      });
-      return;
-    }
-
     setNotifications(prev =>
       prev.map(n => n.id === notificationId ? { ...n, status: 'read' } : n)
     );
   };
 
   const markAllAsRead = async () => {
-    const { error } = await supabase
-      .from("notifications")
-      .update({ read: true })
-      .neq('read', true); // Only update unread notifications
+    const { data, error } = await supabase.auth.getUser()
+    const user = data?.user;
 
-    if (error) {
-      console.error("Error marking all notifications as read:", error.message);
-      toast({
-        title: "Error",
-        description: "Failed to mark all notifications as read",
-        variant: "destructive",
-      });
+    if (error || !user) {
+      console.error("Failed to get user:", error)
       return;
     }
 
-    setNotifications(prev =>
-      prev.map(n => ({ ...n, status: 'read' }))
-    );
-    toast({
-      title: "All Marked as Read",
-      description: "All notifications have been marked as read",
-    });
-  };
-
-  const clearAllNotifications = async () => {
-    const { error } = await supabase
+    const  { error:updateError } = await supabase
       .from("notifications")
-      .delete()
-      .neq('id', ''); // Safety condition
+      .update({ read:true })
+      .eq('id', user?.id)
 
-    if (error) {
-      console.error("Error clearing notifications:", error.message);
+      if (updateError) {
+        console.error("Error performing action:", error)
+        return;
+      }
+      
+      setNotifications(prev =>
+        prev.map(n => ({ ...n, status: 'read' }))
+      );
       toast({
-        title: "Error",
-        description: "Failed to clear notifications",
-        variant: "destructive",
+        title: "All Marked as Read",
+        description: "All notifications have been marked as read",
       });
-      return;
-    }
-
-    setNotifications([]);
-    toast({
-      title: "Notifications Cleared",
-      description: "All notifications have been cleared",
-    });
-    setIsClearModalOpen(false);
   };
 
   const filteredNotifications = notifications.filter(notification => {
@@ -214,33 +178,24 @@ export const AdminNotifications: React.FC = () => {
     const years = Math.floor(diffInSeconds / 31536000);
     return `${years}y ago`;
   };
+  
 
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+      <div className="flex flex-col md:flex-row items-start md:items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-foreground font-orbitron mb-2">Notifications</h1>
           <p className="text-muted-foreground font-rajdhani">Manage clan notifications and requests</p>
         </div>
-        <div className="flex gap-2">
-          <Button 
-            onClick={markAllAsRead}
-            variant="outline"
-            className="font-rajdhani"
-          >
-            <CheckCircle className="w-4 h-4 mr-2" />
-            Mark All Read
-          </Button>
-          <Button 
-            onClick={() => setIsClearModalOpen(true)}
-            variant="destructive"
-            className="font-rajdhani"
-          >
-            <Trash2 className="w-4 h-4 mr-2" />
-            Clear All
-          </Button>
-        </div>
+        <Button 
+          onClick={markAllAsRead}
+          variant="outline"
+          className="font-rajdhani"
+        >
+          <CheckCircle className="w-4 h-4 mr-2" />
+          Mark All Read
+        </Button>
       </div>
 
       {/* Stats Cards */}
@@ -288,6 +243,7 @@ export const AdminNotifications: React.FC = () => {
                 className="pl-10 bg-background/50 border-border/50 font-rajdhani"
               />
             </div>
+            
             <div className="flex space-x-2">
               {['all', 'unread', 'read', 'responded'].map(status => (
                 <Button
@@ -333,6 +289,9 @@ export const AdminNotifications: React.FC = () => {
                       <div className="flex-1">
                         <div className="flex items-center space-x-2 mb-1">
                           <p className="text-foreground font-rajdhani">{notification.message}</p>
+                          {/* <Badge className={getStatusColor(notification.status)}>
+                            {notification.status}
+                          </Badge> */}
                         </div>
                         <div className="flex items-center space-x-2 text-sm text-muted-foreground">
                           <Clock className="w-3 h-3" />
@@ -340,7 +299,8 @@ export const AdminNotifications: React.FC = () => {
                         </div>
                       </div>
                     </div>
-                    <div className="flex flex-col md:flex-row items-center space-y-2 md:space-y-0 md:space-x-2 ml-4">
+                    
+                    <div className="flex flex-col md:flex-row items-center spacemd:space-x-2 ml-4">
                       {notification.type === 'access_code_request' && notification.accessCode && (
                         <Button
                           size="sm"
@@ -351,6 +311,7 @@ export const AdminNotifications: React.FC = () => {
                           Copy Code
                         </Button>
                       )}
+                      
                       {notification.action === 'view_player' && (
                         <Button
                           size="sm"
@@ -362,6 +323,7 @@ export const AdminNotifications: React.FC = () => {
                           View Player
                         </Button>
                       )}
+                      
                       {notification.status === 'unread' && (
                         <Button
                           size="sm"
@@ -372,6 +334,7 @@ export const AdminNotifications: React.FC = () => {
                           Mark Read
                         </Button>
                       )}
+                      
                     </div>
                   </div>
                 </div>
@@ -388,34 +351,6 @@ export const AdminNotifications: React.FC = () => {
           </div>
         </CardContent>
       </Card>
-
-      {/* Clear Confirmation Modal */}
-      {isClearModalOpen && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black/50 z-50">
-          <div className="bg-card/80 backdrop-blur-sm rounded-xl border border-border/30 p-6 max-w-sm w-full">
-            <h3 className="text-xl font-bold text-foreground font-orbitron mb-4">Confirm Clear Notifications</h3>
-            <p className="text-muted-foreground font-rajdhani mb-6">
-              Are you sure you want to clear all notifications? This action cannot be undone.
-            </p>
-            <div className="flex justify-end gap-2">
-              <Button
-                variant="outline"
-                onClick={() => setIsClearModalOpen(false)}
-                className="font-rajdhani"
-              >
-                Cancel
-              </Button>
-              <Button
-                variant="destructive"
-                onClick={clearAllNotifications}
-                className="font-rajdhani"
-              >
-                Clear All
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

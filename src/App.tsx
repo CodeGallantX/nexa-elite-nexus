@@ -46,8 +46,8 @@ import AdminDashboard from '@/pages/AdminDashboard';
 function App() {
   return (
     <ThemeProvider>
-      <Router>
-        <AuthProvider>
+      <AuthProvider>
+        <Router>
           <Routes>
             {/* Public routes */}
             <Route path="/" element={<Index />} />
@@ -91,8 +91,8 @@ function App() {
             <Route path="*" element={<NotFound />} />
           </Routes>
           <Toaster />
-        </AuthProvider>
-      </Router>
+        </Router>
+      </AuthProvider>
     </ThemeProvider>
   );
 }

@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -6,7 +7,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { 
@@ -24,191 +24,33 @@ import {
   Instagram,
   Youtube,
   Twitter,
-  Share2,
-  Trash2,
-  Plus
+  Share2
 } from 'lucide-react';
-
-interface SocialLinks {
-  [key: string]: string;
-}
-
-interface BankingInfo {
-  [key: string]: string;
-}
-
-interface ProfileData {
-  id: string;
-  username: string;
-  ign: string;
-  role: string;
-  avatar_url?: string;
-  tiktok_handle?: string;
-  preferred_mode?: string;
-  device?: string;
-  kills?: number;
-  attendance?: number;
-  tier?: string;
-  grade?: string;
-  date_joined?: string;
-  created_at?: string;
-  updated_at?: string;
-  banking_info?: BankingInfo;
-  social_links?: SocialLinks;
-  player_uid?: string;
-}
-
-// Device and brand data (from Onboarding.tsx)
-const deviceData = {
-  iPhone: [
-    "iPhone X",
-    "iPhone XR",
-    "iPhone XS",
-    "iPhone XS Max",
-    "iPhone 11",
-    "iPhone 11 Pro",
-    "iPhone 11 Pro Max",
-    "iPhone SE (2nd generation)",
-    "iPhone 12 mini",
-    "iPhone 12",
-    "iPhone 12 Pro",
-    "iPhone 12 Pro Max",
-    "iPhone 13 mini",
-    "iPhone 13",
-    "iPhone 13 Pro",
-    "iPhone 13 Pro Max",
-    "iPhone SE (3rd generation)",
-    "iPhone 14",
-    "iPhone 14 Plus",
-    "iPhone 14 Pro",
-    "iPhone 14 Pro Max",
-    "iPhone 15",
-    "iPhone 15 Plus",
-    "iPhone 15 Pro",
-    "iPhone 15 Pro Max",
-    "iPhone 16",
-    "iPhone 16 Plus",
-    "iPhone 16 Pro",
-    "iPhone 16 Pro Max",
-    "iPhone 17",
-    "iPhone 17 Plus",
-    "iPhone 17 Pro",
-    "iPhone 17 Pro Max"
-  ],
-  Android: ['Samsung', 'Xiaomi', 'Infinix', 'Redmi', 'Itel', 'Tecno', 'Nokia', 'OnePlus', 'Huawei', 'Oppo', 'Vivo', 'Realme', 'Honor', 'Nothing'],
-  iPad: [
-    "iPad (5th generation)",
-    "iPad (6th generation)",
-    "iPad (7th generation)",
-    "iPad (8th generation)",
-    "iPad (9th generation)",
-    "iPad (10th generation)",
-    "iPad (11th generation)",
-    "iPad mini (5th generation)",
-    "iPad mini (6th generation)",
-    "iPad mini (7th generation)",
-    "iPad Air (3rd generation)",
-    "iPad Air (4th generation)",
-    "iPad Air (5th generation)",
-    "iPad Air (6th generation)",
-    "iPad Pro 10.5-inch",
-    "iPad Pro 12.9-inch (2nd generation)",
-    "iPad Pro 11-inch (1st generation)",
-    "iPad Pro 12.9-inch (3rd generation)",
-    "iPad Pro 11-inch (2nd generation)",
-    "iPad Pro 12.9-inch (4th generation)",
-    "iPad Pro 11-inch (3rd generation)",
-    "iPad Pro 12.9-inch (5th generation)",
-    "iPad Pro 11-inch (4th generation)",
-    "iPad Pro 12.9-inch (6th generation)",
-    "iPad Pro 11-inch (M4, 5th generation)",
-    "iPad Pro 13-inch (M4, 7th generation)"
-  ]
-};
-
-// Game modes
-const gameModes = ['BR', 'MP', 'Both'];
-
-// Social media platforms
-const socialPlatforms = ['Instagram', 'YouTube', 'Twitter', 'Discord', 'TikTok'];
-
-// Bank options (from Onboarding.tsx)
-const bankOptions = [
-  'Opay', 'Palmpay', 'Moniepoint', 'Kuda', 'Access Bank', 'GTBank',
-  'First Bank', 'UBA', 'Zenith Bank', 'Fidelity Bank'
-];
 
 export const Profile: React.FC = () => {
   const { profile, updateProfile, resetPassword, user } = useAuth();
   const { toast } = useToast();
-  const navigate = useNavigate();
   const [editing, setEditing] = useState(false);
   const [uploading, setUploading] = useState(false);
-  const [isClient, setIsClient] = useState(false);
   const [formData, setFormData] = useState({
-    username: '',
-    ign: '',
-    tiktok_handle: '',
-    preferred_mode: '',
-    deviceType: '',
-    deviceName: '',
-    player_uid: '',
-    social_links: {} as SocialLinks,
-    banking_info: {} as BankingInfo
+    tiktok_handle: profile?.tiktok_handle || '',
+    preferred_mode: profile?.preferred_mode || '',
+    device: profile?.device || '',
+    kills: profile?.kills?.toString() || '0',
+    ign: profile?.ign || '',
+    username: profile?.username || '',
+    social_links: profile?.social_links || {},
+    banking_info: profile?.banking_info || {}
   });
-  const [newSocialPlatform, setNewSocialPlatform] = useState('');
-  const [newSocialHandle, setNewSocialHandle] = useState('');
-  const [newBankingKey, setNewBankingKey] = useState('');
-  const [newBankingValue, setNewBankingValue] = useState('');
-
-  // Ensure client-side rendering for hydration safety
-  useEffect(() => {
-    setIsClient(true);
-    if (profile) {
-      // Parse device into deviceType and deviceName
-      let deviceType = '';
-      let deviceName = profile.device || '';
-      if (deviceData.iPhone.includes(deviceName)) {
-        deviceType = 'iPhone';
-      } else if (deviceData.Android.includes(deviceName)) {
-        deviceType = 'Android';
-      } else if (deviceData.iPad.includes(deviceName)) {
-        deviceType = 'iPad';
-      }
-      setFormData({
-        username: profile.username || '',
-        ign: profile.ign || '',
-        tiktok_handle: profile.tiktok_handle || '',
-        preferred_mode: profile.preferred_mode || '',
-        deviceType,
-        deviceName,
-        player_uid: profile.player_uid || '',
-        social_links: profile.social_links || {},
-        banking_info: profile.banking_info || {}
-      });
-    }
-  }, [profile]);
 
   const handleSave = async () => {
     if (profile) {
-      try {
-        const updateData = {
-          ...formData,
-          device: formData.deviceName || formData.deviceType // Combine deviceType and deviceName
-        };
-        await updateProfile(updateData);
-        setEditing(false);
-        toast({
-          title: "Success",
-          description: "Profile updated successfully",
-        });
-      } catch (error: any) {
-        toast({
-          title: "Error",
-          description: error.message || "Failed to update profile",
-          variant: "destructive",
-        });
-      }
+      const updateData = {
+        ...formData,
+        kills: parseInt(formData.kills) || 0
+      };
+      await updateProfile(updateData);
+      setEditing(false);
     }
   };
 
@@ -238,7 +80,7 @@ export const Profile: React.FC = () => {
         title: "Success",
         description: "Avatar updated successfully",
       });
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error uploading avatar:', error);
       toast({
         title: "Error",
@@ -247,35 +89,6 @@ export const Profile: React.FC = () => {
       });
     } finally {
       setUploading(false);
-    }
-  };
-
-  const handlePasswordReset = async () => {
-    if (!user?.email) {
-      toast({
-        title: "Error",
-        description: "No email found for password reset",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    try {
-      const success = await resetPassword(user.email);
-      if (success) {
-        toast({
-          title: "Password Reset Email Sent",
-          description: "Check your email for password reset instructions",
-        });
-      } else {
-        throw new Error("Failed to send password reset email");
-      }
-    } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to send password reset email",
-        variant: "destructive",
-      });
     }
   };
 
@@ -288,6 +101,25 @@ export const Profile: React.FC = () => {
       'D': 'bg-red-500'
     };
     return colors[grade as keyof typeof colors] || 'bg-gray-500';
+  };
+
+  const handlePasswordReset = async () => {
+    if (!user?.email) {
+      toast({
+        title: "Error",
+        description: "No email found for password reset",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const success = await resetPassword(user.email);
+    if (success) {
+      toast({
+        title: "Password Reset Email Sent",
+        description: "Check your email for password reset instructions",
+      });
+    }
   };
 
   const getSocialIcon = (platform: string) => {
@@ -333,69 +165,15 @@ export const Profile: React.FC = () => {
     return url;
   };
 
-  const addSocialLink = () => {
-    if (newSocialPlatform && newSocialHandle) {
-      setFormData(prev => ({
-        ...prev,
-        social_links: {
-          ...prev.social_links,
-          [newSocialPlatform.toLowerCase()]: newSocialHandle
-        }
-      }));
-      setNewSocialPlatform('');
-      setNewSocialHandle('');
-    }
-  };
-
-  const removeSocialLink = (platform: string) => {
-    const { [platform]: _, ...rest } = formData.social_links;
-    setFormData(prev => ({
-      ...prev,
-      social_links: rest
-    }));
-  };
-
-  const addBankingInfo = () => {
-    if (newBankingKey && newBankingValue) {
-      setFormData(prev => ({
-        ...prev,
-        banking_info: {
-          ...prev.banking_info,
-          [newBankingKey.toLowerCase().replace(/\s/g, '_')]: newBankingValue
-        }
-      }));
-      setNewBankingKey('');
-      setNewBankingValue('');
-    }
-  };
-
-  const removeBankingInfo = (key: string) => {
-    const { [key]: _, ...rest } = formData.banking_info;
-    setFormData(prev => ({
-      ...prev,
-      banking_info: rest
-    }));
-  };
-
-  const getDeviceOptions = () => {
-    if (formData.deviceType === 'iPhone') {
-      return deviceData.iPhone;
-    } else if (formData.deviceType === 'Android') {
-      return deviceData.Android;
-    } else if (formData.deviceType === 'iPad') {
-      return deviceData.iPad;
-    }
-    return [];
-  };
-
-  // Avoid rendering during SSR until client-side hydration
-  if (!isClient || !profile) {
+  if (!profile) {
     return (
       <div className="flex items-center justify-center min-h-96">
         <div className="text-white">Loading profile...</div>
       </div>
     );
   }
+
+ const navigate = useNavigate()
 
   return (
     <div className="space-y-6">
@@ -440,29 +218,26 @@ export const Profile: React.FC = () => {
               
               <div className="flex flex-wrap justify-center md:justify-start gap-3 mb-4">
                 <Badge className={`${getGradeColor(profile.grade || 'D')} text-white`}>
-                  Grade {profile.grade || 'D'}
+                  Grade {profile.grade}
                 </Badge>
                 <Badge variant="outline" className="border-[#FF1F44]/50 text-[#FF1F44]">
-                  {profile.tier || 'Not specified'}
+                  {profile.tier}
                 </Badge>
                 <Badge variant="outline" className="border-white/30 text-white">
                   {profile.device || 'Mobile'}
                 </Badge>
-                <Badge variant="outline" className="border-white/30 text-white">
-                  Role: {profile.role}
-                </Badge>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
-                <div className="p-3 bg-gray-900 rounded-lg">
-                  <div className="text-2xl font-bold text-[#FF1F44]">{profile.kills?.toLocaleString() || 0}</div>
+                <div className="p-3 bg-white/5 rounded-lg">
+                  <div className="text-2xl font-bold text-[#FF1F44]">{profile.kills?.toLocaleString()}</div>
                   <div className="text-sm text-gray-400">Total Kills</div>
                 </div>
-                <div className="p-3 bg-gray-900 rounded-lg">
-                  <div className="text-2xl font-bold text-[#FF1F44]">{profile.attendance || 0}%</div>
+                <div className="p-3 bg-white/5 rounded-lg">
+                  <div className="text-2xl font-bold text-[#FF1F44]">{profile.attendance}%</div>
                   <div className="text-sm text-gray-400">Attendance</div>
                 </div>
-                <div className="p-3 bg-gray-900 rounded-lg">
+                <div className="p-3 bg-white/5 rounded-lg">
                   <div className="text-2xl font-bold text-[#FF1F44]">
                     {profile.date_joined ? 
                       Math.floor((Date.now() - new Date(profile.date_joined).getTime()) / (1000 * 60 * 60 * 24)) 
@@ -473,29 +248,30 @@ export const Profile: React.FC = () => {
               </div>
             </div>
 
-            <div className="flex flex-col items-start justify-center">
-              <Button
-                onClick={() => setEditing(!editing)}
-                className="bg-white/10 hover:bg-white/20 text-white border border-white/20"
-              >
-                {editing ? <Save className="w-4 h-4 mr-2" /> : <Edit3 className="w-4 h-4 mr-2" />}
-                {editing ? 'Save' : 'Edit Profile'}
-              </Button>
-              <Button
-                onClick={() => navigate(`/profile/${profile.id}`)}
-                className="bg-white/10 hover:bg-white/20 text-white border border-white/20 mt-2"
-              >
-                <Share2 className="w-4 h-4 mr-2" />
-                Share Profile
-              </Button>
-            </div>
+<div className='flex flex-col items-start justify-center'>
+            {/* Edit Button */}
+            <Button
+              onClick={() => setEditing(!editing)}
+              className="bg-white/10 hover:bg-white/20 text-white border border-white/20"
+            >
+              {editing ? <Save className="w-4 h-4 mr-2" /> : <Edit3 className="w-4 h-4 mr-2" />}
+              {editing ? 'Save' : 'Edit Profile'}
+            </Button>
+            <Button
+              onClick={() => navigate('/profile/:id/')}
+              className="bg-white/10 hover:bg-white/20 text-white border border-white/20"
+            >
+              <Share2 />
+              Share Profile
+            </Button>
+              </div>
           </div>
         </CardContent>
       </Card>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Game Information */}
-        <Card className="bg-gray-900 border-white/10 backdrop-blur-sm">
+        <Card className="bg-white/5 border-white/10 backdrop-blur-sm">
           <CardHeader>
             <CardTitle className="text-white flex items-center">
               <Target className="w-5 h-5 mr-2 text-[#FF1F44]" />
@@ -510,7 +286,7 @@ export const Profile: React.FC = () => {
                   <Input
                     value={formData.ign}
                     onChange={(e) => setFormData(prev => ({ ...prev, ign: e.target.value }))}
-                    className="mt-1 bg-gray-900 border-white/20 text-white"
+                    className="mt-1 bg-white/5 border-white/20 text-white"
                     placeholder="Your in-game name"
                   />
                 ) : (
@@ -523,7 +299,7 @@ export const Profile: React.FC = () => {
                   <Input
                     value={formData.username}
                     onChange={(e) => setFormData(prev => ({ ...prev, username: e.target.value }))}
-                    className="mt-1 bg-gray-900 border-white/20 text-white"
+                    className="mt-1 bg-white/5 border-white/20 text-white"
                     placeholder="Your username"
                   />
                 ) : (
@@ -535,178 +311,82 @@ export const Profile: React.FC = () => {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label className="text-gray-300">Total Kills</Label>
-                <div className="text-white font-medium mt-1">{profile.kills?.toLocaleString() || 0}</div>
+                {editing ? (
+                  <Input
+                    type="number"
+                    value={formData.kills}
+                    onChange={(e) => setFormData(prev => ({ ...prev, kills: e.target.value }))}
+                    className="mt-1 bg-white/5 border-white/20 text-white"
+                    placeholder="0"
+                  />
+                ) : (
+                  <div className="text-white font-medium mt-1">{profile.kills?.toLocaleString()}</div>
+                )}
               </div>
               <div>
                 <Label className="text-gray-300">Player UID</Label>
-                {editing ? (
-                  <Input
-                    value={formData.player_uid}
-                    onChange={(e) => setFormData(prev => ({ ...prev, player_uid: e.target.value }))}
-                    className="mt-1 bg-gray-900 border-white/20 text-white"
-                    placeholder="Player UID"
-                  />
-                ) : (
-                  <div className="text-white font-medium mt-1">{profile.player_uid || 'Not specified'}</div>
-                )}
+                <div className="text-white font-medium mt-1">{profile.id.slice(0, 8)}...</div>
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label className="text-gray-300">Device Type</Label>
+                <Label className="text-gray-300">Gaming Device</Label>
                 {editing ? (
-                  <Select
-                    value={formData.deviceType}
-                    onValueChange={(value) => setFormData(prev => ({ ...prev, deviceType: value, deviceName: '' }))}
-                  >
-                    <SelectTrigger className="mt-1 bg-gray-900 border-white/20 text-white">
-                      <SelectValue placeholder="Select device type" />
-                    </SelectTrigger>
-                    <SelectContent className="bg-gray-900 border-white/20 text-white">
-                      <SelectItem value="iPhone">iPhone</SelectItem>
-                      <SelectItem value="Android">Android</SelectItem>
-                      <SelectItem value="iPad">iPad</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <Input
+                    value={formData.device}
+                    onChange={(e) => setFormData(prev => ({ ...prev, device: e.target.value }))}
+                    className="mt-1 bg-white/5 border-white/20 text-white"
+                    placeholder="e.g., iPhone, Android"
+                  />
                 ) : (
                   <div className="flex items-center mt-1">
                     <Smartphone className="w-4 h-4 mr-2 text-[#FF1F44]" />
-                    <span className="text-white">{formData.deviceType || 'Not specified'}</span>
+                    <span className="text-white">{profile.device || 'Not specified'}</span>
                   </div>
                 )}
               </div>
               <div>
-                <Label className="text-gray-300">Device Name</Label>
-                {editing ? (
-                  <Select
-                    value={formData.deviceName}
-                    onValueChange={(value) => setFormData(prev => ({ ...prev, deviceName: value }))}
-                    disabled={!formData.deviceType}
-                  >
-                    <SelectTrigger className="mt-1 bg-gray-900 border-white/20 text-white">
-                      <SelectValue placeholder={formData.deviceType ? "Select device name" : "Select device type first"} />
-                    </SelectTrigger>
-                    <SelectContent className="bg-gray-900 border-white/20 text-white">
-                      {getDeviceOptions().map(option => (
-                        <SelectItem key={option} value={option}>{option}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                ) : (
-                  <div className="text-white font-medium mt-1">{formData.deviceName || 'Not specified'}</div>
-                )}
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
                 <Label className="text-gray-300">Game Mode</Label>
                 {editing ? (
-                  <Select
+                  <Input
                     value={formData.preferred_mode}
-                    onValueChange={(value) => setFormData(prev => ({ ...prev, preferred_mode: value }))}
-                  >
-                    <SelectTrigger className="mt-1 bg-gray-900 border-white/20 text-white">
-                      <SelectValue placeholder="Select game mode" />
-                    </SelectTrigger>
-                    <SelectContent className="bg-gray-900 border-white/20 text-white">
-                      {gameModes.map(mode => (
-                        <SelectItem key={mode} value={mode}>
-                          {mode === 'BR' ? 'Battle Royale' : mode === 'MP' ? 'Multiplayer' : 'Both'}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                    onChange={(e) => setFormData(prev => ({ ...prev, preferred_mode: e.target.value }))}
+                    className="mt-1 bg-white/5 border-white/20 text-white"
+                    placeholder="e.g., Battle Royale, MP"
+                  />
                 ) : (
                   <div className="text-white font-medium mt-1">{profile.preferred_mode || 'Not specified'}</div>
                 )}
               </div>
-              <div>
-                <Label className="text-gray-300">Tier</Label>
-                <div className="text-white font-medium mt-1">{profile.tier || 'Not specified'}</div>
-              </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label className="text-gray-300">Grade</Label>
-                <div className="text-white font-medium mt-1">{profile.grade || 'Not specified'}</div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Account Details */}
-        <Card className="bg-gray-900 border-white/10 backdrop-blur-sm">
-          <CardHeader>
-            <CardTitle className="text-white flex items-center">
-              <User className="w-5 h-5 mr-2 text-[#FF1F44]" />
-              Account Details
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label className="text-gray-300">User ID</Label>
-                <div className="text-white font-medium mt-1">{profile.id.slice(0, 8)}...</div>
-              </div>
               <div>
                 <Label className="text-gray-300">Role</Label>
                 <div className="text-white font-medium mt-1 capitalize">{profile.role}</div>
               </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label className="text-gray-300">Date Joined</Label>
                 <div className="flex items-center mt-1">
                   <Calendar className="w-4 h-4 mr-2 text-[#FF1F44]" />
-                  <span className="text-white">{profile.date_joined || 'Not specified'}</span>
+                  <span className="text-white">{profile.date_joined}</span>
                 </div>
               </div>
-              <div>
-                <Label className="text-gray-300">Account Created</Label>
-                <div className="flex items-center mt-1">
-                  <Calendar className="w-4 h-4 mr-2 text-[#FF1F44]" />
-                  <span className="text-white">
-                    {profile.created_at ? new Date(profile.created_at).toLocaleString() : 'Not specified'}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            <div>
-              <Label className="text-gray-300">Last Updated</Label>
-              <div className="flex items-center mt-1">
-                <Calendar className="w-4 h-4 mr-2 text-[#FF1F44]" />
-                <span className="text-white">
-                  {profile.updated_at ? new Date(profile.updated_at).toLocaleString() : 'Not specified'}
-                </span>
-              </div>
-            </div>
-
-            <div className="pt-4 border-t border-white/10">
-              <Button
-                onClick={handlePasswordReset}
-                className="bg-orange-600 hover:bg-orange-700 text-white"
-              >
-                <Key className="w-4 h-4 mr-2" />
-                Change Password
-              </Button>
             </div>
           </CardContent>
         </Card>
 
-        {/* Social Media */}
-        <Card className="bg-gray-900 border-white/10 backdrop-blur-sm">
+        {/* Social Media & Account */}
+        <Card className="bg-white/5 border-white/10 backdrop-blur-sm">
           <CardHeader>
             <CardTitle className="text-white flex items-center">
               <ExternalLink className="w-5 h-5 mr-2 text-[#FF1F44]" />
-              Social Media
+              Social Media & Account
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
+            {/* TikTok */}
             <div>
               <Label htmlFor="tiktok" className="text-gray-300">TikTok Handle</Label>
               {editing ? (
@@ -714,7 +394,7 @@ export const Profile: React.FC = () => {
                   id="tiktok"
                   value={formData.tiktok_handle}
                   onChange={(e) => setFormData(prev => ({ ...prev, tiktok_handle: e.target.value }))}
-                  className="mt-1 bg-gray-900 border-white/20 text-white"
+                  className="mt-1 bg-white/5 border-white/20 text-white"
                   placeholder="@username"
                 />
               ) : (
@@ -736,174 +416,57 @@ export const Profile: React.FC = () => {
               )}
             </div>
 
+            {/* All Social Links (stored in social_links JSON field) */}
             {profile.social_links && (
               <div className="space-y-3">
-                {Object.entries(formData.social_links).map(([platform, handle]) => (
-                  <div key={platform} className="flex items-center justify-between">
-                    <div className="flex items-center">
+                {Object.entries(profile.social_links as Record<string, string>).map(([platform, handle]) => (
+                  <div key={platform}>
+                    <Label className="text-gray-300 capitalize">{platform}</Label>
+                    <div className="flex items-center mt-1">
                       {getSocialIcon(platform)}
-                      {editing ? (
-                        <Input
-                          value={handle}
-                          onChange={(e) => setFormData(prev => ({
-                            ...prev,
-                            social_links: { ...prev.social_links, [platform]: e.target.value }
-                          }))}
-                          className="ml-2 bg-gray-900 border-white/20 text-white w-64"
-                        />
-                      ) : (
-                        <span className="ml-2 text-white font-medium">
-                          {formatSocialLink(handle, platform) ? (
-                            <a 
-                              href={formatSocialLink(handle, platform) || '#'}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-[#FF1F44] hover:text-red-300 transition-colors"
-                            >
-                              {handle}
-                            </a>
-                          ) : handle}
-                        </span>
-                      )}
+                      <span className="ml-2 text-white font-medium">
+                        {formatSocialLink(handle, platform) ? (
+                          <a 
+                            href={formatSocialLink(handle, platform) || '#'}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-[#FF1F44] hover:text-red-300 transition-colors"
+                          >
+                            {handle}
+                          </a>
+                        ) : handle}
+                      </span>
                     </div>
-                    {editing && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => removeSocialLink(platform)}
-                        className="text-destructive"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    )}
                   </div>
                 ))}
               </div>
             )}
 
-            {editing && (
-              <div className="pt-4 border-t border-white/10 flex items-center space-x-2">
-                <Select
-                  value={newSocialPlatform}
-                  onValueChange={setNewSocialPlatform}
-                >
-                  <SelectTrigger className="bg-gray-900 border-white/20 text-white">
-                    <SelectValue placeholder="Select platform" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-gray-900 border-white/20 text-white">
-                    {socialPlatforms.map(platform => (
-                      <SelectItem key={platform} value={platform}>{platform}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <Input
-                  placeholder="Handle (e.g., @username)"
-                  value={newSocialHandle}
-                  onChange={(e) => setNewSocialHandle(e.target.value)}
-                  className="bg-gray-900 border-white/20 text-white"
-                />
-                <Button
-                  onClick={addSocialLink}
-                  className="bg-[#FF1F44] hover:bg-red-600 text-white"
-                >
-                  <Plus className="w-4 h-4 mr-2" />
-                  Add
-                </Button>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Banking Information */}
-        <Card className="bg-gray-900 border-white/10 backdrop-blur-sm">
-          <CardHeader>
-            <CardTitle className="text-white flex items-center">
-              <Trophy className="w-5 h-5 mr-2 text-[#FF1F44]" />
-              Banking Information
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
+            {/* Banking Info */}
             {profile.banking_info && (
-              <div className="space-y-2">
-                {Object.entries(formData.banking_info).map(([key, value]) => (
-                  <div key={key} className="flex items-center justify-between">
-                    <div className="flex justify-between w-full max-w-md">
+              <div className="pt-4 border-t border-white/10">
+                <Label className="text-gray-300">Banking Information</Label>
+                <div className="mt-2 space-y-2">
+                  {Object.entries(profile.banking_info as Record<string, string>).map(([key, value]) => (
+                    <div key={key} className="flex justify-between">
                       <span className="text-gray-400 capitalize">{key.replace('_', ' ')}:</span>
-                      {editing ? (
-                        <Input
-                          value={value}
-                          onChange={(e) => setFormData(prev => ({
-                            ...prev,
-                            banking_info: { ...prev.banking_info, [key]: e.target.value }
-                          }))}
-                          className="bg-gray-900 border-white/20 text-white w-64"
-                        />
-                      ) : (
-                        <span className="text-white font-medium">{value}</span>
-                      )}
+                      <span className="text-white font-medium">{value}</span>
                     </div>
-                    {editing && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => removeBankingInfo(key)}
-                        className="text-destructive"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    )}
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
             )}
 
-            {editing && (
-              <div className="pt-4 border-t border-white/10 flex items-center space-x-2">
-                <Select
-                  value={newBankingKey}
-                  onValueChange={(value) => setNewBankingKey(value)}
-                >
-                  <SelectTrigger className="bg-gray-900 border-white/20 text-white">
-                    <SelectValue placeholder="Select bank field" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-gray-900 border-white/20 text-white">
-                    <SelectItem value="bank_name">Bank Name</SelectItem>
-                    <SelectItem value="account_name">Account Name</SelectItem>
-                    <SelectItem value="account_number">Account Number</SelectItem>
-                    <SelectItem value="real_name">Real Name</SelectItem>
-                  </SelectContent>
-                </Select>
-                {newBankingKey === 'bank_name' ? (
-                  <Select
-                    value={newBankingValue}
-                    onValueChange={(value) => setNewBankingValue(value)}
-                  >
-                    <SelectTrigger className="bg-gray-900 border-white/20 text-white">
-                      <SelectValue placeholder="Select bank" />
-                    </SelectTrigger>
-                    <SelectContent className="bg-gray-900 border-white/20 text-white">
-                      {bankOptions.map(bank => (
-                        <SelectItem key={bank} value={bank}>{bank}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                ) : (
-                  <Input
-                    placeholder="Value"
-                    value={newBankingValue}
-                    onChange={(e) => setNewBankingValue(e.target.value)}
-                    className="bg-gray-900 border-white/20 text-white"
-                  />
-                )}
-                <Button
-                  onClick={addBankingInfo}
-                  className="bg-[#FF1F44] hover:bg-red-600 text-white"
-                >
-                  <Plus className="w-4 h-4 mr-2" />
-                  Add
-                </Button>
-              </div>
-            )}
+            {/* Password Reset */}
+            <div className="pt-4 border-t border-white/10">
+              <Button
+                onClick={handlePasswordReset}
+                className="bg-orange-600 hover:bg-orange-700 text-white"
+              >
+                <Key className="w-4 h-4 mr-2" />
+                Change Password
+              </Button>
+            </div>
 
             {editing && (
               <div className="mt-6 flex justify-end space-x-4">
