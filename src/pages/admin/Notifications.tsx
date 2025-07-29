@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { supabase } from "@/integrations/supabase/client";
+import PlayerProfileModal from "@/components/PlayerProfileModal";
 import { 
   Bell, 
   Copy, 
@@ -23,6 +24,8 @@ export const AdminNotifications: React.FC = () => {
   const [notifications, setNotifications] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [filter, setFilter] = useState('all');
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedPlayer, setSelectedPlayer] = useState<null | {name: string; id: string}>(null);
 
   useEffect(() => {
     const fetchNotifications = async () => {
@@ -94,6 +97,10 @@ export const AdminNotifications: React.FC = () => {
     setNotifications(prev =>
       prev.map(n => n.id === notificationId ? { ...n, status: 'read' } : n)
     );
+
+    setSelectedPlayer({name: playerName; id: notificationId});
+    setIsModalOpen(true);
+
 
     toast({
       title: "Player Profile",
@@ -351,6 +358,11 @@ export const AdminNotifications: React.FC = () => {
           </div>
         </CardContent>
       </Card>
+      <PlayerProfileModal
+        open={isModalOpen}
+        onOpenChange={setIsModalOpen}
+        player={selectedPlayer}
+      />
     </div>
   );
 };
