@@ -667,7 +667,7 @@ export const Chat: React.FC = () => {
                 <div className="text-muted-foreground">No messages yet. Start the conversation!</div>
               </div>
             ) : (
-              <div className="space-y-4">
+              <div className="space-y-3">
                 {messages.map((msg) => (
                   <div
                     key={msg.id}
@@ -677,7 +677,7 @@ export const Chat: React.FC = () => {
                     onTouchStart={(e) => handleTouchStart(e, msg)}
                   >
                     <div
-                      className={`relative p-1.5 rounded max-w-[95%] sm:max-w-[90%] ${
+                      className={`relative p-1.5 rounded-lg w-[95%] w-[90%] ${
                         msg.user_id === user?.id
                           ? 'chat-bubble outgoing bg-primary text-white ml-auto'
                           : 'chat-bubble incoming bg-gray-800 text-white'
@@ -711,7 +711,7 @@ export const Chat: React.FC = () => {
                       <div className="text-sm">{msg.message}</div>
                       {renderAttachment(msg)}
                       
-                      <div className={`text-xs mt-1 ${
+                      <div className={`text-xs mt-0.5 ${
                         msg.user_id === user?.id ? 'text-gray-200' : 'text-muted-foreground'
                       }`}>
                         {new Date(msg.created_at).toLocaleTimeString([], { 
