@@ -695,14 +695,14 @@ export const Chat: React.FC = () => {
                     onTouchStart={(e) => handleTouchStart(e, msg)}
                   >
                     <div
-                      className={`relative px-3 py-2 rounded-lg min-x-[35%] sm:min-x-[30%] max-w-[95%] sm:max-w-[90%] ${
+                      className={`relative px-3 py-2 rounded-lg min-x-[35%] sm:min-x-[40%] max-w-[95%] sm:max-w-[90%] ${
                         msg.user_id === user?.id
                           ? 'chat-bubble outgoing bg-primary text-white ml-auto'
                           : 'chat-bubble incoming bg-gray-800 text-white'
                       } ${highlightedMessageId === msg.id ? 'ring-2 ring-yellow-400' : ''}`}
                     >
                       {msg.user_id !== user?.id && (
-                        <div className="text-xs font-medium mb-1 text-primary">
+                        <div className="text-xs font-medium mb-0.5 text-primary">
                           Ɲ・乂{msg.profiles.ign}
                           {msg.profiles.role === 'admin' && (
                             <span className="ml-1 px-1 py-0.5 bg-red-500 text-white text-xs rounded">
@@ -729,7 +729,7 @@ export const Chat: React.FC = () => {
                       <div className="text-sm">{msg.message}</div>
                       {renderAttachment(msg)}
                       
-                      <div className={`text-xs mt-0.5 ${
+                      <div className={`text-xs ${
                         msg.user_id === user?.id ? 'text-gray-200' : 'text-muted-foreground'
                       }`}>
                         {new Date(msg.created_at).toLocaleTimeString([], { 
