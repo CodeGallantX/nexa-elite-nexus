@@ -589,13 +589,13 @@ export const Chat: React.FC = () => {
             clip-path: polygon(0 0, 100% 0, 100% 100%);
           }
           .chat-bubble.outgoing::after {
-            right: -0.5rem;
-            background: #DCF8C6;
+            right: -0.7rem;
+            background: #ff1f31;
             transform: rotate(-45deg);
           }
           .chat-bubble.incoming::after {
-            left: -0.5rem;
-            background: #F2F2F2;
+            left: -0.7rem;
+            background: #1f2937;
             transform: rotate(45deg);
           }
         `}
@@ -677,7 +677,7 @@ export const Chat: React.FC = () => {
                     onTouchStart={(e) => handleTouchStart(e, msg)}
                   >
                     <div
-                      className={`relative p-3 rounded-lg max-w-[85%] sm:max-w-[70%] ${
+                      className={`relative p-2.5 rounded-lg max-w-[95%] sm:max-w-[80%] ${
                         msg.user_id === user?.id
                           ? 'chat-bubble outgoing bg-primary text-white ml-auto'
                           : 'chat-bubble incoming bg-gray-800 text-white'
