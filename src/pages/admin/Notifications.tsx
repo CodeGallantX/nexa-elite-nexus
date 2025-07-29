@@ -98,7 +98,7 @@ export const AdminNotifications: React.FC = () => {
       prev.map(n => n.id === notificationId ? { ...n, status: 'read' } : n)
     );
 
-    setSelectedPlayer({name: playerName; id: notificationId});
+    setSelectedPlayer({name: playerName, id: notificationId});
     setIsModalOpen(true);
 
 
