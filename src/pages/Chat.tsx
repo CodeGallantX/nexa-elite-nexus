@@ -643,7 +643,7 @@ export const Chat: React.FC = () => {
 
       {/* Mobile channel list */}
       {showMobileNav && (
-        <Card className="mb-4 mx-2 sm:mx-4  bg-card/50 border-border/30">
+        <Card className="mb-4 mx-2 bg-card/50 border-border/30">
           <CardContent className="p-4">
             <div className="space-y-2">
               <Button onClick={() => setSelectedChannel('general')} variant="ghost" className={`w-full justify-start ${selectedChannel === 'general' ? "text-primary" : "text-white"}`}>
@@ -659,7 +659,7 @@ export const Chat: React.FC = () => {
         </Card>
       )}
 
-      <Card className="flex-1 mx-2 sm:mx-4 bg-card/50 border-border/30 backdrop-blur-sm relative z-10">
+      <Card className="flex-1 mx-2 bg-card/50 border-border/30 backdrop-blur-sm relative z-10">
         <CardHeader className="border-b border-border/30">
           <CardTitle className="flex flex-col md:flex-row items-start sm:items-center justify-between">
             {selectedChannel === 'admin' ? (
