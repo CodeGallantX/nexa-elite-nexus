@@ -580,25 +580,30 @@ export const Chat: React.FC = () => {
     <div className="flex flex-col h-full relative">
       <style>
         {`
-          .chat-bubble::after {
-            content: '';
-            position: absolute;
-            bottom: 0.5rem;
-            width: 0.75rem;
-            height: 0.75rem;
-            clip-path: polygon(0 0, 100% 0, 100% 100%);
-          }
-          .chat-bubble.outgoing::after {
-            right: -0.7rem;
-            background: #ff1f31;
-            transform: rotate(-45deg);
-          }
-          .chat-bubble.incoming::after {
-            left: -0.7rem;
-            background: #1f2937;
-            transform: rotate(45deg);
-          }
-        `}
+    .chat-bubble {
+      position: relative;
+    }
+    .chat-bubble::after {
+      content: '';
+      position: absolute;
+      width: 10px;
+      height: 15px;
+      background: inherit;
+      bottom: 0.35rem;
+    }
+
+    .chat-bubble.outgoing::after {
+      right: -5px;
+      clip-path: polygon(0 0, 100% 0, 100% 100%);
+      transform: rotate(-30deg);
+    }
+
+    .chat-bubble.incoming::after {
+      left: -5px;
+      clip-path: polygon(0 0, 100% 0, 0 100%);
+      transform: rotate(30deg);
+    }
+  `}
       </style>
 
       {/* Background logo with reduced opacity */}
