@@ -93,6 +93,15 @@ export const Chat: React.FC = () => {
     return () => document.removeEventListener('keydown', handleEscape);
   }, []);
 
+  useEffect(() => {
+  const handleResize = () => {
+    setContextMenu({ message: null, x: 0, y: 0, position: 'bottom' });
+  };
+  window.addEventListener('resize', handleResize);
+  return () => window.removeEventListener('resize', handleResize);
+}, []);
+
+
   // Fetch chat messages
   const { data: messages = [], isLoading } = useQuery({
     queryKey: ['chat-messages', selectedChannel],
