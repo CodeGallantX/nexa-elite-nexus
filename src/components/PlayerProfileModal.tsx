@@ -31,6 +31,6 @@ const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({open, onOpenChan
         </div>
       </DialogContent>
     </Dialog>
-)
+)};
 
 export default PlayerProfileModal;
