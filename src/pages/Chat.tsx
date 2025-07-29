@@ -686,7 +686,7 @@ export const Chat: React.FC = () => {
                     onTouchStart={(e) => handleTouchStart(e, msg)}
                   >
                     <div
-                      className={`relative p-1.5 rounded-lg w-[95%] w-[90%] ${
+                      className={`relative px-3 py-2 rounded-lg min-x-[35%] sm:min-x-[30%] max-w-[95%] sm:max-w-[90%] ${
                         msg.user_id === user?.id
                           ? 'chat-bubble outgoing bg-primary text-white ml-auto'
                           : 'chat-bubble incoming bg-gray-800 text-white'
