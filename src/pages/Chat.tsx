@@ -498,7 +498,11 @@ export const Chat: React.FC = () => {
       <div
         ref={contextMenuRef}
         className="fixed z-[1000] w-40 max-w-full bg-card border border-border rounded-lg shadow-lg sm:w-48"
-        // style={{ left: `${contextMenu.x}px`, top: `${contextMenu.y}px` }}
+        style={{
+    position: 'absolute',
+    left: `${contextMenu.x}px`,
+    top: `${contextMenu.y}px`,
+  }}
       >
         <div className="flex flex-col p-1">
           <Button
