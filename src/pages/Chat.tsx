@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Send, Paperclip, X, Download, File, Video, Image, Users, CornerDownLeft, Copy, Trash2, CheckCheck } from 'lucide-react';
+import { Send, Paperclip, X, Download, File, Video, Image, Users, CornerDownLeft, Copy, Trash2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -736,7 +736,6 @@ export const Chat: React.FC = () => {
                           hour: '2-digit', 
                           minute: '2-digit' 
                         })}
-                        <CheckCheck />
                       </div>
                     </div>
                   </div>
