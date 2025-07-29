@@ -685,7 +685,7 @@ export const Chat: React.FC = () => {
                 <div className="text-muted-foreground">No messages yet. Start the conversation!</div>
               </div>
             ) : (
-              <div className="space-y-3">
+              <div className="space-y-1.5">
                 {messages.map((msg) => (
                   <div
                     key={msg.id}
