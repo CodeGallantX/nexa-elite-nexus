@@ -679,8 +679,8 @@ export const Chat: React.FC = () => {
                     <div
                       className={`relative p-3 rounded-lg max-w-[85%] sm:max-w-[70%] ${
                         msg.user_id === user?.id
-                          ? 'chat-bubble outgoing bg-green-100 text-black ml-auto'
-                          : 'chat-bubble incoming bg-gray-100 text-black'
+                          ? 'chat-bubble outgoing bg-primary text-white ml-auto'
+                          : 'chat-bubble incoming bg-gray-800 text-white'
                       } ${highlightedMessageId === msg.id ? 'ring-2 ring-yellow-400' : ''}`}
                     >
                       {msg.user_id !== user?.id && (
