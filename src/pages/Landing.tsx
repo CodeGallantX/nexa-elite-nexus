@@ -19,8 +19,8 @@ export const Landing: React.FC = () => {
       {/* Navigation */}
       <nav className="relative z-10 flex items-center justify-between p-6 bg-card/20 backdrop-blur-sm border-b border-border/20">
         <div className="flex items-center space-x-3">
-          <div className="w-24 h-24 flex items-center justify-center nexa-glow">
-            <img src="/nexa-logo.jpg" alt="logo" className="object-cover w-full h-full" />
+          <div className="w-24 h-24 flex items-center justify-center nexa-glow rounded-lg">
+            <img src="/nexa-logo.jpg" alt="logo" className="object-cover w-full h-full rounded-lg" />
           </div>
           {/* <div>
             <h1 className="text-2xl font-orbitron font-bold bg-gradient-to-r from-primary to-red-300 bg-clip-text text-transparent">
@@ -87,7 +87,7 @@ export const Landing: React.FC = () => {
           {/* Stats */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-3xl mx-auto">
             <div className="text-center p-6 nexa-card hover:nexa-glow transition-all duration-300">
-              <div className="text-3xl font-orbitron font-bold text-primary mb-2">250+</div>
+              <div className="text-3xl font-orbitron font-bold text-primary mb-2">70+</div>
               <div className="text-muted-foreground font-rajdhani">Elite Members</div>
             </div>
             <div className="text-center p-6 nexa-card hover:nexa-glow transition-all duration-300">

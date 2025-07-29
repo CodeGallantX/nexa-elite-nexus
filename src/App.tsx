@@ -52,7 +52,7 @@ function App() {
             {/* Public routes */}
             <Route path="/" element={<Index />} />
             <Route path="/landing" element={<Landing />} />
-            <Route path="/profile/:id" element={<PublicProfile />} />
+            <Route path="/profile/:userId" element={<PublicProfile />} />
             
             {/* Auth routes */}
             <Route path="/auth/login" element={<Login />} />

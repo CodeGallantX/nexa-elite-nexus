@@ -38,7 +38,7 @@ export const WeaponLayouts: React.FC = () => {
     image: null as File | null
   });
 
-  const weaponTypes = ['AR', 'SMG', 'Sniper', 'LMG', 'Shotgun', 'Pistol', 'Marksman'];
+  const weaponTypes = ['Assault', 'SMG', 'Sniper', 'LMG', 'Shotgun', 'Pistol', 'Marksman'];
   const modes = ['BR', 'MP', 'Both'];
 
   useEffect(() => {

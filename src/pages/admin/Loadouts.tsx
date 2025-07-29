@@ -19,7 +19,7 @@ export const AdminLoadouts: React.FC = () => {
   const [filterWeaponType, setFilterWeaponType] = useState('all');
   const [selectedLoadout, setSelectedLoadout] = useState<any>(null);
 
-  const weaponTypes = ['AR', 'SMG', 'Sniper', 'LMG', 'Shotgun', 'Pistol', 'Marksman'];
+  const weaponTypes = ['Assault', 'SMG', 'Sniper', 'LMG', 'Shotgun', 'Pistol', 'Marksman'];
   const modes = ['BR', 'MP', 'Both'];
 
   const filteredLoadouts = loadouts?.filter(loadout => {
@@ -63,7 +63,7 @@ export const AdminLoadouts: React.FC = () => {
 
   const getWeaponTypeColor = (type: string) => {
     switch (type) {
-      case 'AR': return 'bg-red-100 text-red-800';
+      case 'Assault': return 'bg-red-100 text-red-800';
       case 'SMG': return 'bg-yellow-100 text-yellow-800';
       case 'Sniper': return 'bg-purple-100 text-purple-800';
       case 'LMG': return 'bg-orange-100 text-orange-800';

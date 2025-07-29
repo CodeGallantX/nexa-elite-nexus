@@ -10,6 +10,7 @@ import {
   MessageSquare,
   Crosshair,
   Package,
+  Codesandbox,
   Settings,
   Shield,
   Users,
@@ -23,7 +24,8 @@ import {
   ChevronLeft,
   ChevronRight,
   LogOut,
-  Target,
+  Sword,
+  Swords,
 } from 'lucide-react';
 import { NavItem } from '@/components/NavItem';
 
@@ -54,7 +56,7 @@ export const Sidebar: React.FC = () => {
     { icon: MessageSquare, label: 'Chat', path: '/chat' },
     { icon: Crosshair, label: 'Scrims', path: '/scrims' },
     { icon: Package, label: 'My Loadouts', path: '/loadouts' },
-    { icon: Target, label: 'Weapon Layouts', path: '/weapon-layouts' },
+    { icon: Sword, label: 'Weapon Layouts', path: '/weapon-layouts' },
     { icon: Megaphone, label: 'Announcements', path: '/announcements' },
     { icon: Settings, label: 'Settings', path: '/settings' },
   ];
@@ -66,15 +68,16 @@ export const Sidebar: React.FC = () => {
     { icon: BarChart3, label: 'Statistics', path: '/admin/stats' },
     { icon: UserCog, label: 'Profiles', path: '/admin/profiles' },
     { icon: Package, label: 'My Loadouts', path: '/loadouts' },
-    { icon: Package, label: 'Loadouts', path: '/admin/loadouts' },
-    { icon: Target, label: 'Weapon Layouts', path: '/weapon-layouts' },
-    { icon: Target, label: 'Weapon Layouts', path: '/admin/weapon-layouts' },
+    { icon: Codesandbox, label: 'Loadouts', path: '/admin/loadouts' },
+    { icon: Swords, label: 'My Weapon Layouts', path: '/weapon-layouts' },
+    { icon: Swords, label: 'Weapon Layouts', path: '/admin/weapon-layouts' },
     { icon: Crosshair, label: 'Scrims', path: '/admin/scrims' },
     { icon: Calendar, label: 'Events', path: '/admin/events' },
     { icon: UserPlus, label: 'Assignments', path: '/admin/event-assignment' },
     { icon: Clock, label: 'Attendance', path: '/admin/attendance' },
     { icon: Megaphone, label: 'Announcements', path: '/admin/announcements' },
     { icon: Bell, label: 'Notifications', path: '/admin/notifications' },
+    { icon: Settings, label: 'Settings', path: '/settings' },
   ];
 
   const handleLogout = async () => {

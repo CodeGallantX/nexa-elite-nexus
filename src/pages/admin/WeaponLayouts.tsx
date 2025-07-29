@@ -35,7 +35,7 @@ export const AdminWeaponLayouts: React.FC = () => {
   const [filterMode, setFilterMode] = useState('all');
   const [filterWeaponType, setFilterWeaponType] = useState('all');
 
-  const weaponTypes = ['AR', 'SMG', 'Sniper', 'LMG', 'Shotgun', 'Pistol', 'Marksman'];
+  const weaponTypes = ['Assault', 'SMG', 'Sniper', 'LMG', 'Shotgun', 'Pistol', 'Marksman'];
   const modes = ['BR', 'MP', 'Both'];
 
   useEffect(() => {

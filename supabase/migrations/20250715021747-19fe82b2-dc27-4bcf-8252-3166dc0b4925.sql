@@ -4,7 +4,7 @@ CREATE TABLE public.weapon_layouts (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   player_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
   mode TEXT NOT NULL CHECK (mode IN ('BR', 'MP', 'Both')),
-  weapon_type TEXT NOT NULL CHECK (weapon_type IN ('AR', 'SMG', 'Sniper', 'LMG', 'Shotgun', 'Pistol', 'Marksman')),
+  weapon_type TEXT NOT NULL CHECK (weapon_type IN ('Assault', 'SMG', 'Sniper', 'LMG', 'Shotgun', 'Pistol', 'Marksman')),
   weapon_name TEXT NOT NULL,
   image_url TEXT,
   image_name TEXT,

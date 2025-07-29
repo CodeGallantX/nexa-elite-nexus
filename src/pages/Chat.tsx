@@ -498,7 +498,7 @@ export const Chat: React.FC = () => {
       <div
         ref={contextMenuRef}
         className="fixed z-[1000] w-40 max-w-full bg-card border border-border rounded-lg shadow-lg sm:w-48"
-        style={{ left: `${contextMenu.x}px`, top: `${contextMenu.y}px` }}
+        // style={{ left: `${contextMenu.x}px`, top: `${contextMenu.y}px` }}
       >
         <div className="flex flex-col p-1">
           <Button
@@ -606,7 +606,7 @@ export const Chat: React.FC = () => {
         className="fixed inset-0 pointer-events-none z-0"
         style={{
           background: `url('/nexa-logo.jpg') center/contain no-repeat`,
-          opacity: 0.05,
+          opacity: 0.1,
         }}
       />
 
@@ -625,7 +625,7 @@ export const Chat: React.FC = () => {
 
       {/* Mobile channel list */}
       {showMobileNav && (
-        <Card className="mb-4 mx-4 sm:mx-6 bg-card/50 border-border/30">
+        <Card className="mb-4 mx-2 sm:mx-4  bg-card/50 border-border/30">
           <CardContent className="p-4">
             <div className="space-y-2">
               <Button onClick={() => setSelectedChannel('general')} variant="ghost" className={`w-full justify-start ${selectedChannel === 'general' ? "text-primary" : "text-white"}`}>
@@ -641,9 +641,9 @@ export const Chat: React.FC = () => {
         </Card>
       )}
 
-      <Card className="flex-1 mx-4 sm:mx-6 bg-card/50 border-border/30 backdrop-blur-sm relative z-10">
+      <Card className="flex-1 mx-2 sm:mx-4 bg-card/50 border-border/30 backdrop-blur-sm relative z-10">
         <CardHeader className="border-b border-border/30 px-4 sm:px-6">
-          <CardTitle className="flex flex-col sm:flex-row items-start sm:items-center justify-between">
+          <CardTitle className="flex flex-col md:flex-row items-start sm:items-center justify-between">
             {selectedChannel === 'admin' ? (
               <span className="text-primary"># Admin Chat</span>
             ) : (
@@ -677,7 +677,7 @@ export const Chat: React.FC = () => {
                     onTouchStart={(e) => handleTouchStart(e, msg)}
                   >
                     <div
-                      className={`relative p-2.5 rounded-lg max-w-[95%] sm:max-w-[80%] ${
+                      className={`relative p-2.5 rounded-lg max-w-[95%] sm:max-w-[90%] ${
                         msg.user_id === user?.id
                           ? 'chat-bubble outgoing bg-primary text-white ml-auto'
                           : 'chat-bubble incoming bg-gray-800 text-white'
