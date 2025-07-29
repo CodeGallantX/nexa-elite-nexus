@@ -629,7 +629,7 @@ export const Chat: React.FC = () => {
       />
 
       {/* Mobile navigation toggle */}
-      <div className="mb-4 px-4">
+      <div className="mb-4">
         <Button
           variant="outline"
           size="sm"
@@ -660,7 +660,7 @@ export const Chat: React.FC = () => {
       )}
 
       <Card className="flex-1 mx-2 sm:mx-4 bg-card/50 border-border/30 backdrop-blur-sm relative z-10">
-        <CardHeader className="border-b border-border/30 px-4 sm:px-6">
+        <CardHeader className="border-b border-border/30">
           <CardTitle className="flex flex-col md:flex-row items-start sm:items-center justify-between">
             {selectedChannel === 'admin' ? (
               <span className="text-primary"># Admin Chat</span>
@@ -675,7 +675,7 @@ export const Chat: React.FC = () => {
         
         <CardContent className="flex-1 p-0 flex flex-col">
           {/* Messages */}
-          <ScrollArea className="flex-1 p-4 sm:p-6" ref={scrollAreaRef}>
+          <ScrollArea className="flex-1 p-4 sm:p-3" ref={scrollAreaRef}>
             {isLoading ? (
               <div className="flex items-center justify-center py-8">
                 <div className="text-muted-foreground">Loading messages...</div>
