@@ -712,7 +712,7 @@ export const Chat: React.FC = () => {
                       {renderAttachment(msg)}
                       
                       <div className={`text-xs mt-1 ${
-                        msg.user_id === user?.id ? 'text-black/70' : 'text-muted-foreground'
+                        msg.user_id === user?.id ? 'text-gray-200' : 'text-muted-foreground'
                       }`}>
                         {new Date(msg.created_at).toLocaleTimeString([], { 
                           hour: '2-digit', 
