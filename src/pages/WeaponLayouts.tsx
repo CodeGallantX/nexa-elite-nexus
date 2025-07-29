@@ -210,7 +210,7 @@ export const WeaponLayouts: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col md:flex-row items-start md:items-center justify-between">
         <h1 className="text-3xl font-bold text-white">My Weapon Layouts</h1>
         <Button
           onClick={() => {

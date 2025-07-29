@@ -206,7 +206,7 @@ export const Loadouts: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col md:flex-row items-center justify-between">
+      <div className="flex flex-col md:flex-row items-start md:items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-white mb-2">My Loadouts</h1>
           <p className="text-gray-400">Manage your weapon configurations</p>
