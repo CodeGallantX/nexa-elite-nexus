@@ -75,7 +75,7 @@ export const Chat: React.FC = () => {
 
   // Close context menu on scroll
   useEffect(() => {
-    const scrollArea = scrollAreaRef.current?.viewportElement;
+    const scrollArea = scrollAreaRef.current;
     const handleScroll = () => {
       setContextMenu({ message: null, x: 0, y: 0, position: 'bottom' });
     };
@@ -793,7 +793,7 @@ export const Chat: React.FC = () => {
           )}
 
           {/* Message input */}
-          <div className="p-4 border-t border-border/30">
+          <div className="border-t border-border/30">
             <div className="flex items-center space-x-2">
               <Button
                 variant="outline"
