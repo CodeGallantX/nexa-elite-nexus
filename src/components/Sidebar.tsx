@@ -69,7 +69,7 @@ export const Sidebar: React.FC = () => {
     { icon: UserCog, label: 'Profiles', path: '/admin/profiles' },
     { icon: Package, label: 'My Loadouts', path: '/loadouts' },
     { icon: Codesandbox, label: 'Loadouts', path: '/admin/loadouts' },
-    { icon: Swords, label: 'My Weapon Layouts', path: '/weapon-layouts' },
+    { icon: Sword, label: 'My Weapon Layouts', path: '/weapon-layouts' },
     { icon: Swords, label: 'Weapon Layouts', path: '/admin/weapon-layouts' },
     { icon: Crosshair, label: 'Scrims', path: '/admin/scrims' },
     { icon: Calendar, label: 'Events', path: '/admin/events' },
