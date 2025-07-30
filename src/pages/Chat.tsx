@@ -433,22 +433,36 @@ export const Chat: React.FC = () => {
 
   // Real-time subscription
   useEffect(() => {
-    const channel = supabase
-      .channel('chat-messages')
-      .on('postgres_changes', {
+  const channel = supabase
+    .channel(`chat_messages_channel:${selectedChannel}`)
+    .on(
+      'postgres_changes',
+      {
         event: 'INSERT',
         schema: 'public',
         table: 'chat_messages',
-        filter: `channel=eq.${selectedChannel}`
-      }, () => {
-        queryClient.invalidateQueries({ queryKey: ['chat-messages'] });
-      })
-      .subscribe();
+        filter: `channel=eq.${selectedChannel}`,
+      },
+      (payload) => {
+        const newMessage = payload.new as ChatMessage;
 
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [queryClient, selectedChannel]);
+        queryClient.setQueryData<ChatMessage[]>(
+          ['chat-messages', selectedChannel],
+          (old = []) => {
+            // Avoid duplicates
+            if (old.some(msg => msg.id === newMessage.id)) return old;
+            return [...old, newMessage];
+          }
+        );
+      }
+    )
+    .subscribe();
+
+  return () => {
+    supabase.removeChannel(channel);
+  };
+}, [queryClient, selectedChannel]);
+
 
   const renderAttachment = (msg: ChatMessage) => {
     if (!msg.attachment_url) return null;
