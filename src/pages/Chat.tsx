@@ -341,7 +341,7 @@ export const Chat: React.FC = () => {
     let position: 'top' | 'bottom' = 'bottom';
     if (y + menuHeight > scrollAreaRect.bottom - 10) {
       y = rect.top - menuHeight - 5; // Above bubble
-      position = 'top';
+      position = 'bottom';
     }
 
     // Ensure menu stays within ScrollArea horizontally
@@ -431,6 +431,18 @@ export const Chat: React.FC = () => {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+
+  useEffect(() => {
+  // Optional: pre-play to satisfy autoplay policies
+  const handleInteraction = () => {
+    if (audioRef.current) {
+      audioRef.current.play().catch(() => {});
+      document.removeEventListener("click", handleInteraction);
+    }
+  };
+  document.addEventListener("click", handleInteraction);
+  return () => document.removeEventListener("click", handleInteraction);
+}, []);
 
   // Real-time subscription
   useEffect(() => {
