@@ -34,7 +34,8 @@ export const Chat: React.FC = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { markChatAsSeen } = useChatNotifications();
-  
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
   const [message, setMessage] = useState('');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -94,12 +95,12 @@ export const Chat: React.FC = () => {
   }, []);
 
   useEffect(() => {
-  const handleResize = () => {
-    setContextMenu({ message: null, x: 0, y: 0, position: 'bottom' });
-  };
-  window.addEventListener('resize', handleResize);
-  return () => window.removeEventListener('resize', handleResize);
-}, []);
+    const handleResize = () => {
+      setContextMenu({ message: null, x: 0, y: 0, position: 'bottom' });
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
 
   // Fetch chat messages
@@ -202,7 +203,7 @@ export const Chat: React.FC = () => {
     onMutate: async (messageId: string) => {
       await queryClient.cancelQueries({ queryKey: ['chat-messages', selectedChannel] });
       const previousMessages = queryClient.getQueryData<ChatMessage[]>(['chat-messages', selectedChannel]);
-      
+
       queryClient.setQueryData(['chat-messages', selectedChannel], (old: ChatMessage[] | undefined) =>
         old ? old.filter((msg) => msg.id !== messageId) : []
       );
@@ -433,6 +434,8 @@ export const Chat: React.FC = () => {
 
   // Real-time subscription
   useEffect(() => {
+  if (!user) return;
+
   const channel = supabase
     .channel(`chat_messages_channel:${selectedChannel}`)
     .on(
@@ -446,10 +449,17 @@ export const Chat: React.FC = () => {
       (payload) => {
         const newMessage = payload.new as ChatMessage;
 
+        // ✅ Play sound if it's not from the current user
+        if (newMessage.user_id !== user.id && audioRef.current) {
+          audioRef.current.play().catch((err) => {
+            console.warn("Unable to play notification sound:", err);
+          });
+        }
+
+        // ✅ Update cache
         queryClient.setQueryData<ChatMessage[]>(
           ['chat-messages', selectedChannel],
           (old = []) => {
-            // Avoid duplicates
             if (old.some(msg => msg.id === newMessage.id)) return old;
             return [...old, newMessage];
           }
@@ -461,7 +471,7 @@ export const Chat: React.FC = () => {
   return () => {
     supabase.removeChannel(channel);
   };
-}, [queryClient, selectedChannel]);
+}, [queryClient, selectedChannel, user]);
 
 
   const renderAttachment = (msg: ChatMessage) => {
@@ -475,25 +485,25 @@ export const Chat: React.FC = () => {
       <div className="mt-2">
         {isImage && (
           <div className="max-w-xs max-h-xs">
-            <img 
-              src={msg.attachment_url} 
+            <img
+              src={msg.attachment_url}
               alt={msg.attachment_name}
               className="w-full h-full object-cover rounded-lg cursor-pointer hover:opacity-80"
               onClick={() => setImageModal({ url: msg.attachment_url, name: msg.attachment_name || 'image' })}
             />
           </div>
         )}
-        
+
         {isVideo && (
           <div className="max-w-xs max-h-xs">
-            <video 
-              src={msg.attachment_url} 
-              controls 
+            <video
+              src={msg.attachment_url}
+              controls
               className="w-full h-full rounded-lg"
             />
           </div>
         )}
-        
+
         {(isPdf || (!isImage && !isVideo)) && (
           <div className="flex items-center space-x-2 p-2 bg-background/20 rounded-lg max-w-xs">
             <File className="w-4 h-4 text-primary" />
@@ -522,10 +532,10 @@ export const Chat: React.FC = () => {
         ref={contextMenuRef}
         className="fixed z-[1000] w-40 max-w-full bg-card border border-border rounded-lg shadow-lg sm:w-48"
         style={{
-    position: 'absolute',
-    left: `${contextMenu.x}px`,
-    top: `${contextMenu.y}px`,
-  }}
+          position: 'absolute',
+          left: `${contextMenu.x}px`,
+          top: `${contextMenu.y}px`,
+        }}
       >
         <div className="flex flex-col p-1">
           <Button
@@ -607,7 +617,7 @@ export const Chat: React.FC = () => {
     <div className="flex flex-col h-full relative">
 
       {/* Background logo with reduced opacity */}
-      <div 
+      <div
         className="fixed inset-0 pointer-events-none z-0"
         style={{
           background: `url('/nexa-logo.jpg') center/contain no-repeat`,
@@ -659,7 +669,7 @@ export const Chat: React.FC = () => {
             </div>
           </CardTitle>
         </CardHeader>
-        
+
         <CardContent className="flex-1 p-0 flex flex-col">
           {/* Messages */}
           <ScrollArea className="flex-1 p-4 sm:p-3" ref={scrollAreaRef}>
@@ -682,11 +692,10 @@ export const Chat: React.FC = () => {
                     onTouchStart={(e) => handleTouchStart(e, msg)}
                   >
                     <div
-                      className={`relative px-3 py-1.5 rounded-lg min-x-[35%] sm:min-x-[40%] max-w-[95%] sm:max-w-[90%] ${
-                        msg.user_id === user?.id
+                      className={`relative px-3 py-1.5 rounded-lg min-x-[35%] sm:min-x-[40%] max-w-[95%] sm:max-w-[90%] ${msg.user_id === user?.id
                           ? 'chat-bubble outgoing bg-primary text-white ml-auto'
                           : 'chat-bubble incoming bg-gray-800 text-white'
-                      } ${highlightedMessageId === msg.id ? 'ring-2 ring-yellow-400' : ''}`}
+                        } ${highlightedMessageId === msg.id ? 'ring-2 ring-yellow-400' : ''}`}
                     >
                       {msg.user_id !== user?.id && (
                         <div className="text-[10px] font-medium mb-0.5 text-primary">
@@ -698,7 +707,7 @@ export const Chat: React.FC = () => {
                           )}
                         </div>
                       )}
-                      
+
                       {msg.reply_to_id && (
                         <div
                           className="mb-2 p-2 bg-background/20 rounded text-xs cursor-pointer hover:bg-background/30"
@@ -712,16 +721,15 @@ export const Chat: React.FC = () => {
                           </div>
                         </div>
                       )}
-                      
+
                       <div className="text-sm">{msg.message}</div>
                       {renderAttachment(msg)}
-                      
-                      <div className={`text-xs float-right ${
-                        msg.user_id === user?.id ? 'text-gray-200' : 'text-muted-foreground'
-                      }`}>
-                        {new Date(msg.created_at).toLocaleTimeString([], { 
-                          hour: '2-digit', 
-                          minute: '2-digit' 
+
+                      <div className={`text-xs float-right ${msg.user_id === user?.id ? 'text-gray-200' : 'text-muted-foreground'
+                        }`}>
+                        {new Date(msg.created_at).toLocaleTimeString([], {
+                          hour: '2-digit',
+                          minute: '2-digit'
                         })}
                       </div>
                     </div>
@@ -790,7 +798,7 @@ export const Chat: React.FC = () => {
               >
                 <Paperclip className="w-4 h-4" />
               </Button>
-              
+
               <Input
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
@@ -804,7 +812,7 @@ export const Chat: React.FC = () => {
                 }}
                 disabled={uploading}
               />
-              
+
               <Button
                 onClick={handleSendMessage}
                 disabled={(!message.trim() && !selectedFile) || uploading}
@@ -828,6 +836,8 @@ export const Chat: React.FC = () => {
 
       {renderContextMenu()}
       {renderImageModal()}
+      <audio ref={audioRef} src="/cloud.mp3" preload="auto" />
     </div>
+
   );
 };
