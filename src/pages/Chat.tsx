@@ -324,7 +324,7 @@ export const Chat: React.FC = () => {
     }
 
     const rect = messageElement.getBoundingClientRect();
-    const scrollArea = scrollAreaRef.current?.viewportElement;
+    const scrollArea = scrollAreaRef.current;
     if (!scrollArea) {
       console.error('ScrollArea not found');
       return;
@@ -353,7 +353,7 @@ export const Chat: React.FC = () => {
   // Handle long press for mobile
   const handleTouchStart = (event: React.TouchEvent, msg: ChatMessage) => {
     console.log('Touch start for message:', msg.id);
-    const scrollArea = scrollAreaRef.current?.viewportElement;
+    const scrollArea = scrollAreaRef.current;
     const preventScroll = (e: Event) => e.preventDefault();
     scrollArea?.addEventListener('touchmove', preventScroll, { passive: false });
 
