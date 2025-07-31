@@ -682,9 +682,9 @@ export const Chat: React.FC = () => {
           </CardTitle>
         </CardHeader>
 
-        <CardContent className="flex-1 p-0 flex flex-col">
+        <CardContent className="p-0 flex flex-col h-[calc(100vh-3.5rem-2rem)]">
           {/* Messages */}
-          <ScrollArea className="flex-1 p-4 sm:p-3" ref={scrollAreaRef}>
+          <ScrollArea className="flex-1 p-4 sm:p-3 overflow-y-auto" ref={scrollAreaRef}>
             {isLoading ? (
               <div className="flex items-center justify-center py-8">
                 <div className="text-muted-foreground">Loading messages...</div>
