@@ -709,9 +709,9 @@ export const Chat: React.FC = () => {
                     onTouchStart={(e) => handleTouchStart(e, msg)}
                   >
                     <div
-                      className={`relative px-3 py-1.5 rounded-lg min-x-[35%] sm:min-x-[40%] max-w-[95%] sm:max-w-[90%] ${msg.user_id === user?.id
-                          ? 'chat-bubble outgoing bg-primary text-white ml-auto'
-                          : 'chat-bubble incoming bg-gray-800 text-white'
+                      className={`relative px-3 py-1.5 min-x-[35%] sm:min-x-[40%] max-w-[95%] sm:max-w-[90%] ${msg.user_id === user?.id
+                          ? 'chat-bubble outgoing bg-primary text-white ml-auto rounded-tl-lg rounded-b-lg'
+                          : 'chat-bubble incoming bg-gray-800 text-white rounded-tr-lg rounded-b-lg'
                         } ${highlightedMessageId === msg.id ? 'ring-2 ring-yellow-400' : ''}`}
                     >
                       {msg.user_id !== user?.id && (
