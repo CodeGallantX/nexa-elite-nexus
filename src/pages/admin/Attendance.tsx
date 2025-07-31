@@ -85,8 +85,16 @@ export const AdminAttendance: React.FC = () => {
 
     // Increment total kills only if present and kills > 0
     if (kills && status === 'present') {
-      await supabase.rpc('increment_total_kills', { uid: playerId, new_kills: kills });
-    }
+  const { error } = await supabase.rpc('increment_total_kills', {
+    uid: playerId,
+    new_kills: kills,
+  });
+
+  if (error) {
+    console.error("RPC error:", error);
+  }
+}
+
 
     return data;
   },
