@@ -96,22 +96,28 @@ export const AdminAttendance: React.FC = () => {
   }
 });
 
-  const handleMarkAttendance = async (playerId: string, playerIgn: string, status: 'present' | 'absent') => {
-    try {
-      await markAttendanceMutation.mutateAsync({ playerId, status });
-      toast({
-        title: "Attendance Marked",
-        description: `${playerIgn} marked as ${status} for ${attendanceMode} on ${new Date(selectedDate).toLocaleDateString()}`,
-      });
-    } catch (error) {
-      console.error('Error marking attendance:', error);
-      toast({
-        title: "Error",
-        description: "Failed to mark attendance",
-        variant: "destructive",
-      });
-    }
-  };
+  const handleMarkAttendance = async (
+  playerId: string,
+  playerIgn: string,
+  status: 'present' | 'absent',
+  kills?: number
+) => {
+  try {
+    await markAttendanceMutation.mutateAsync({ playerId, status, kills });
+    toast({
+      title: "Attendance Marked",
+      description: `${playerIgn} marked as ${status} (${kills || 0} kills) for ${attendanceMode} on ${new Date(selectedDate).toLocaleDateString()}`,
+    });
+  } catch (error) {
+    console.error('Error marking attendance:', error);
+    toast({
+      title: "Error",
+      description: "Failed to mark attendance",
+      variant: "destructive",
+    });
+  }
+};
+
 
   const setToday = () => {
     setSelectedDate(new Date().toISOString().split('T')[0]);
@@ -354,14 +360,17 @@ export const AdminAttendance: React.FC = () => {
 
                       <TableCell>
                         <Button
-                          size="sm"
-                          onClick={() => handleMarkAttendance(player.id, player.ign, 'present')}
-                          disabled={markAttendanceMutation.isPending}
-                          className="bg-green-600 hover:bg-green-700 text-white font-rajdhani"
-                        >
-                          <CheckCircle className="w-4 h-4 mr-1" />
-                          Present
-                        </Button>
+  size="sm"
+  onClick={() =>
+    handleMarkAttendance(player.id, player.ign, 'present', killsInput[player.id] || 0)
+  }
+  disabled={markAttendanceMutation.isPending}
+  className="bg-green-600 hover:bg-green-700 text-white font-rajdhani"
+>
+  <CheckCircle className="w-4 h-4 mr-1" />
+  Present
+</Button>
+
                       </TableCell>
                       <TableCell>
                         <Button
