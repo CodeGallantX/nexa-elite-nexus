@@ -258,12 +258,14 @@ export const Loadouts: React.FC = () => {
                     <SelectValue placeholder="Select weapon type" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Assault Rifle">Assault Rifle</SelectItem>
+                    <SelectItem value="Assault">Assault</SelectItem>
                     <SelectItem value="SMG">SMG</SelectItem>
                     <SelectItem value="Sniper">Sniper</SelectItem>
                     <SelectItem value="LMG">LMG</SelectItem>
                     <SelectItem value="Shotgun">Shotgun</SelectItem>
+                    <SelectItem value="Melee">Melee</SelectItem>
                     <SelectItem value="Pistol">Pistol</SelectItem>
+                    <SelectItem value="Launcher">Launcher</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
