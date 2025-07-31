@@ -32,6 +32,7 @@ export const AdminAttendance: React.FC = () => {
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState('all');
+  const [killsInput, setKillsInput] = useState<{ [playerId: string]: number}>({});
 
   // Fetch players
   const { data: players = [], isLoading: playersLoading } = useQuery({
@@ -68,24 +69,32 @@ export const AdminAttendance: React.FC = () => {
 
   // Mark attendance mutation
   const markAttendanceMutation = useMutation({
-    mutationFn: async ({ playerId, status }: { playerId: string; status: 'present' | 'absent' }) => {
-      const { data, error } = await supabase
-        .from('attendance')
-        .insert({
-          player_id: playerId,
-          status,
-          attendance_type: attendanceMode,
-          date: selectedDate,
-        });
-      
-      if (error) throw error;
-      return data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['attendance'] });
-      queryClient.invalidateQueries({ queryKey: ['players'] });
+  // 🧠 Mutation function to mark attendance
+  mutationFn: async ({ playerId, status, kills }: { playerId: string; status: 'present' | 'absent'; kills?: number }) => {
+    const { data, error } = await supabase
+      .from('attendance')
+      .insert({
+        player_id: playerId,
+        status,
+        attendance_type: attendanceMode,
+        date: selectedDate,
+        event_kills: kills || 0, // <-- use event_kills not kills
+      });
+
+    if (error) throw error;
+
+    // Increment total kills only if present and kills > 0
+    if (kills && status === 'present') {
+      await supabase.rpc('increment_total_kills', { uid: playerId, new_kills: kills });
     }
-  });
+
+    return data;
+  },
+  onSuccess: () => {
+    queryClient.invalidateQueries({ queryKey: ['attendance'] });
+    queryClient.invalidateQueries({ queryKey: ['players'] });
+  }
+});
 
   const handleMarkAttendance = async (playerId: string, playerIgn: string, status: 'present' | 'absent') => {
     try {
@@ -331,10 +340,18 @@ export const AdminAttendance: React.FC = () => {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <div className="text-lg font-bold text-primary font-orbitron">
-                          {player.kills || 0}
-                        </div>
-                      </TableCell>
+  <Input
+    type="number"
+    min="0"
+    placeholder="Kills"
+    value={killsInput[player.id] || ''}
+    onChange={(e) =>
+      setKillsInput((prev) => ({ ...prev, [player.id]: Number(e.target.value) }))
+    }
+    className="w-20 font-rajdhani"
+  />
+</TableCell>
+
                       <TableCell>
                         <Button
                           size="sm"
