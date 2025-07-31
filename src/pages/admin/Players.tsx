@@ -126,7 +126,7 @@ export const AdminPlayers: React.FC = () => {
                 <TableHead className="text-gray-300">Actions</TableHead>
               </TableRow>
             </TableHeader>
-            <TableBody>
+            <TableBody className="overflow-y-auto">
               {filteredPlayers.map((player) => (
                 <TableRow key={player.id} className="border-gray-700">
                   <TableCell className="text-white">
