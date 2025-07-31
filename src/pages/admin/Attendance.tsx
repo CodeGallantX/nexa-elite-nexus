@@ -99,9 +99,10 @@ export const AdminAttendance: React.FC = () => {
     return data;
   },
   onSuccess: () => {
-    queryClient.invalidateQueries({ queryKey: ['attendance'] });
-    queryClient.invalidateQueries({ queryKey: ['players'] });
-  }
+  queryClient.invalidateQueries({ queryKey: ['attendance'] });
+  queryClient.invalidateQueries({ queryKey: ['players'] }); // refresh kills
+}
+
 });
 
   const handleMarkAttendance = async (
