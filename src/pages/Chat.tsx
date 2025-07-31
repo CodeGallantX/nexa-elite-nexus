@@ -35,7 +35,8 @@ export const Chat: React.FC = () => {
   const queryClient = useQueryClient();
   const { markChatAsSeen } = useChatNotifications();
   const audioRef = useRef<HTMLAudioElement | null>(null);
-
+  const longPressTimeout = useRef<NodeJS.Timeout | null>(null);
+  1
   const [message, setMessage] = useState('');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -353,18 +354,13 @@ export const Chat: React.FC = () => {
 
   // Handle long press for mobile
   const handleTouchStart = (event: React.TouchEvent, msg: ChatMessage) => {
-    console.log('Touch start for message:', msg.id);
     const scrollArea = scrollAreaRef.current;
     const preventScroll = (e: Event) => e.preventDefault();
     scrollArea?.addEventListener('touchmove', preventScroll, { passive: false });
 
-    const timeout = setTimeout(() => {
+    longPressTimeout.current = setTimeout(() => {
       const messageElement = messageRefs.current.get(msg.id);
-      if (!messageElement || !scrollArea) {
-        console.error('Message element or ScrollArea not found for ID:', msg.id);
-        scrollArea?.removeEventListener('touchmove', preventScroll);
-        return;
-      }
+      if (!messageElement || !scrollArea) return;
 
       const rect = messageElement.getBoundingClientRect();
       const scrollAreaRect = scrollArea.getBoundingClientRect();
@@ -380,17 +376,27 @@ export const Chat: React.FC = () => {
       }
 
       const adjustedX = Math.max(scrollAreaRect.left + 10, Math.min(x, scrollAreaRect.right - menuWidth - 10));
-
-      console.log('Setting context menu (touch) at:', { x: adjustedX, y, position });
       setContextMenu({ message: msg, x: adjustedX, y, position });
-      scrollArea?.removeEventListener('touchmove', preventScroll);
-    }, 500);
 
-    return () => {
-      clearTimeout(timeout);
       scrollArea?.removeEventListener('touchmove', preventScroll);
-    };
+    }, 2000); // 2 seconds long press
   };
+
+  const handleTouchEnd = () => {
+    if (longPressTimeout.current) {
+      clearTimeout(longPressTimeout.current);
+      longPressTimeout.current = null;
+    }
+  };
+
+  const handleTouchCancel = () => {
+    if (longPressTimeout.current) {
+      clearTimeout(longPressTimeout.current);
+      longPressTimeout.current = null;
+    }
+  };
+
+
 
   // Handle reply click to scroll to original message
   const handleReplyClick = (replyToId: string) => {
@@ -433,57 +439,57 @@ export const Chat: React.FC = () => {
   }, [messages]);
 
   useEffect(() => {
-  // Optional: pre-play to satisfy autoplay policies
-  const handleInteraction = () => {
-    if (audioRef.current) {
-      audioRef.current.play().catch(() => {});
-      document.removeEventListener("click", handleInteraction);
-    }
-  };
-  document.addEventListener("click", handleInteraction);
-  return () => document.removeEventListener("click", handleInteraction);
-}, []);
+    // Optional: pre-play to satisfy autoplay policies
+    const handleInteraction = () => {
+      if (audioRef.current) {
+        audioRef.current.play().catch(() => { });
+        document.removeEventListener("click", handleInteraction);
+      }
+    };
+    document.addEventListener("click", handleInteraction);
+    return () => document.removeEventListener("click", handleInteraction);
+  }, []);
 
   // Real-time subscription
   useEffect(() => {
-  if (!user) return;
+    if (!user) return;
 
-  const channel = supabase
-    .channel(`chat_messages_channel:${selectedChannel}`)
-    .on(
-      'postgres_changes',
-      {
-        event: 'INSERT',
-        schema: 'public',
-        table: 'chat_messages',
-        filter: `channel=eq.${selectedChannel}`,
-      },
-      (payload) => {
-        const newMessage = payload.new as ChatMessage;
+    const channel = supabase
+      .channel(`chat_messages_channel:${selectedChannel}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'chat_messages',
+          filter: `channel=eq.${selectedChannel}`,
+        },
+        (payload) => {
+          const newMessage = payload.new as ChatMessage;
 
-        // ✅ Play sound if it's not from the current user
-        if (newMessage.user_id !== user.id && audioRef.current) {
-          audioRef.current.play().catch((err) => {
-            console.warn("Unable to play notification sound:", err);
-          });
-        }
-
-        // ✅ Update cache
-        queryClient.setQueryData<ChatMessage[]>(
-          ['chat-messages', selectedChannel],
-          (old = []) => {
-            if (old.some(msg => msg.id === newMessage.id)) return old;
-            return [...old, newMessage];
+          // ✅ Play sound if it's not from the current user
+          if (newMessage.user_id !== user.id && audioRef.current) {
+            audioRef.current.play().catch((err) => {
+              console.warn("Unable to play notification sound:", err);
+            });
           }
-        );
-      }
-    )
-    .subscribe();
 
-  return () => {
-    supabase.removeChannel(channel);
-  };
-}, [queryClient, selectedChannel, user]);
+          // ✅ Update cache
+          queryClient.setQueryData<ChatMessage[]>(
+            ['chat-messages', selectedChannel],
+            (old = []) => {
+              if (old.some(msg => msg.id === newMessage.id)) return old;
+              return [...old, newMessage];
+            }
+          );
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [queryClient, selectedChannel, user]);
 
 
   const renderAttachment = (msg: ChatMessage) => {
@@ -700,13 +706,21 @@ export const Chat: React.FC = () => {
                     key={msg.id}
                     ref={(el) => el && messageRefs.current.set(msg.id, el)}
                     className={`flex ${msg.user_id === user?.id ? 'justify-end' : 'justify-start'}`}
-                    onContextMenu={(e) => handleContextMenu(e, msg)}
+                    onContextMenu={(e) => {
+                      e.preventDefault();
+                      if (window.innerWidth > 768) {
+                        handleContextMenu(e, msg); // allow desktop context menu
+                      }
+                    }}
+
                     onTouchStart={(e) => handleTouchStart(e, msg)}
+                    onTouchEnd={handleTouchEnd}
+                    onTouchCancel={handleTouchCancel}
                   >
                     <div
                       className={`relative px-3 py-1.5 rounded-lg min-x-[35%] sm:min-x-[40%] max-w-[95%] sm:max-w-[90%] ${msg.user_id === user?.id
-                          ? 'chat-bubble outgoing bg-primary text-white ml-auto'
-                          : 'chat-bubble incoming bg-gray-800 text-white'
+                        ? 'chat-bubble outgoing bg-primary text-white ml-auto'
+                        : 'chat-bubble incoming bg-gray-800 text-white'
                         } ${highlightedMessageId === msg.id ? 'ring-2 ring-yellow-400' : ''}`}
                     >
                       {msg.user_id !== user?.id && (
