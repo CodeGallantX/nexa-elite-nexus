@@ -267,7 +267,7 @@ export const AdminAnnouncementsManagement: React.FC = () => {
 
     const { data, error } = await supabase
       .from("announcements")
-      .update({ is_pinned: !target.is_pinned })
+      .update({ is_pinned: !(target as any).is_pinned } as any)
       .eq("id", announcementId)
       .select(`
         *,
@@ -289,7 +289,7 @@ export const AdminAnnouncementsManagement: React.FC = () => {
       );
       toast({
         title: "Pin Status Updated",
-        description: `Announcement is now ${data[0].is_pinned ? 'pinned' : 'unpinned'}.`,
+        description: `Announcement is now ${(data[0] as any).is_pinned ? 'pinned' : 'unpinned'}.`,
       });
     }
   };

@@ -26,11 +26,13 @@ export const Settings: React.FC = () => {
   const queryClient = useQueryClient();
   
   const [formData, setFormData] = useState({
-    username: '',
     ign: '',
     tiktok_handle: '',
     preferred_mode: '',
     device: '',
+    player_uid: '',
+    social_links: {} as Record<string, string>,
+    banking_info: {} as Record<string, string>,
     avatar_file: null as File | null
   });
   
@@ -40,11 +42,13 @@ export const Settings: React.FC = () => {
   useEffect(() => {
     if (profile) {
       setFormData({
-        username: profile.username || '',
         ign: profile.ign || '',
         tiktok_handle: profile.tiktok_handle || '',
         preferred_mode: profile.preferred_mode || '',
         device: profile.device || '',
+        player_uid: profile.player_uid || '',
+        social_links: profile.social_links || {},
+        banking_info: profile.banking_info || {},
         avatar_file: null
       });
     }
@@ -83,11 +87,13 @@ export const Settings: React.FC = () => {
       }
 
       const payload = {
-        username: formData.username,
         ign: formData.ign,
         tiktok_handle: formData.tiktok_handle || null,
         preferred_mode: formData.preferred_mode || null,
         device: formData.device || null,
+        player_uid: formData.player_uid || null,
+        social_links: formData.social_links,
+        banking_info: formData.banking_info,
         ...(avatarUrl && { avatar_url: avatarUrl })
       };
 
@@ -119,10 +125,10 @@ export const Settings: React.FC = () => {
   });
 
   const handleSave = () => {
-    if (!formData.username || !formData.ign) {
+    if (!formData.ign) {
       toast({
         title: "Validation Error",
-        description: "Username and IGN are required fields.",
+        description: "IGN is a required field.",
         variant: "destructive",
       });
       return;
@@ -214,15 +220,14 @@ export const Settings: React.FC = () => {
               </div>
             </div>
 
-            {/* Username */}
+            {/* Username - Read Only */}
             <div>
-              <Label htmlFor="username" className="text-white">Username</Label>
+              <Label htmlFor="username" className="text-white">Username (Read Only)</Label>
               <Input
                 id="username"
-                value={formData.username}
-                onChange={(e) => setFormData(prev => ({ ...prev, username: e.target.value }))}
-                placeholder="Your username"
-                className="bg-background/50 border-border text-white"
+                value={profile?.username || ''}
+                disabled
+                className="bg-background/30 border-border text-gray-400 cursor-not-allowed"
               />
             </div>
 
@@ -246,6 +251,18 @@ export const Settings: React.FC = () => {
                 value={formData.tiktok_handle}
                 onChange={(e) => setFormData(prev => ({ ...prev, tiktok_handle: e.target.value }))}
                 placeholder="@yourtiktok"
+                className="bg-background/50 border-border text-white"
+              />
+            </div>
+            
+            {/* Player UID */}
+            <div>
+              <Label htmlFor="player_uid" className="text-white">Player UID</Label>
+              <Input
+                id="player_uid"
+                value={formData.player_uid}
+                onChange={(e) => setFormData(prev => ({ ...prev, player_uid: e.target.value }))}
+                placeholder="Your unique player ID"
                 className="bg-background/50 border-border text-white"
               />
             </div>
@@ -299,6 +316,74 @@ export const Settings: React.FC = () => {
               </Select>
             </div>
 
+            {/* Social Links */}
+            <div className="space-y-3">
+              <Label className="text-white">Social Links</Label>
+              <div className="space-y-2">
+                <Input
+                  placeholder="YouTube Channel"
+                  value={formData.social_links.youtube || ''}
+                  onChange={(e) => setFormData(prev => ({ 
+                    ...prev, 
+                    social_links: { ...prev.social_links, youtube: e.target.value }
+                  }))}
+                  className="bg-background/50 border-border text-white"
+                />
+                <Input
+                  placeholder="Instagram Handle"
+                  value={formData.social_links.instagram || ''}
+                  onChange={(e) => setFormData(prev => ({ 
+                    ...prev, 
+                    social_links: { ...prev.social_links, instagram: e.target.value }
+                  }))}
+                  className="bg-background/50 border-border text-white"
+                />
+                <Input
+                  placeholder="Discord Tag"
+                  value={formData.social_links.discord || ''}
+                  onChange={(e) => setFormData(prev => ({ 
+                    ...prev, 
+                    social_links: { ...prev.social_links, discord: e.target.value }
+                  }))}
+                  className="bg-background/50 border-border text-white"
+                />
+              </div>
+            </div>
+
+            {/* Banking Info */}
+            <div className="space-y-3">
+              <Label className="text-white">Banking Information (Optional)</Label>
+              <div className="space-y-2">
+                <Input
+                  placeholder="Bank Account Number"
+                  value={formData.banking_info.account_number || ''}
+                  onChange={(e) => setFormData(prev => ({ 
+                    ...prev, 
+                    banking_info: { ...prev.banking_info, account_number: e.target.value }
+                  }))}
+                  className="bg-background/50 border-border text-white"
+                />
+                <Input
+                  placeholder="Bank Name"
+                  value={formData.banking_info.bank_name || ''}
+                  onChange={(e) => setFormData(prev => ({ 
+                    ...prev, 
+                    banking_info: { ...prev.banking_info, bank_name: e.target.value }
+                  }))}
+                  className="bg-background/50 border-border text-white"
+                />
+                <Input
+                  placeholder="Account Holder Name"
+                  value={formData.banking_info.account_holder || ''}
+                  onChange={(e) => setFormData(prev => ({ 
+                    ...prev, 
+                    banking_info: { ...prev.banking_info, account_holder: e.target.value }
+                  }))}
+                  className="bg-background/50 border-border text-white"
+                />
+              </div>
+            </div>
+
             {/* Account Stats (Read-only) */}
             <div className="space-y-3 pt-4 border-t border-border/30">
               <h4 className="text-white font-medium">Account Statistics</h4>
@@ -306,19 +391,19 @@ export const Settings: React.FC = () => {
               <div className="grid grid-cols-2 gap-4">
                 <div className="text-center p-3 bg-background/20 rounded-lg">
                   <div className="text-lg font-bold text-[#FF1F44]">{profile?.kills || 0}</div>
-                  <div className="text-xs text-gray-400">Total Kills</div>
+                  <div className="text-xs text-gray-400">Total Kills (Read Only)</div>
                 </div>
                 <div className="text-center p-3 bg-background/20 rounded-lg">
                   <div className="text-lg font-bold text-green-400">{profile?.attendance || 0}%</div>
                   <div className="text-xs text-gray-400">Attendance</div>
                 </div>
                 <div className="text-center p-3 bg-background/20 rounded-lg">
-                  <div className="text-lg font-bold text-yellow-400">{profile?.grade || 'D'}</div>
-                  <div className="text-xs text-gray-400">Grade</div>
+                  <div className="text-lg font-bold text-yellow-400">{profile?.grade || 'Rookie'}</div>
+                  <div className="text-xs text-gray-400">Grade (Admin Only)</div>
                 </div>
                 <div className="text-center p-3 bg-background/20 rounded-lg">
-                  <div className="text-lg font-bold text-blue-400">{profile?.tier || 'Rookie'}</div>
-                  <div className="text-xs text-gray-400">Tier</div>
+                  <div className="text-lg font-bold text-blue-400">{profile?.tier || '4'}</div>
+                  <div className="text-xs text-gray-400">Tier (Admin Only)</div>
                 </div>
               </div>
             </div>
@@ -345,7 +430,7 @@ export const Settings: React.FC = () => {
             <div>
               <Label className="text-white">Account Role</Label>
               <div className="text-gray-300 mt-1 capitalize">
-                {profile?.role || 'Player'}
+                {profile?.role === 'clan_master' ? 'Clan Master' : profile?.role || 'Player'}
               </div>
             </div>
             <div>

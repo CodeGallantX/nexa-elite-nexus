@@ -8,7 +8,7 @@ interface UserProfile {
   username: string;
   ign: string;
   player_uid: string;
-  role: 'admin' | 'player' | 'moderator';
+  role: 'admin' | 'player' | 'moderator' | 'clan_master';
   avatar_url?: string;
   tiktok_handle?: string;
   preferred_mode?: string;
@@ -41,7 +41,7 @@ interface SignupData {
   email: string;
   password: string;
   ign?: string;
-  role?: 'admin' | 'player' | 'moderator';
+  role?: 'admin' | 'player' | 'moderator' | 'clan_master';
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -76,7 +76,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
   setProfile({
     ...data,
-    player_uid: data.player_uid || '',
+    player_uid: (data as any).player_uid || '',
     social_links: data.social_links as Record<string, string> | null,
     banking_info: data.banking_info as Record<string, string> | null,
   });
@@ -258,7 +258,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.log('Updating profile for:', user.email, updates);
       const { error } = await supabase
         .from('profiles')
-        .update(updates)
+        .update(updates as any)
         .eq('id', user.id);
 
       if (error) {

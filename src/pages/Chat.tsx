@@ -136,9 +136,6 @@ export const Chat: React.FC = () => {
         throw err;
       }
     },
-    onError: (error: any) => {
-      console.error('useQuery error:', error);
-    },
   });
 
   // Send message mutation

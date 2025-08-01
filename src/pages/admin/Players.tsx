@@ -45,18 +45,36 @@ export const AdminPlayers: React.FC = () => {
   const getRoleColor = (role: string) => {
     switch (role) {
       case 'admin': return 'bg-red-100 text-red-800';
+      case 'clan_master': return 'bg-purple-100 text-purple-800';
       case 'moderator': return 'bg-yellow-100 text-yellow-800';
       case 'player': return 'bg-green-100 text-green-800';
       default: return 'bg-gray-100 text-gray-800';
     }
   };
 
+  const getRoleName = (role: string) => {
+    switch (role) {
+      case 'clan_master': return 'Clan Master';
+      default: return role.charAt(0).toUpperCase() + role.slice(1);
+    }
+  };
+
   const getTierColor = (tier: string) => {
     switch (tier?.toLowerCase()) {
+      case '1': return 'bg-yellow-100 text-yellow-800';
+      case '2': return 'bg-blue-100 text-blue-800';
+      case '3': return 'bg-green-100 text-green-800';
+      case '4': return 'bg-gray-100 text-gray-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const getGradeColor = (grade: string) => {
+    switch (grade?.toLowerCase()) {
       case 'legendary': return 'bg-yellow-100 text-yellow-800';
-      case 'veteran': return 'bg-emerald-100 text-emerald-800';
+      case 'master': return 'bg-emerald-100 text-emerald-800';
       case 'pro': return 'bg-blue-100 text-blue-800';
-      case 'elite': return 'bg-amber-100 text-amber-800';
+      case 'elite': return 'bg-purple-100 text-purple-800';
       case 'rookie': return 'bg-gray-100 text-gray-800';
       default: return 'bg-gray-100 text-gray-800';
     }
@@ -105,6 +123,7 @@ export const AdminPlayers: React.FC = () => {
                 <SelectItem value="player">Player</SelectItem>
                 <SelectItem value="moderator">Moderator</SelectItem>
                 <SelectItem value="admin">Admin</SelectItem>
+                <SelectItem value="clan_master">Clan Master</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -119,6 +138,7 @@ export const AdminPlayers: React.FC = () => {
               <TableRow className="border-gray-700">
                 <TableHead className="text-gray-300">Player</TableHead>
                 <TableHead className="text-gray-300">Role</TableHead>
+                <TableHead className="text-gray-300">Grade</TableHead>
                 <TableHead className="text-gray-300">Tier</TableHead>
                 <TableHead className="text-gray-300">Kills</TableHead>
                 <TableHead className="text-gray-300">Attendance</TableHead>
@@ -146,12 +166,17 @@ export const AdminPlayers: React.FC = () => {
                   </TableCell>
                   <TableCell>
                     <Badge className={getRoleColor(player.role)}>
-                      {player.role}
+                      {getRoleName(player.role)}
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    <Badge className={getTierColor(player.tier || 'rookie')}>
-                      {player.tier || 'Rookie'}
+                    <Badge className={getGradeColor(player.grade || 'rookie')}>
+                      {player.grade || 'Rookie'}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <Badge className={getTierColor(player.tier || '4')}>
+                      {player.tier || '4'}
                     </Badge>
                   </TableCell>
                   <TableCell className="text-white">{player.kills || 0}</TableCell>
@@ -265,24 +290,6 @@ export const AdminPlayers: React.FC = () => {
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="text-gray-300 text-sm">Tier</label>
-                  <Select 
-                    value={editingPlayer.tier} 
-                    onValueChange={(value) => setEditingPlayer({...editingPlayer, tier: value})}
-                  >
-                    <SelectTrigger className="bg-gray-800 border-gray-600 text-white">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Legendary">Legendary</SelectItem>
-                      <SelectItem value="Veteran">Veteran</SelectItem>
-                      <SelectItem value="Pro">Pro</SelectItem>
-                      <SelectItem value="Elite">Elite</SelectItem>
-                      <SelectItem value="Rookie">Rookie</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
                   <label className="text-gray-300 text-sm">Grade</label>
                   <Select 
                     value={editingPlayer.grade} 
@@ -292,11 +299,28 @@ export const AdminPlayers: React.FC = () => {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="A">A</SelectItem>
-                      <SelectItem value="B">B</SelectItem>
-                      <SelectItem value="C">C</SelectItem>
-                      <SelectItem value="D">D</SelectItem>
-                      <SelectItem value="F">F</SelectItem>
+                      <SelectItem value="Legendary">Legendary</SelectItem>
+                      <SelectItem value="Master">Master</SelectItem>
+                      <SelectItem value="Pro">Pro</SelectItem>
+                      <SelectItem value="Elite">Elite</SelectItem>
+                      <SelectItem value="Rookie">Rookie</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <label className="text-gray-300 text-sm">Tier</label>
+                  <Select 
+                    value={editingPlayer.tier} 
+                    onValueChange={(value) => setEditingPlayer({...editingPlayer, tier: value})}
+                  >
+                    <SelectTrigger className="bg-gray-800 border-gray-600 text-white">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="1">1</SelectItem>
+                      <SelectItem value="2">2</SelectItem>
+                      <SelectItem value="3">3</SelectItem>
+                      <SelectItem value="4">4</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -307,8 +331,8 @@ export const AdminPlayers: React.FC = () => {
                 </Button>
                 <Button 
                   onClick={() => handleUpdatePlayer({
-                    tier: editingPlayer.tier,
-                    grade: editingPlayer.grade
+                    grade: editingPlayer.grade,
+                    tier: editingPlayer.tier
                   })}
                   className="bg-[#FF1F44] hover:bg-red-600"
                 >

@@ -41,11 +41,11 @@ export const AdminNotifications: React.FC = () => {
           id: n.id,
           type: n.type,
           message: n.message,
-          playerName: n.data?.playerName || 'Unknown',
-          accessCode: n.data?.accessCode || '',
+          playerName: (n.data as any)?.playerName || 'Unknown',
+          accessCode: (n.data as any)?.accessCode || '',
           timestamp: n.created_at,
           status: n.read ? 'read' : 'unread',
-          action: n.action_data?.action || '',
+          action: (n.action_data as any)?.action || '',
         }));
         setNotifications(formatted);
       }
@@ -120,31 +120,41 @@ export const AdminNotifications: React.FC = () => {
   };
 
   const markAllAsRead = async () => {
-    const { data, error } = await supabase.auth.getUser()
-    const user = data?.user;
+    const { error } = await supabase
+      .from("notifications")
+      .update({ read: true })
+      .eq('read', false);
 
-    if (error || !user) {
-      console.error("Failed to get user:", error)
+    if (error) {
+      console.error("Error marking all as read:", error);
       return;
     }
+    
+    setNotifications(prev =>
+      prev.map(n => ({ ...n, status: 'read' }))
+    );
+    toast({
+      title: "All Marked as Read",
+      description: "All notifications have been marked as read",
+    });
+  };
 
-    const  { error:updateError } = await supabase
+  const clearAllNotifications = async () => {
+    const { error } = await supabase
       .from("notifications")
-      .update({ read:true })
-      .eq('id', user?.id)
+      .delete()
+      .neq('id', '00000000-0000-0000-0000-000000000000'); // Delete all
 
-      if (updateError) {
-        console.error("Error performing action:", error)
-        return;
-      }
-      
-      setNotifications(prev =>
-        prev.map(n => ({ ...n, status: 'read' }))
-      );
-      toast({
-        title: "All Marked as Read",
-        description: "All notifications have been marked as read",
-      });
+    if (error) {
+      console.error("Error clearing notifications:", error);
+      return;
+    }
+    
+    setNotifications([]);
+    toast({
+      title: "Notifications Cleared",
+      description: "All notifications have been cleared",
+    });
   };
 
   const filteredNotifications = notifications.filter(notification => {
@@ -195,14 +205,24 @@ export const AdminNotifications: React.FC = () => {
           <h1 className="text-3xl font-bold text-foreground font-orbitron mb-2">Notifications</h1>
           <p className="text-muted-foreground font-rajdhani">Manage clan notifications and requests</p>
         </div>
-        <Button 
-          onClick={markAllAsRead}
-          variant="outline"
-          className="font-rajdhani"
-        >
-          <CheckCircle className="w-4 h-4 mr-2" />
-          Mark All Read
-        </Button>
+        <div className="flex gap-2">
+          <Button 
+            onClick={markAllAsRead}
+            variant="outline"
+            className="font-rajdhani"
+          >
+            <CheckCircle className="w-4 h-4 mr-2" />
+            Mark All Read
+          </Button>
+          <Button 
+            onClick={clearAllNotifications}
+            variant="outline"
+            className="font-rajdhani border-red-500 text-red-400 hover:bg-red-500/10"
+          >
+            <AlertCircle className="w-4 h-4 mr-2" />
+            Clear All
+          </Button>
+        </div>
       </div>
 
       {/* Stats Cards */}
