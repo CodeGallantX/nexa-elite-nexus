@@ -33,7 +33,7 @@ export const Chat: React.FC = () => {
   const { profile, user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const { markChatAsSeen } = useChatNotifications();
+  const { markChatAsSeen, markAdminChatAsSeen, hasUnreadAdminMessages } = useChatNotifications();
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   const [message, setMessage] = useState('');
@@ -57,10 +57,14 @@ export const Chat: React.FC = () => {
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const messageRefs = useRef<Map<string, HTMLDivElement>>(new Map());
 
-  // Mark chat as seen when component mounts
+  // Mark chat as seen when component mounts or channel changes
   useEffect(() => {
-    markChatAsSeen();
-  }, [markChatAsSeen]);
+    if (selectedChannel === 'general') {
+      markChatAsSeen();
+    } else if (selectedChannel === 'admin') {
+      markAdminChatAsSeen();
+    }
+  }, [markChatAsSeen, markAdminChatAsSeen, selectedChannel]);
 
   // Handle clicks outside context menu
   useEffect(() => {
@@ -656,9 +660,14 @@ export const Chat: React.FC = () => {
                 # General
               </Button>
               {profile?.role === 'admin' && (
-                <Button onClick={() => setSelectedChannel('admin')} variant="ghost" className={`w-full justify-start ${selectedChannel === 'admin' ? "text-primary" : "text-white"}`}>
-                  # Admin
-                </Button>
+                <div className="relative">
+                  <Button onClick={() => setSelectedChannel('admin')} variant="ghost" className={`w-full justify-start ${selectedChannel === 'admin' ? "text-primary" : "text-white"}`}>
+                    # Admin
+                  </Button>
+                  {hasUnreadAdminMessages && (
+                    <div className="absolute top-2 right-2 w-2 h-2 bg-destructive rounded-full" />
+                  )}
+                </div>
               )}
             </div>
           </CardContent>

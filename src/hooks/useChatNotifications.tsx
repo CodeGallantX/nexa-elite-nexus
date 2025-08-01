@@ -8,9 +8,11 @@ export const useChatNotifications = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [hasUnreadMessages, setHasUnreadMessages] = useState(false);
+  const [hasUnreadAdminMessages, setHasUnreadAdminMessages] = useState(false);
   const [lastSeenTimestamp, setLastSeenTimestamp] = useState<string | null>(null);
+  const [lastSeenAdminTimestamp, setLastSeenAdminTimestamp] = useState<string | null>(null);
 
-  // Get the latest message timestamp
+  // Get the latest general message timestamp
   const { data: latestMessage } = useQuery({
     queryKey: ['latest-chat-message'],
     queryFn: async () => {
@@ -32,16 +34,45 @@ export const useChatNotifications = () => {
     enabled: !!user,
   });
 
-  // Get user's last seen timestamp from localStorage
+  // Get the latest admin message timestamp
+  const { data: latestAdminMessage } = useQuery({
+    queryKey: ['latest-admin-chat-message'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('chat_messages')
+        .select('created_at, user_id')
+        .eq('channel', 'admin')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single();
+
+      if (error && error.code !== 'PGRST116') {
+        console.error('Error fetching latest admin message:', error);
+        return null;
+      }
+
+      return data;
+    },
+    enabled: !!user,
+  });
+
+  // Get user's last seen timestamps from localStorage
   useEffect(() => {
     const getLastSeen = () => {
       const stored = localStorage.getItem(`chat_last_seen_${user?.id}`);
       return stored;
     };
 
+    const getLastSeenAdmin = () => {
+      const stored = localStorage.getItem(`admin_chat_last_seen_${user?.id}`);
+      return stored;
+    };
+
     if (user) {
       const lastSeen = getLastSeen();
+      const lastSeenAdmin = getLastSeenAdmin();
       setLastSeenTimestamp(lastSeen);
+      setLastSeenAdminTimestamp(lastSeenAdmin);
       
       // If no last seen timestamp, set it to now to avoid showing old messages as unread
       if (!lastSeen) {
@@ -49,10 +80,16 @@ export const useChatNotifications = () => {
         localStorage.setItem(`chat_last_seen_${user.id}`, now);
         setLastSeenTimestamp(now);
       }
+
+      if (!lastSeenAdmin) {
+        const now = new Date().toISOString();
+        localStorage.setItem(`admin_chat_last_seen_${user.id}`, now);
+        setLastSeenAdminTimestamp(now);
+      }
     }
   }, [user]);
 
-  // Check if there are unread messages
+  // Check if there are unread general messages
   useEffect(() => {
     if (!latestMessage || !lastSeenTimestamp || !user) {
       setHasUnreadMessages(false);
@@ -71,13 +108,42 @@ export const useChatNotifications = () => {
     setHasUnreadMessages(latestMessageTime > lastSeenTime);
   }, [latestMessage, lastSeenTimestamp, user]);
 
-  // Mark chat as seen
+  // Check if there are unread admin messages
+  useEffect(() => {
+    if (!latestAdminMessage || !lastSeenAdminTimestamp || !user) {
+      setHasUnreadAdminMessages(false);
+      return;
+    }
+
+    // Don't show notification for own messages
+    if (latestAdminMessage.user_id === user.id) {
+      setHasUnreadAdminMessages(false);
+      return;
+    }
+
+    const latestMessageTime = new Date(latestAdminMessage.created_at).getTime();
+    const lastSeenTime = new Date(lastSeenAdminTimestamp).getTime();
+
+    setHasUnreadAdminMessages(latestMessageTime > lastSeenTime);
+  }, [latestAdminMessage, lastSeenAdminTimestamp, user]);
+
+  // Mark general chat as seen
   const markChatAsSeen = () => {
     if (user) {
       const now = new Date().toISOString();
       localStorage.setItem(`chat_last_seen_${user.id}`, now);
       setLastSeenTimestamp(now);
       setHasUnreadMessages(false);
+    }
+  };
+
+  // Mark admin chat as seen
+  const markAdminChatAsSeen = () => {
+    if (user) {
+      const now = new Date().toISOString();
+      localStorage.setItem(`admin_chat_last_seen_${user.id}`, now);
+      setLastSeenAdminTimestamp(now);
+      setHasUnreadAdminMessages(false);
     }
   };
 
@@ -98,6 +164,17 @@ export const useChatNotifications = () => {
           queryClient.invalidateQueries({ queryKey: ['latest-chat-message'] });
         }
       })
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'chat_messages',
+        filter: 'channel=eq.admin'
+      }, (payload) => {
+        // Only show notification if it's not from current user
+        if (payload.new.user_id !== user.id) {
+          queryClient.invalidateQueries({ queryKey: ['latest-admin-chat-message'] });
+        }
+      })
       .subscribe();
 
     return () => {
@@ -107,6 +184,8 @@ export const useChatNotifications = () => {
 
   return {
     hasUnreadMessages,
+    hasUnreadAdminMessages,
     markChatAsSeen,
+    markAdminChatAsSeen,
   };
 };

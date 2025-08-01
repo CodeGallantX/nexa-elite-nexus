@@ -4,7 +4,8 @@ import { useParams, Link } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Shield, ExternalLink, Target, Calendar, Award, Users } from 'lucide-react';
+import { Shield, ExternalLink, Target, Calendar, Award, Users, ArrowLeft, Copy } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 // Mock user data - in real app would fetch based on IGN
 const mockUser = {
@@ -49,9 +50,18 @@ const mockUser = {
 
 export const PublicProfile: React.FC = () => {
   const { ign } = useParams<{ ign: string }>();
+  const { toast } = useToast();
   
   // In real app, would fetch user data based on IGN
   const user = mockUser;
+
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    toast({
+      title: "Copied!",
+      description: "Profile link copied to clipboard",
+    });
+  };
 
   const getGradeColor = (grade: string) => {
     const colors = {
@@ -85,9 +95,21 @@ export const PublicProfile: React.FC = () => {
                 <p className="text-muted-foreground font-rajdhani">Public Player Profile</p>
               </div>
             </div>
-            <Link to="/" className="text-primary hover:text-red-300 font-rajdhani">
-              ← Back to Home
-            </Link>
+            <div className="flex items-center space-x-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => copyToClipboard(window.location.href)}
+                className="font-rajdhani"
+              >
+                <Copy className="w-4 h-4 mr-2" />
+                Copy Link
+              </Button>
+              <Link to="/" className="text-primary hover:text-red-300 font-rajdhani flex items-center">
+                <ArrowLeft className="w-4 h-4 mr-1" />
+                Back to Home
+              </Link>
+            </div>
           </div>
         </div>
       </div>

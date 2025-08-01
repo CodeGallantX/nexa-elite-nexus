@@ -258,10 +258,10 @@ export const Profile: React.FC = () => {
               {editing ? 'Save' : 'Edit Profile'}
             </Button>
             <Button
-              onClick={() => navigate('/profile/:id/')}
-              className="bg-white/10 hover:bg-white/20 text-white border border-white/20"
+              onClick={() => navigate(`/public-profile/${profile.ign}`)}
+              className="bg-white/10 hover:bg-white/20 text-white border border-white/20 mt-2"
             >
-              <Share2 />
+              <Share2 className="w-4 h-4 mr-2" />
               Share Profile
             </Button>
               </div>

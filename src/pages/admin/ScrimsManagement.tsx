@@ -61,29 +61,66 @@ export const AdminScrimsManagement: React.FC = () => {
     return matchesSearch && matchesStatus;
   });
 
-  const handleCreateScrim = () => {
-    const scrimId = Date.now().toString();
-    setScrims(prev => [...prev, { ...newScrim, id: scrimId, assignedPlayers: [], status: 'upcoming' }]);
-    setNewScrim({
-      name: '',
-      date: '',
-      time: '',
-      description: '',
-      assignedPlayers: []
-    });
-    setIsCreateDialogOpen(false);
-    toast({
-      title: "Scrim Created",
-      description: "New scrim has been scheduled successfully.",
-    });
+  const handleCreateScrim = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('events')
+        .insert({
+          name: newScrim.name,
+          date: newScrim.date,
+          time: newScrim.time,
+          description: newScrim.description,
+          type: 'Scrims',
+          status: 'upcoming'
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      setScrims(prev => [...prev, { ...data, assignedPlayers: [] }]);
+      setNewScrim({
+        name: '',
+        date: '',
+        time: '',
+        description: '',
+        assignedPlayers: []
+      });
+      setIsCreateDialogOpen(false);
+      toast({
+        title: "Scrim Created",
+        description: "New scrim has been scheduled successfully.",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
   };
 
-  const handleDeleteScrim = (scrimId: string) => {
-    setScrims(prev => prev.filter(s => s.id !== scrimId));
-    toast({
-      title: "Scrim Deleted",
-      description: "The scrim has been removed successfully.",
-    });
+  const handleDeleteScrim = async (scrimId: string) => {
+    try {
+      const { error } = await supabase
+        .from('events')
+        .delete()
+        .eq('id', scrimId);
+
+      if (error) throw error;
+
+      setScrims(prev => prev.filter(s => s.id !== scrimId));
+      toast({
+        title: "Scrim Deleted",
+        description: "The scrim has been removed successfully.",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
   };
 
   const handleEditScrim = (scrim: any) => {
@@ -91,31 +128,63 @@ export const AdminScrimsManagement: React.FC = () => {
     setIsEditDialogOpen(true);
   };
 
-  const handleUpdateScrim = () => {
-    setScrims(prev => prev.map(s => s.id === editingScrim.id ? editingScrim : s));
-    setIsEditDialogOpen(false);
-    setEditingScrim(null);
-    toast({
-      title: "Scrim Updated",
-      description: "Changes have been saved successfully.",
-    });
+  const handleUpdateScrim = async () => {
+    try {
+      const { error } = await supabase
+        .from('events')
+        .update({
+          name: editingScrim.name,
+          status: editingScrim.status
+        })
+        .eq('id', editingScrim.id);
+
+      if (error) throw error;
+
+      setScrims(prev => prev.map(s => s.id === editingScrim.id ? editingScrim : s));
+      setIsEditDialogOpen(false);
+      setEditingScrim(null);
+      toast({
+        title: "Scrim Updated",
+        description: "Changes have been saved successfully.",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
   };
 
 
   useEffect(() => {
     const fetchScrims = async () => {
       const { data, error } = await supabase
-      .from('events')
-      .select('*')
-      .eq('type', 'Scrims');
+        .from('events')
+        .select(`
+          *,
+          event_participants (
+            id,
+            player_id,
+            profiles (
+              ign,
+              username
+            )
+          )
+        `)
+        .eq('type', 'Scrims');
 
       if (error) {
         console.error('Error fetching scrims:', error.message);
+      } else {
+        // Transform data to include assignedPlayers
+        const transformedScrims = (data || []).map(scrim => ({
+          ...scrim,
+          assignedPlayers: scrim.event_participants || []
+        }));
+        setScrims(transformedScrims);
       }
-        else {
-          setScrims(data || []);
-        }
-    }    
+    };
     
     fetchScrims();
   }, []);
