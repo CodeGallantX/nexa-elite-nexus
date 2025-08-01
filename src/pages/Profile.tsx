@@ -30,29 +30,8 @@ import {
 export const Profile: React.FC = () => {
   const { profile, updateProfile, resetPassword, user } = useAuth();
   const { toast } = useToast();
-  const [editing, setEditing] = useState(false);
   const [uploading, setUploading] = useState(false);
-  const [formData, setFormData] = useState({
-    tiktok_handle: profile?.tiktok_handle || '',
-    preferred_mode: profile?.preferred_mode || '',
-    device: profile?.device || '',
-    kills: profile?.kills?.toString() || '0',
-    ign: profile?.ign || '',
-    username: profile?.username || '',
-    social_links: profile?.social_links || {},
-    banking_info: profile?.banking_info || {}
-  });
 
-  const handleSave = async () => {
-    if (profile) {
-      const updateData = {
-        ...formData,
-        kills: parseInt(formData.kills) || 0
-      };
-      await updateProfile(updateData);
-      setEditing(false);
-    }
-  };
 
   const handleAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -251,14 +230,14 @@ export const Profile: React.FC = () => {
 <div className='flex flex-col items-start justify-center'>
             {/* Edit Button */}
             <Button
-              onClick={() => setEditing(!editing)}
+              onClick={() => navigate('/settings')}
               className="bg-white/10 hover:bg-white/20 text-white border border-white/20"
             >
-              {editing ? <Save className="w-4 h-4 mr-2" /> : <Edit3 className="w-4 h-4 mr-2" />}
-              {editing ? 'Save' : 'Edit Profile'}
+              <Edit3 className="w-4 h-4 mr-2" />
+              Edit Profile
             </Button>
             <Button
-              onClick={() => navigate(`/public-profile/${profile.ign}`)}
+              onClick={() => navigate(`/public-profile/${profile.id}`)}
               className="bg-white/10 hover:bg-white/20 text-white border border-white/20 mt-2"
             >
               <Share2 className="w-4 h-4 mr-2" />
@@ -282,82 +261,36 @@ export const Profile: React.FC = () => {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label className="text-gray-300">In-Game Name</Label>
-                {editing ? (
-                  <Input
-                    value={formData.ign}
-                    onChange={(e) => setFormData(prev => ({ ...prev, ign: e.target.value }))}
-                    className="mt-1 bg-white/5 border-white/20 text-white"
-                    placeholder="Your in-game name"
-                  />
-                ) : (
-                  <div className="text-white font-medium mt-1">Ɲ・乂{profile.ign}</div>
-                )}
+                <div className="text-white font-medium mt-1">Ɲ・乂{profile.ign}</div>
               </div>
               <div>
                 <Label className="text-gray-300">Username</Label>
-                {editing ? (
-                  <Input
-                    value={formData.username}
-                    onChange={(e) => setFormData(prev => ({ ...prev, username: e.target.value }))}
-                    className="mt-1 bg-white/5 border-white/20 text-white"
-                    placeholder="Your username"
-                  />
-                ) : (
-                  <div className="text-white font-medium mt-1">{profile.username}</div>
-                )}
+                <div className="text-white font-medium mt-1">{profile.username}</div>
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label className="text-gray-300">Total Kills</Label>
-                {editing ? (
-                  <Input
-                    type="number"
-                    value={formData.kills}
-                    onChange={(e) => setFormData(prev => ({ ...prev, kills: e.target.value }))}
-                    className="mt-1 bg-white/5 border-white/20 text-white"
-                    placeholder="0"
-                  />
-                ) : (
-                  <div className="text-white font-medium mt-1">{profile.kills?.toLocaleString()}</div>
-                )}
+                <div className="text-white font-medium mt-1">{profile.kills?.toLocaleString()}</div>
               </div>
               <div>
                 <Label className="text-gray-300">Player UID</Label>
-                <div className="text-white font-medium mt-1">{profile.id.slice(0, 8)}...</div>
+                <div className="text-white font-medium mt-1">{profile.player_uid || profile.id.slice(0, 8) + '...'}</div>
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label className="text-gray-300">Gaming Device</Label>
-                {editing ? (
-                  <Input
-                    value={formData.device}
-                    onChange={(e) => setFormData(prev => ({ ...prev, device: e.target.value }))}
-                    className="mt-1 bg-white/5 border-white/20 text-white"
-                    placeholder="e.g., iPhone, Android"
-                  />
-                ) : (
-                  <div className="flex items-center mt-1">
-                    <Smartphone className="w-4 h-4 mr-2 text-[#FF1F44]" />
-                    <span className="text-white">{profile.device || 'Not specified'}</span>
-                  </div>
-                )}
+                <div className="flex items-center mt-1">
+                  <Smartphone className="w-4 h-4 mr-2 text-[#FF1F44]" />
+                  <span className="text-white">{profile.device || 'Not specified'}</span>
+                </div>
               </div>
               <div>
                 <Label className="text-gray-300">Game Mode</Label>
-                {editing ? (
-                  <Input
-                    value={formData.preferred_mode}
-                    onChange={(e) => setFormData(prev => ({ ...prev, preferred_mode: e.target.value }))}
-                    className="mt-1 bg-white/5 border-white/20 text-white"
-                    placeholder="e.g., Battle Royale, MP"
-                  />
-                ) : (
-                  <div className="text-white font-medium mt-1">{profile.preferred_mode || 'Not specified'}</div>
-                )}
+                <div className="text-white font-medium mt-1">{profile.preferred_mode || 'Not specified'}</div>
               </div>
             </div>
 
@@ -372,6 +305,21 @@ export const Profile: React.FC = () => {
                   <Calendar className="w-4 h-4 mr-2 text-[#FF1F44]" />
                   <span className="text-white">{profile.date_joined}</span>
                 </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label className="text-gray-300">Grade</Label>
+                <Badge className={`${getGradeColor(profile.grade || 'D')} text-white mt-1`}>
+                  Grade {profile.grade}
+                </Badge>
+              </div>
+              <div>
+                <Label className="text-gray-300">Tier</Label>
+                <Badge variant="outline" className="border-[#FF1F44]/50 text-[#FF1F44] mt-1">
+                  Tier {profile.tier}
+                </Badge>
               </div>
             </div>
           </CardContent>
@@ -389,31 +337,21 @@ export const Profile: React.FC = () => {
             {/* TikTok */}
             <div>
               <Label htmlFor="tiktok" className="text-gray-300">TikTok Handle</Label>
-              {editing ? (
-                <Input
-                  id="tiktok"
-                  value={formData.tiktok_handle}
-                  onChange={(e) => setFormData(prev => ({ ...prev, tiktok_handle: e.target.value }))}
-                  className="mt-1 bg-white/5 border-white/20 text-white"
-                  placeholder="@username"
-                />
-              ) : (
-                <div className="flex items-center mt-1">
-                  {getSocialIcon('tiktok')}
-                  <span className="ml-2 text-white font-medium">
-                    {profile.tiktok_handle ? (
-                      <a 
-                        href={formatSocialLink(profile.tiktok_handle, 'tiktok') || '#'}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-[#FF1F44] hover:text-red-300 transition-colors"
-                      >
-                        {profile.tiktok_handle}
-                      </a>
-                    ) : 'Not provided'}
-                  </span>
-                </div>
-              )}
+              <div className="flex items-center mt-1">
+                {getSocialIcon('tiktok')}
+                <span className="ml-2 text-white font-medium">
+                  {profile.tiktok_handle ? (
+                    <a 
+                      href={formatSocialLink(profile.tiktok_handle, 'tiktok') || '#'}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-[#FF1F44] hover:text-red-300 transition-colors"
+                    >
+                      {profile.tiktok_handle}
+                    </a>
+                  ) : 'Not provided'}
+                </span>
+              </div>
             </div>
 
             {/* All Social Links (stored in social_links JSON field) */}
@@ -468,23 +406,6 @@ export const Profile: React.FC = () => {
               </Button>
             </div>
 
-            {editing && (
-              <div className="mt-6 flex justify-end space-x-4">
-                <Button
-                  variant="outline"
-                  onClick={() => setEditing(false)}
-                  className="border-white/30 text-white hover:bg-white/10"
-                >
-                  Cancel
-                </Button>
-                <Button
-                  onClick={handleSave}
-                  className="bg-[#FF1F44] hover:bg-red-600 text-white"
-                >
-                  Save Changes
-                </Button>
-              </div>
-            )}
           </CardContent>
         </Card>
       </div>

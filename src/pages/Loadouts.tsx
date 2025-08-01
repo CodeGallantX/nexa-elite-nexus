@@ -19,7 +19,8 @@ import {
   Search, 
   Filter,
   Star,
-  Eye
+  Eye,
+  Copy
 } from 'lucide-react';
 
 interface Loadout {
@@ -45,6 +46,9 @@ export const Loadouts: React.FC = () => {
   const [filterMode, setFilterMode] = useState('all');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingLoadout, setEditingLoadout] = useState<Loadout | null>(null);
+  const [isBrowseDialogOpen, setIsBrowseDialogOpen] = useState(false);
+  const [selectedLoadout, setSelectedLoadout] = useState<any>(null);
+  const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   const [formData, setFormData] = useState({
     weapon_name: '',
     weapon_type: '',
@@ -71,6 +75,27 @@ export const Loadouts: React.FC = () => {
       return data as Loadout[];
     },
     enabled: !!user?.id,
+  });
+
+  // Fetch all public loadouts for browsing
+  const { data: allLoadouts = [] } = useQuery({
+    queryKey: ['all-loadouts'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('loadouts')
+        .select(`
+          *,
+          profiles (
+            username,
+            ign
+          )
+        `)
+        .eq('is_public', true)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      return data;
+    }
   });
 
   // Create/Update loadout mutation
@@ -174,6 +199,43 @@ export const Loadouts: React.FC = () => {
     }
   });
 
+  // Copy loadout mutation
+  const copyLoadoutMutation = useMutation({
+    mutationFn: async (loadout: any) => {
+      if (!user?.id) throw new Error('User not authenticated');
+
+      const { error } = await supabase
+        .from('loadouts')
+        .insert({
+          weapon_name: loadout.weapon_name,
+          weapon_type: loadout.weapon_type,
+          mode: loadout.mode,
+          attachments: loadout.attachments,
+          description: `Copied from ${loadout.profiles?.ign || 'Unknown'}`,
+          player_id: user.id,
+          is_public: true,
+          image_url: loadout.image_url
+        });
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['user-loadouts'] });
+      toast({
+        title: "Success",
+        description: "Loadout copied to your collection",
+      });
+    },
+    onError: (error) => {
+      console.error('Error copying loadout:', error);
+      toast({
+        title: "Error",
+        description: "Failed to copy loadout",
+        variant: "destructive",
+      });
+    },
+  });
+
   const filteredLoadouts = loadouts.filter(loadout => {
     const matchesSearch = loadout.weapon_name.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesMode = filterMode === 'all' || loadout.mode === filterMode;
@@ -206,11 +268,17 @@ export const Loadouts: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col md:flex-row items-start md:items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-white mb-2">My Loadouts</h1>
-          <p className="text-gray-400">Manage your weapon configurations</p>
-        </div>
+      <div className="flex justify-between items-center mb-6">
+          <h1 className="text-3xl font-bold text-white font-orbitron">My Loadouts</h1>
+          <div className="flex gap-3">
+            <Dialog open={isBrowseDialogOpen} onOpenChange={setIsBrowseDialogOpen}>
+              <DialogTrigger asChild>
+                <Button variant="outline" className="border-white/30 text-white hover:bg-white/10">
+                  <Search className="w-4 h-4 mr-2" />
+                  Browse Loadouts
+                </Button>
+              </DialogTrigger>
+            </Dialog>
         
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
@@ -317,8 +385,131 @@ export const Loadouts: React.FC = () => {
               </div>
             </div>
           </DialogContent>
-        </Dialog>
+          </Dialog>
       </div>
+
+        {/* Browse Loadouts Dialog */}
+        <Dialog open={isBrowseDialogOpen} onOpenChange={setIsBrowseDialogOpen}>
+          <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto bg-gray-900 border-gray-700">
+            <DialogHeader>
+              <DialogTitle className="text-white font-orbitron">Browse Loadouts</DialogTitle>
+            </DialogHeader>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-4">
+              {allLoadouts.map((loadout: any) => (
+                <Card key={loadout.id} className="bg-white/5 border-white/10 backdrop-blur-sm hover:bg-white/10 transition-colors">
+                  <CardHeader className="pb-3">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <CardTitle className="text-white text-lg">{loadout.weapon_name}</CardTitle>
+                        <p className="text-gray-300 text-sm">by Ɲ・乂{loadout.profiles?.ign || 'Unknown'}</p>
+                      </div>
+                      <Badge variant="outline" className="border-[#FF1F44]/50 text-[#FF1F44] text-xs">
+                        {loadout.weapon_type}
+                      </Badge>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    {loadout.image_url && (
+                      <img
+                        src={loadout.image_url}
+                        alt={loadout.weapon_name}
+                        className="w-full h-32 object-cover rounded-lg mb-3"
+                      />
+                    )}
+                    <div className="flex justify-between items-center">
+                      <Badge variant="secondary" className="text-xs">
+                        {loadout.mode}
+                      </Badge>
+                      <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            setSelectedLoadout(loadout);
+                            setIsViewDialogOpen(true);
+                          }}
+                          className="border-white/30 text-white hover:bg-white/10"
+                        >
+                          <Eye className="w-3 h-3" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          onClick={() => copyLoadoutMutation.mutate(loadout)}
+                          disabled={copyLoadoutMutation.isPending}
+                          className="bg-[#FF1F44] hover:bg-red-600 text-white"
+                        >
+                          <Copy className="w-3 h-3" />
+                        </Button>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* View Loadout Dialog */}
+        <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
+          <DialogContent className="max-w-2xl bg-gray-900 border-gray-700">
+            <DialogHeader>
+              <DialogTitle className="text-white font-orbitron">
+                {selectedLoadout?.weapon_name}
+              </DialogTitle>
+            </DialogHeader>
+            {selectedLoadout && (
+              <div className="space-y-4">
+                {selectedLoadout.image_url && (
+                  <img
+                    src={selectedLoadout.image_url}
+                    alt={selectedLoadout.weapon_name}
+                    className="w-full h-48 object-cover rounded-lg"
+                  />
+                )}
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label className="text-gray-300">Weapon Type</Label>
+                    <p className="text-white">{selectedLoadout.weapon_type}</p>
+                  </div>
+                  <div>
+                    <Label className="text-gray-300">Mode</Label>
+                    <p className="text-white">{selectedLoadout.mode}</p>
+                  </div>
+                  <div>
+                    <Label className="text-gray-300">Created by</Label>
+                    <p className="text-white">Ɲ・乂{selectedLoadout.profiles?.ign || 'Unknown'}</p>
+                  </div>
+                </div>
+                {selectedLoadout.description && (
+                  <div>
+                    <Label className="text-gray-300">Description</Label>
+                    <p className="text-white">{selectedLoadout.description}</p>
+                  </div>
+                )}
+                <div className="flex justify-end gap-3">
+                  <Button
+                    variant="outline"
+                    onClick={() => setIsViewDialogOpen(false)}
+                    className="border-white/30 text-white hover:bg-white/10"
+                  >
+                    Close
+                  </Button>
+                  <Button
+                    onClick={() => {
+                      copyLoadoutMutation.mutate(selectedLoadout);
+                      setIsViewDialogOpen(false);
+                    }}
+                    disabled={copyLoadoutMutation.isPending}
+                    className="bg-[#FF1F44] hover:bg-red-600 text-white"
+                  >
+                    <Copy className="w-4 h-4 mr-2" />
+                    Copy Loadout
+                  </Button>
+                </div>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
 
       {/* Filters */}
       <div className="flex flex-col md:flex-row gap-4">

@@ -20,6 +20,32 @@ import {
   CreditCard
 } from 'lucide-react';
 
+// Device and brand data from onboarding
+const deviceData = {
+  iPhone: [
+    "iPhone X", "iPhone XR", "iPhone XS", "iPhone XS Max", "iPhone 11", "iPhone 11 Pro", "iPhone 11 Pro Max",
+    "iPhone SE (2nd generation)", "iPhone 12 mini", "iPhone 12", "iPhone 12 Pro", "iPhone 12 Pro Max",
+    "iPhone 13 mini", "iPhone 13", "iPhone 13 Pro", "iPhone 13 Pro Max", "iPhone SE (3rd generation)",
+    "iPhone 14", "iPhone 14 Plus", "iPhone 14 Pro", "iPhone 14 Pro Max", "iPhone 15", "iPhone 15 Plus",
+    "iPhone 15 Pro", "iPhone 15 Pro Max", "iPhone 16", "iPhone 16 Plus", "iPhone 16 Pro", "iPhone 16 Pro Max"
+  ],
+  Android: ['Samsung', 'Xiaomi', 'Infinix', 'Redmi', 'Itel', 'Tecno', 'Nokia', 'OnePlus', 'Huawei', 'Oppo', 'Vivo', 'Realme', 'Honor', 'Nothing'],
+  iPad: [
+    "iPad (5th generation)", "iPad (6th generation)", "iPad (7th generation)", "iPad (8th generation)",
+    "iPad (9th generation)", "iPad (10th generation)", "iPad mini (5th generation)", "iPad mini (6th generation)",
+    "iPad Air (3rd generation)", "iPad Air (4th generation)", "iPad Air (5th generation)", "iPad Air (6th generation)",
+    "iPad Pro 10.5-inch", "iPad Pro 11-inch (1st generation)", "iPad Pro 12.9-inch (3rd generation)"
+  ]
+};
+
+const socialPlatforms = ['tiktok', 'youtube', 'discord', 'x', 'instagram'];
+const bankOptions = [
+  'Opay', 'Palmpay', 'Moniepoint', 'Kuda', 'Access Bank', 'GTBank', 
+  'First Bank', 'UBA', 'Zenith Bank', 'Fidelity Bank'
+];
+
+const gameModes = ['BR', 'MP', 'Both'];
+
 export const Settings: React.FC = () => {
   const { profile, user } = useAuth();
   const { toast } = useToast();
@@ -30,6 +56,7 @@ export const Settings: React.FC = () => {
     tiktok_handle: '',
     preferred_mode: '',
     device: '',
+    deviceType: '',
     player_uid: '',
     social_links: {} as Record<string, string>,
     banking_info: {} as Record<string, string>,
@@ -46,6 +73,8 @@ export const Settings: React.FC = () => {
         tiktok_handle: profile.tiktok_handle || '',
         preferred_mode: profile.preferred_mode || '',
         device: profile.device || '',
+        deviceType: profile.device ? (deviceData.iPhone.includes(profile.device) ? 'iPhone' : 
+                                      deviceData.iPad.includes(profile.device) ? 'iPad' : 'Android') : '',
         player_uid: profile.player_uid || '',
         social_links: profile.social_links || {},
         banking_info: profile.banking_info || {},
@@ -299,88 +328,142 @@ export const Settings: React.FC = () => {
 
             {/* Device */}
             <div>
-              <Label htmlFor="device" className="text-white">Primary Device</Label>
+              <Label htmlFor="deviceType" className="text-foreground">Device Type</Label>
               <Select 
-                value={formData.device} 
-                onValueChange={(value) => setFormData(prev => ({ ...prev, device: value }))}
+                value={formData.deviceType || ''} 
+                onValueChange={(value) => setFormData(prev => ({ 
+                  ...prev, 
+                  deviceType: value,
+                  device: '' // Reset device when type changes
+                }))}
               >
-                <SelectTrigger className="bg-background/50 border-border text-white">
-                  <SelectValue placeholder="Select your device" />
+                <SelectTrigger className="bg-background/50 border-border/50">
+                  <SelectValue placeholder="Select device type" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Mobile">Mobile</SelectItem>
-                  <SelectItem value="Tablet">Tablet</SelectItem>
+                  <SelectItem value="iPhone">iPhone</SelectItem>
+                  <SelectItem value="Android">Android</SelectItem>
                   <SelectItem value="iPad">iPad</SelectItem>
-                  <SelectItem value="PC">PC (Emulator)</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
+            {formData.deviceType && (
+              <div>
+                <Label htmlFor="device" className="text-foreground">
+                  {formData.deviceType === 'Android' ? 'Android Brand' : 'Device Model'}
+                </Label>
+                <Select 
+                  value={formData.device} 
+                  onValueChange={(value) => setFormData(prev => ({ ...prev, device: value }))}
+                >
+                  <SelectTrigger className="bg-background/50 border-border/50">
+                    <SelectValue placeholder={`Select ${formData.deviceType === 'Android' ? 'brand' : 'model'}`} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {deviceData[formData.deviceType as keyof typeof deviceData]?.map((option) => (
+                      <SelectItem key={option} value={option}>{option}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
             {/* Social Links */}
-            <div className="space-y-3">
-              <Label className="text-white">Social Links</Label>
-              <div className="space-y-2">
-                <Input
-                  placeholder="YouTube Channel"
-                  value={formData.social_links.youtube || ''}
-                  onChange={(e) => setFormData(prev => ({ 
-                    ...prev, 
-                    social_links: { ...prev.social_links, youtube: e.target.value }
-                  }))}
-                  className="bg-background/50 border-border text-white"
-                />
-                <Input
-                  placeholder="Instagram Handle"
-                  value={formData.social_links.instagram || ''}
-                  onChange={(e) => setFormData(prev => ({ 
-                    ...prev, 
-                    social_links: { ...prev.social_links, instagram: e.target.value }
-                  }))}
-                  className="bg-background/50 border-border text-white"
-                />
-                <Input
-                  placeholder="Discord Tag"
-                  value={formData.social_links.discord || ''}
-                  onChange={(e) => setFormData(prev => ({ 
-                    ...prev, 
-                    social_links: { ...prev.social_links, discord: e.target.value }
-                  }))}
-                  className="bg-background/50 border-border text-white"
-                />
+            <div className="space-y-4">
+              <h4 className="text-foreground font-semibold">Social Media</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {socialPlatforms.map((platform) => (
+                  <div key={platform}>
+                    <Label className="text-foreground capitalize">{platform}</Label>
+                    <Input
+                      value={formData.social_links[platform] || ''}
+                      onChange={(e) => setFormData(prev => ({
+                        ...prev,
+                        social_links: {
+                          ...prev.social_links,
+                          [platform]: e.target.value
+                        }
+                      }))}
+                      className="bg-background/50 border-border/50"
+                      placeholder={`Your ${platform} handle`}
+                    />
+                  </div>
+                ))}
               </div>
             </div>
 
             {/* Banking Info */}
-            <div className="space-y-3">
-              <Label className="text-white">Banking Information (Optional)</Label>
-              <div className="space-y-2">
-                <Input
-                  placeholder="Bank Account Number"
-                  value={formData.banking_info.account_number || ''}
-                  onChange={(e) => setFormData(prev => ({ 
-                    ...prev, 
-                    banking_info: { ...prev.banking_info, account_number: e.target.value }
-                  }))}
-                  className="bg-background/50 border-border text-white"
-                />
-                <Input
-                  placeholder="Bank Name"
-                  value={formData.banking_info.bank_name || ''}
-                  onChange={(e) => setFormData(prev => ({ 
-                    ...prev, 
-                    banking_info: { ...prev.banking_info, bank_name: e.target.value }
-                  }))}
-                  className="bg-background/50 border-border text-white"
-                />
-                <Input
-                  placeholder="Account Holder Name"
-                  value={formData.banking_info.account_holder || ''}
-                  onChange={(e) => setFormData(prev => ({ 
-                    ...prev, 
-                    banking_info: { ...prev.banking_info, account_holder: e.target.value }
-                  }))}
-                  className="bg-background/50 border-border text-white"
-                />
+            <div className="space-y-4">
+              <h4 className="text-foreground font-semibold">Banking Information</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-foreground">Real Name</Label>
+                  <Input
+                    value={formData.banking_info.real_name || ''}
+                    onChange={(e) => setFormData(prev => ({
+                      ...prev,
+                      banking_info: {
+                        ...prev.banking_info,
+                        real_name: e.target.value
+                      }
+                    }))}
+                    className="bg-background/50 border-border/50"
+                    placeholder="Your real name"
+                  />
+                </div>
+                <div>
+                  <Label className="text-foreground">Account Name</Label>
+                  <Input
+                    value={formData.banking_info.account_name || ''}
+                    onChange={(e) => setFormData(prev => ({
+                      ...prev,
+                      banking_info: {
+                        ...prev.banking_info,
+                        account_name: e.target.value
+                      }
+                    }))}
+                    className="bg-background/50 border-border/50"
+                    placeholder="Account holder name"
+                  />
+                </div>
+                <div>
+                  <Label className="text-foreground">Account Number</Label>
+                  <Input
+                    value={formData.banking_info.account_number || ''}
+                    onChange={(e) => setFormData(prev => ({
+                      ...prev,
+                      banking_info: {
+                        ...prev.banking_info,
+                        account_number: e.target.value
+                      }
+                    }))}
+                    className="bg-background/50 border-border/50"
+                    placeholder="Bank account number"
+                  />
+                </div>
+                <div>
+                  <Label className="text-foreground">Bank Name</Label>
+                  <Select 
+                    value={formData.banking_info.bank_name || ''} 
+                    onValueChange={(value) => setFormData(prev => ({
+                      ...prev,
+                      banking_info: {
+                        ...prev.banking_info,
+                        bank_name: value
+                      }
+                    }))}
+                  >
+                    <SelectTrigger className="bg-background/50 border-border/50">
+                      <SelectValue placeholder="Select bank" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {bankOptions.map((bank) => (
+                        <SelectItem key={bank} value={bank}>{bank}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
             </div>
 
