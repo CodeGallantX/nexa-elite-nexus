@@ -74,11 +74,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return;
       }
       
-      setProfile({
-        ...data,
-        social_links: data.social_links as Record<string, string> | null,
-        banking_info: data.banking_info as Record<string, string> | null,
-      });
+  setProfile({
+    ...data,
+    player_uid: data.player_uid || '',
+    social_links: data.social_links as Record<string, string> | null,
+    banking_info: data.banking_info as Record<string, string> | null,
+  });
     } catch (error) {
       console.error('Error fetching profile:', error);
     }
