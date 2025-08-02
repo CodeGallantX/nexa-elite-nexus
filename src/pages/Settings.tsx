@@ -93,7 +93,6 @@ export const Settings: React.FC = () => {
     br_class: '',
     mp_class: '',
     best_gun: '',
-    favorite_loadout: '',
     social_links: {} as Record<string, string>,
     banking_info: {} as Record<string, string>,
     avatar_file: null as File | null
@@ -118,7 +117,6 @@ export const Settings: React.FC = () => {
         br_class: profile.br_class || '',
         mp_class: profile.mp_class || '',
         best_gun: profile.best_gun || '',
-        favorite_loadout: profile.favorite_loadout || '',
         social_links: profile.social_links || {},
         banking_info: profile.banking_info || {},
         avatar_file: null
@@ -167,7 +165,6 @@ export const Settings: React.FC = () => {
         br_class: formData.br_class || null,
         mp_class: formData.mp_class || null,
         best_gun: formData.best_gun || null,
-        favorite_loadout: formData.favorite_loadout || null,
         social_links: Object.keys(formData.social_links).length > 0 ? formData.social_links : null,
         banking_info: Object.keys(formData.banking_info).length > 0 ? formData.banking_info : null,
         ...(avatarUrl && { avatar_url: avatarUrl })
@@ -470,18 +467,6 @@ export const Settings: React.FC = () => {
                     value={formData.best_gun}
                     onChange={(e) => setFormData(prev => ({ ...prev, best_gun: e.target.value }))}
                     placeholder="e.g., AK-47, M13, DLQ33"
-                    className="bg-background/50 border-border text-white"
-                  />
-                </div>
-
-                {/* Favorite Loadout */}
-                <div>
-                  <Label htmlFor="favorite_loadout" className="text-white">Favorite Loadout</Label>
-                  <Input
-                    id="favorite_loadout"
-                    value={formData.favorite_loadout}
-                    onChange={(e) => setFormData(prev => ({ ...prev, favorite_loadout: e.target.value }))}
-                    placeholder="Describe your favorite loadout"
                     className="bg-background/50 border-border text-white"
                   />
                 </div>
