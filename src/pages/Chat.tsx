@@ -727,11 +727,11 @@ export const Chat: React.FC = () => {
                             <span className="ml-1 px-1 py-0.5 bg-red-500 text-white text-[10px] rounded">
                               ADMIN
                             </span>
-                          ): msg.profiles?.role === 'clan_master' (
+                          ): msg.profiles?.role === 'clan_master' ?(
                             <span className="ml-1 px-1 py-0.5 bg-red-500 text-white text-[8px] rounded">
                               CLAN MASTER
                             </span>
-                          )
+                          ) : null
                         }
                         </div>
                       )}
