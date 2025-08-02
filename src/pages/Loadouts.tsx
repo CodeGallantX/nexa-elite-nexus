@@ -82,7 +82,7 @@ export const Loadouts: React.FC = () => {
     queryKey: ['all-loadouts'],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('loadouts')
+        .from('weapon_layouts')
         .select(`
           *,
           profiles (
@@ -90,7 +90,6 @@ export const Loadouts: React.FC = () => {
             ign
           )
         `)
-        .eq('is_public', true)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -205,15 +204,12 @@ export const Loadouts: React.FC = () => {
       if (!user?.id) throw new Error('User not authenticated');
 
       const { error } = await supabase
-        .from('loadouts')
+        .from('weapon_layouts')
         .insert({
           weapon_name: loadout.weapon_name,
           weapon_type: loadout.weapon_type,
           mode: loadout.mode,
-          attachments: loadout.attachments,
-          description: `Copied from ${loadout.profiles?.ign || 'Unknown'}`,
           player_id: user.id,
-          is_public: true,
           image_url: loadout.image_url
         });
 
@@ -269,123 +265,124 @@ export const Loadouts: React.FC = () => {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex justify-between items-center mb-6">
-          <h1 className="text-3xl font-bold text-white font-orbitron">My Loadouts</h1>
-          <div className="flex gap-3">
-            <Dialog open={isBrowseDialogOpen} onOpenChange={setIsBrowseDialogOpen}>
-              <DialogTrigger asChild>
-                <Button variant="outline" className="border-white/30 text-white hover:bg-white/10">
-                  <Search className="w-4 h-4 mr-2" />
-                  Browse Loadouts
-                </Button>
-              </DialogTrigger>
-            </Dialog>
-        
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button 
-              onClick={() => {
-                setEditingLoadout(null);
-                setFormData({
-                  weapon_name: '',
-                  weapon_type: '',
-                  mode: '',
-                  image_file: null
-                });
-              }}
-              className="bg-[#FF1F44] hover:bg-red-600 text-white"
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              New Loadout
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="bg-card border-border">
-            <DialogHeader>
-              <DialogTitle className="text-white">
-                {editingLoadout ? 'Edit Loadout' : 'Create New Loadout'}
-              </DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="weapon_name" className="text-white">Weapon Name</Label>
-                <Input
-                  id="weapon_name"
-                  value={formData.weapon_name}
-                  onChange={(e) => setFormData({...formData, weapon_name: e.target.value})}
-                  placeholder="e.g., AK-47"
-                  className="bg-background/50 border-border text-white"
-                />
-              </div>
-              
-              <div>
-                <Label htmlFor="weapon_type" className="text-white">Weapon Type</Label>
-                <Select 
-                  value={formData.weapon_type} 
-                  onValueChange={(value) => setFormData({...formData, weapon_type: value})}
-                >
-                  <SelectTrigger className="bg-background/50 border-border text-white">
-                    <SelectValue placeholder="Select weapon type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Assault">Assault</SelectItem>
-                    <SelectItem value="SMG">SMG</SelectItem>
-                    <SelectItem value="Sniper">Sniper</SelectItem>
-                    <SelectItem value="LMG">LMG</SelectItem>
-                    <SelectItem value="Shotgun">Shotgun</SelectItem>
-                    <SelectItem value="Melee">Melee</SelectItem>
-                    <SelectItem value="Pistol">Pistol</SelectItem>
-                    <SelectItem value="Launcher">Launcher</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div>
-                <Label htmlFor="mode" className="text-white">Game Mode</Label>
-                <Select 
-                  value={formData.mode} 
-                  onValueChange={(value) => setFormData({...formData, mode: value})}
-                >
-                  <SelectTrigger className="bg-background/50 border-border text-white">
-                    <SelectValue placeholder="Select game mode" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="MP">Multiplayer</SelectItem>
-                    <SelectItem value="BR">Battle Royale</SelectItem>
-                    <SelectItem value="Tournament">Tournament</SelectItem>
-                    <SelectItem value="Scrims">Scrims</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div>
-                <Label htmlFor="image" className="text-white">Loadout Image</Label>
-                <Input
-                  id="image"
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => setFormData({...formData, image_file: e.target.files?.[0] || null})}
-                  className="bg-background/50 border-border text-white"
-                />
-              </div>
-              
-              <div className="flex justify-end space-x-2">
-                <Button 
-                  variant="outline" 
-                  onClick={() => setIsDialogOpen(false)}
-                  className="border-border text-white"
-                >
-                  Cancel
-                </Button>
-                <Button 
-                  onClick={handleSave}
-                  disabled={saveLoadoutMutation.isPending}
-                  className="bg-[#FF1F44] hover:bg-red-600 text-white"
-                >
-                  {saveLoadoutMutation.isPending ? 'Saving...' : (editingLoadout ? 'Update' : 'Create')}
-                </Button>
-              </div>
-            </div>
-          </DialogContent>
+        <h1 className="text-3xl font-bold text-white font-orbitron">My Loadouts</h1>
+        <div className="flex gap-3">
+          <Dialog open={isBrowseDialogOpen} onOpenChange={setIsBrowseDialogOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline" className="border-white/30 text-white hover:bg-white/10">
+                <Search className="w-4 h-4 mr-2" />
+                Browse Loadouts
+              </Button>
+            </DialogTrigger>
           </Dialog>
+      
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogTrigger asChild>
+              <Button 
+                onClick={() => {
+                  setEditingLoadout(null);
+                  setFormData({
+                    weapon_name: '',
+                    weapon_type: '',
+                    mode: '',
+                    image_file: null
+                  });
+                }}
+                className="bg-[#FF1F44] hover:bg-red-600 text-white"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                New Loadout
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="bg-card border-border">
+              <DialogHeader>
+                <DialogTitle className="text-white">
+                  {editingLoadout ? 'Edit Loadout' : 'Create New Loadout'}
+                </DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="weapon_name" className="text-white">Weapon Name</Label>
+                  <Input
+                    id="weapon_name"
+                    value={formData.weapon_name}
+                    onChange={(e) => setFormData({...formData, weapon_name: e.target.value})}
+                    placeholder="e.g., AK-47"
+                    className="bg-background/50 border-border text-white"
+                  />
+                </div>
+                
+                <div>
+                  <Label htmlFor="weapon_type" className="text-white">Weapon Type</Label>
+                  <Select 
+                    value={formData.weapon_type} 
+                    onValueChange={(value) => setFormData({...formData, weapon_type: value})}
+                  >
+                    <SelectTrigger className="bg-background/50 border-border text-white">
+                      <SelectValue placeholder="Select weapon type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Assault">Assault</SelectItem>
+                      <SelectItem value="SMG">SMG</SelectItem>
+                      <SelectItem value="Sniper">Sniper</SelectItem>
+                      <SelectItem value="LMG">LMG</SelectItem>
+                      <SelectItem value="Shotgun">Shotgun</SelectItem>
+                      <SelectItem value="Melee">Melee</SelectItem>
+                      <SelectItem value="Pistol">Pistol</SelectItem>
+                      <SelectItem value="Launcher">Launcher</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div>
+                  <Label htmlFor="mode" className="text-white">Game Mode</Label>
+                  <Select 
+                    value={formData.mode} 
+                    onValueChange={(value) => setFormData({...formData, mode: value})}
+                  >
+                    <SelectTrigger className="bg-background/50 border-border text-white">
+                      <SelectValue placeholder="Select game mode" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="MP">Multiplayer</SelectItem>
+                      <SelectItem value="BR">Battle Royale</SelectItem>
+                      <SelectItem value="Tournament">Tournament</SelectItem>
+                      <SelectItem value="Scrims">Scrims</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div>
+                  <Label htmlFor="image" className="text-white">Loadout Image</Label>
+                  <Input
+                    id="image"
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => setFormData({...formData, image_file: e.target.files?.[0] || null})}
+                    className="bg-background/50 border-border text-white"
+                  />
+                </div>
+                
+                <div className="flex justify-end space-x-2">
+                  <Button 
+                    variant="outline" 
+                    onClick={() => setIsDialogOpen(false)}
+                    className="border-border text-white"
+                  >
+                    Cancel
+                  </Button>
+                  <Button 
+                    onClick={handleSave}
+                    disabled={saveLoadoutMutation.isPending}
+                    className="bg-[#FF1F44] hover:bg-red-600 text-white"
+                  >
+                    {saveLoadoutMutation.isPending ? 'Saving...' : (editingLoadout ? 'Update' : 'Create')}
+                  </Button>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
 
         {/* Browse Loadouts Dialog */}
@@ -667,7 +664,5 @@ export const Loadouts: React.FC = () => {
         </div>
       )}
     </div>
-    </div>
-
-  ) 
+  );
 };

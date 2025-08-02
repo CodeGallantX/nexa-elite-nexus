@@ -21,6 +21,9 @@ interface UserProfile {
   updated_at?: string;
   social_links?: Record<string, string> | null;
   banking_info?: Record<string, string> | null;
+  br_class?: string;
+  mp_class?: string;
+  best_gun?: string;
 }
 
 interface AuthContextType {
