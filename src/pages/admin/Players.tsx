@@ -290,6 +290,23 @@ export const AdminPlayers: React.FC = () => {
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
+                  <label className="text-gray-300 text-sm">Role</label>
+                  <Select 
+                    value={editingPlayer.role} 
+                    onValueChange={(value) => setEditingPlayer({...editingPlayer, role: value})}
+                  >
+                    <SelectTrigger className="bg-gray-800 border-gray-600 text-white">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="player">Player</SelectItem>
+                      <SelectItem value="moderator">Moderator</SelectItem>
+                      <SelectItem value="admin">Admin</SelectItem>
+                      <SelectItem value="clan_master">Clan Master</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
                   <label className="text-gray-300 text-sm">Grade</label>
                   <Select 
                     value={editingPlayer.grade} 
@@ -324,6 +341,40 @@ export const AdminPlayers: React.FC = () => {
                     </SelectContent>
                   </Select>
                 </div>
+                <div>
+                  <label className="text-gray-300 text-sm">MP Class</label>
+                  <Select 
+                    value={editingPlayer.mp_class || ''} 
+                    onValueChange={(value) => setEditingPlayer({...editingPlayer, mp_class: value})}
+                  >
+                    <SelectTrigger className="bg-gray-800 border-gray-600 text-white">
+                      <SelectValue placeholder="Select MP Class" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Assault">Assault</SelectItem>
+                      <SelectItem value="SMG">SMG</SelectItem>
+                      <SelectItem value="Sniper">Sniper</SelectItem>
+                      <SelectItem value="Support">Support</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <label className="text-gray-300 text-sm">BR Class</label>
+                  <Select 
+                    value={editingPlayer.br_class || ''} 
+                    onValueChange={(value) => setEditingPlayer({...editingPlayer, br_class: value})}
+                  >
+                    <SelectTrigger className="bg-gray-800 border-gray-600 text-white">
+                      <SelectValue placeholder="Select BR Class" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Assault">Assault</SelectItem>
+                      <SelectItem value="Medic">Medic</SelectItem>
+                      <SelectItem value="Scout">Scout</SelectItem>
+                      <SelectItem value="Heavy">Heavy</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
               <div className="flex justify-end space-x-2">
                 <Button variant="outline" onClick={() => setEditingPlayer(null)}>
@@ -331,8 +382,11 @@ export const AdminPlayers: React.FC = () => {
                 </Button>
                 <Button 
                   onClick={() => handleUpdatePlayer({
+                    role: editingPlayer.role,
                     grade: editingPlayer.grade,
-                    tier: editingPlayer.tier
+                    tier: editingPlayer.tier,
+                    mp_class: editingPlayer.mp_class,
+                    br_class: editingPlayer.br_class
                   })}
                   className="bg-[#FF1F44] hover:bg-red-600"
                 >
