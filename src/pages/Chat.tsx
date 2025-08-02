@@ -723,11 +723,16 @@ export const Chat: React.FC = () => {
                       {msg.user_id !== user?.id && (
                         <div className="text-[10px] font-medium mb-0.5 text-primary">
                           Ɲ・乂{msg.profiles?.ign || "Loading..."}
-                          {msg.profiles?.role === 'admin' && (
+                          {msg.profiles?.role === 'admin' ? (
                             <span className="ml-1 px-1 py-0.5 bg-red-500 text-white text-[10px] rounded">
                               ADMIN
                             </span>
-                          )}
+                          ): msg.profiles?.role === 'clan_master' (
+                            <span className="ml-1 px-1 py-0.5 bg-red-500 text-white text-[8px] rounded">
+                              CLAN MASTER
+                            </span>
+                          )
+                        }
                         </div>
                       )}
 
