@@ -95,7 +95,7 @@ export const Sidebar: React.FC = () => {
 
   return (
     <div className={`bg-card border-r border-border transition-all duration-300 ${
-  isCollapsed ? 'w-16' : 'min-w-64'
+  isCollapsed ? 'w-16' : 'w-64'
 } h-screen sticky top-0 overflow-y-auto flex flex-col`}>
 
       {/* Header */}
