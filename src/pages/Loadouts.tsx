@@ -667,5 +667,7 @@ export const Loadouts: React.FC = () => {
         </div>
       )}
     </div>
-  );
+    </div>
+
+  ) 
 };
