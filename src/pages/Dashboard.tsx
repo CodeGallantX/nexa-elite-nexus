@@ -117,7 +117,7 @@ export const Dashboard: React.FC = () => {
             <div className="text-2xl font-bold text-white">{profile?.kills?.toLocaleString() || 0}</div>
             <p className="text-xs text-gray-400">
               <TrendingUp className="inline w-3 h-3 mr-1" />
-              Managed by admin
+              System managed
             </p>
           </CardContent>
         </Card>

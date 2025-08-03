@@ -38,6 +38,12 @@ export const AdminPlayers: React.FC = () => {
     setEditingPlayer(null);
   };
 
+  const handleCreatePlayer = async () => {
+    // This would open a modal to create a new player account
+    // For now, redirect to signup page
+    window.open('/signup', '_blank');
+  };
+
   const handleDeletePlayer = async (playerId: string) => {
     await deletePlayer.mutateAsync(playerId);
   };
@@ -92,9 +98,12 @@ export const AdminPlayers: React.FC = () => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold text-white">Players Management</h1>
-        <Button className="bg-[#FF1F44] hover:bg-red-600 text-white">
+        <Button 
+          onClick={handleCreatePlayer}
+          className="bg-[#FF1F44] hover:bg-red-600 text-white"
+        >
           <UserPlus className="w-4 h-4 mr-2" />
-          Add Player
+          Create Player Account
         </Button>
       </div>
 
@@ -341,40 +350,6 @@ export const AdminPlayers: React.FC = () => {
                     </SelectContent>
                   </Select>
                 </div>
-                <div>
-                  <label className="text-gray-300 text-sm">MP Class</label>
-                  <Select 
-                    value={editingPlayer.mp_class || ''} 
-                    onValueChange={(value) => setEditingPlayer({...editingPlayer, mp_class: value})}
-                  >
-                    <SelectTrigger className="bg-gray-800 border-gray-600 text-white">
-                      <SelectValue placeholder="Select MP Class" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Assault">Assault</SelectItem>
-                      <SelectItem value="SMG">SMG</SelectItem>
-                      <SelectItem value="Sniper">Sniper</SelectItem>
-                      <SelectItem value="Support">Support</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <label className="text-gray-300 text-sm">BR Class</label>
-                  <Select 
-                    value={editingPlayer.br_class || ''} 
-                    onValueChange={(value) => setEditingPlayer({...editingPlayer, br_class: value})}
-                  >
-                    <SelectTrigger className="bg-gray-800 border-gray-600 text-white">
-                      <SelectValue placeholder="Select BR Class" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Assault">Assault</SelectItem>
-                      <SelectItem value="Medic">Medic</SelectItem>
-                      <SelectItem value="Scout">Scout</SelectItem>
-                      <SelectItem value="Heavy">Heavy</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
               </div>
               <div className="flex justify-end space-x-2">
                 <Button variant="outline" onClick={() => setEditingPlayer(null)}>
@@ -384,9 +359,7 @@ export const AdminPlayers: React.FC = () => {
                   onClick={() => handleUpdatePlayer({
                     role: editingPlayer.role,
                     grade: editingPlayer.grade,
-                    tier: editingPlayer.tier,
-                    mp_class: editingPlayer.mp_class,
-                    br_class: editingPlayer.br_class
+                    tier: editingPlayer.tier
                   })}
                   className="bg-[#FF1F44] hover:bg-red-600"
                 >

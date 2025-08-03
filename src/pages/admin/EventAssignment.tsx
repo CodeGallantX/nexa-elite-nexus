@@ -22,7 +22,7 @@ interface Player {
   id: string;
   username: string;
   ign: string;
-  role: string;
+  role: 'player' | 'admin' | 'moderator' | 'clan_master';
 }
 
 interface EventGroup {
@@ -87,14 +87,14 @@ export const EventAssignment: React.FC = () => {
     },
   });
 
-  // Fetch all players
+  // Fetch all users (players, admins, clan_masters)
   const { data: players = [] } = useQuery({
     queryKey: ['players'],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('profiles')
         .select('id, username, ign, role')
-        .eq('role', 'player');
+        .in('role', ['player', 'admin', 'moderator', 'clan_master']);
 
       if (error) {
         console.error('Error fetching players:', error);
@@ -322,14 +322,14 @@ export const EventAssignment: React.FC = () => {
           <CardHeader>
             <CardTitle className="flex items-center space-x-2">
               <Users className="w-5 h-5 text-primary" />
-              <span>Available Players</span>
+              <span>Available Users</span>
             </CardTitle>
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
               <Input
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Search players..."
+                placeholder="Search users..."
                 className="pl-10 bg-background/50"
               />
             </div>
@@ -364,7 +364,7 @@ export const EventAssignment: React.FC = () => {
               
               {availablePlayers.length === 0 && (
                 <div className="text-center py-4 text-muted-foreground">
-                  {searchTerm ? 'No players found' : 'All players are assigned'}
+                  {searchTerm ? 'No users found' : 'All users are assigned'}
                 </div>
               )}
             </div>
@@ -450,7 +450,7 @@ export const EventAssignment: React.FC = () => {
                     ))}
                   </div>
 
-                  {/* Add Players */}
+                  {/* Add Users */}
                   {selectedPlayers.length > 0 && group.participants.length < group.max_players && (
                     <Button
                       onClick={() => {
@@ -463,13 +463,13 @@ export const EventAssignment: React.FC = () => {
                       variant="outline"
                     >
                       <UserPlus className="w-4 h-4 mr-2" />
-                      Add Selected Players ({selectedPlayers.length})
+                      Add Selected Users ({selectedPlayers.length})
                     </Button>
                   )}
 
                   {group.participants.length === 0 && (
                     <div className="text-center py-4 text-muted-foreground border-2 border-dashed border-border/30 rounded-lg">
-                      No players assigned yet
+                      No users assigned yet
                     </div>
                   )}
                 </div>
@@ -481,7 +481,7 @@ export const EventAssignment: React.FC = () => {
             <Card className="bg-card/50 border-border/30 backdrop-blur-sm">
               <CardContent className="text-center py-8">
                 <div className="text-muted-foreground">
-                  No groups created yet. Create your first group to start assigning players.
+                  No groups created yet. Create your first group to start assigning users.
                 </div>
               </CardContent>
             </Card>
