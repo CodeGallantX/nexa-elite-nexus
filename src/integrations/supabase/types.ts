@@ -49,7 +49,9 @@ export type Database = {
           content: string
           created_at: string | null
           created_by: string | null
+          expires_at: string | null
           id: string
+          is_pinned: boolean | null
           is_published: boolean | null
           scheduled_for: string | null
           title: string
@@ -59,7 +61,9 @@ export type Database = {
           content: string
           created_at?: string | null
           created_by?: string | null
+          expires_at?: string | null
           id?: string
+          is_pinned?: boolean | null
           is_published?: boolean | null
           scheduled_for?: string | null
           title: string
@@ -69,7 +73,9 @@ export type Database = {
           content?: string
           created_at?: string | null
           created_by?: string | null
+          expires_at?: string | null
           id?: string
+          is_pinned?: boolean | null
           is_published?: boolean | null
           scheduled_for?: string | null
           title?: string
@@ -91,6 +97,7 @@ export type Database = {
           created_at: string | null
           date: string
           event_id: string | null
+          event_kills: number | null
           id: string
           marked_by: string | null
           player_id: string | null
@@ -101,6 +108,7 @@ export type Database = {
           created_at?: string | null
           date?: string
           event_id?: string | null
+          event_kills?: number | null
           id?: string
           marked_by?: string | null
           player_id?: string | null
@@ -111,6 +119,7 @@ export type Database = {
           created_at?: string | null
           date?: string
           event_id?: string | null
+          event_kills?: number | null
           id?: string
           marked_by?: string | null
           player_id?: string | null
@@ -149,6 +158,7 @@ export type Database = {
           created_at: string | null
           id: string
           message: string
+          reply_to_id: string | null
           user_id: string | null
         }
         Insert: {
@@ -159,6 +169,7 @@ export type Database = {
           created_at?: string | null
           id?: string
           message: string
+          reply_to_id?: string | null
           user_id?: string | null
         }
         Update: {
@@ -169,9 +180,17 @@ export type Database = {
           created_at?: string | null
           id?: string
           message?: string
+          reply_to_id?: string | null
           user_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "chat_messages_reply_to_id_fkey"
+            columns: ["reply_to_id"]
+            isOneToOne: false
+            referencedRelation: "chat_messages"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "chat_messages_user_id_fkey"
             columns: ["user_id"]
@@ -315,6 +334,59 @@ export type Database = {
           },
         ]
       }
+      loadouts: {
+        Row: {
+          attachments: Json | null
+          created_at: string | null
+          description: string | null
+          id: string
+          image_url: string | null
+          is_featured: boolean | null
+          is_public: boolean | null
+          mode: string
+          player_id: string
+          updated_at: string | null
+          weapon_name: string
+          weapon_type: string
+        }
+        Insert: {
+          attachments?: Json | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          is_featured?: boolean | null
+          is_public?: boolean | null
+          mode: string
+          player_id: string
+          updated_at?: string | null
+          weapon_name: string
+          weapon_type: string
+        }
+        Update: {
+          attachments?: Json | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          is_featured?: boolean | null
+          is_public?: boolean | null
+          mode?: string
+          player_id?: string
+          updated_at?: string | null
+          weapon_name?: string
+          weapon_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "loadouts_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notifications: {
         Row: {
           action_data: Json | null
@@ -367,6 +439,8 @@ export type Database = {
           attendance: number | null
           avatar_url: string | null
           banking_info: Json | null
+          best_gun: string | null
+          br_class: string | null
           created_at: string | null
           date_joined: string | null
           device: string | null
@@ -374,6 +448,8 @@ export type Database = {
           id: string
           ign: string
           kills: number | null
+          mp_class: string | null
+          player_uid: string | null
           preferred_mode: string | null
           role: Database["public"]["Enums"]["user_role"]
           social_links: Json | null
@@ -386,13 +462,17 @@ export type Database = {
           attendance?: number | null
           avatar_url?: string | null
           banking_info?: Json | null
+          best_gun?: string | null
+          br_class?: string | null
           created_at?: string | null
           date_joined?: string | null
           device?: string | null
           grade?: string | null
           id: string
-          ign: string
+          ign?: string
           kills?: number | null
+          mp_class?: string | null
+          player_uid?: string | null
           preferred_mode?: string | null
           role?: Database["public"]["Enums"]["user_role"]
           social_links?: Json | null
@@ -405,6 +485,8 @@ export type Database = {
           attendance?: number | null
           avatar_url?: string | null
           banking_info?: Json | null
+          best_gun?: string | null
+          br_class?: string | null
           created_at?: string | null
           date_joined?: string | null
           device?: string | null
@@ -412,6 +494,8 @@ export type Database = {
           id?: string
           ign?: string
           kills?: number | null
+          mp_class?: string | null
+          player_uid?: string | null
           preferred_mode?: string | null
           role?: Database["public"]["Enums"]["user_role"]
           social_links?: Json | null
@@ -490,6 +574,10 @@ export type Database = {
         Args: { user_id: string }
         Returns: Database["public"]["Enums"]["user_role"]
       }
+      increment_total_kills: {
+        Args: { uid: string; new_kills: number }
+        Returns: undefined
+      }
       mark_access_code_used: {
         Args: { code_input: string; email_input: string }
         Returns: boolean
@@ -501,8 +589,8 @@ export type Database = {
     }
     Enums: {
       attendance_status: "present" | "absent"
-      event_type: "MP" | "BR" | "Tournament" | "Scrims"
-      user_role: "admin" | "player" | "moderator"
+      event_type: "MP" | "BR" | "Mixed" | "Tournament" | "Scrims"
+      user_role: "admin" | "player" | "moderator" | "clan_master"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -631,8 +719,8 @@ export const Constants = {
   public: {
     Enums: {
       attendance_status: ["present", "absent"],
-      event_type: ["MP", "BR", "Tournament", "Scrims"],
-      user_role: ["admin", "player", "moderator"],
+      event_type: ["MP", "BR", "Mixed", "Tournament", "Scrims"],
+      user_role: ["admin", "player", "moderator", "clan_master"],
     },
   },
 } as const

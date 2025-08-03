@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { Database } from '@/integrations/supabase/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -22,7 +23,7 @@ interface Player {
   id: string;
   username: string;
   ign: string;
-  role: 'player' | 'admin' | 'moderator' | 'clan_master';
+  role: Database['public']['Enums']['user_role'] | 'clan_master';
 }
 
 interface EventGroup {
