@@ -47,7 +47,7 @@ export const Sidebar: React.FC = () => {
     setIsCollapsed(isMobile);
   }, [isMobile]);
 
-  const isAdmin = profile?.role === 'admin' || 'clan_master';
+  const isAdmin = profile?.role === 'admin';
   const isPlayer = profile?.role === 'player';
 
   const playerMenuItems = [
