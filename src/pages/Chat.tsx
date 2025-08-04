@@ -51,7 +51,7 @@ export const Chat: React.FC = () => {
         
         <div className="space-y-3">
           <Button 
-            onClick={() => window.open('https://discord.gg/your-server-invite', '_blank')}
+            onClick={() => window.open('https://discord.gg/KtjK5m994C', '_blank')}
             className="w-full bg-[#5865F2] hover:bg-[#4752C4] text-white flex items-center justify-center space-x-2"
           >
             <svg 
