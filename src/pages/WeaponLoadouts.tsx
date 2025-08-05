@@ -320,6 +320,9 @@ export const WeaponLoadouts: React.FC = () => {
               </DialogTitle>
             </DialogHeader>
             <div className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                {editingLayout ? 'Update your weapon layout configuration.' : 'Create a new weapon layout configuration.'}
+              </p>
               <div>
                 <Label htmlFor="weapon_name" className="text-white">Weapon Name</Label>
                 <Input
@@ -578,13 +581,16 @@ export const WeaponLoadouts: React.FC = () => {
       )}
 
       {/* View Layout Dialog */}
-      <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
-        <DialogContent className="max-w-2xl bg-gray-900 border-gray-700">
-          <DialogHeader>
-            <DialogTitle className="text-white font-orbitron">
-              {selectedLayout?.weapon_name}
-            </DialogTitle>
-          </DialogHeader>
+        <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
+          <DialogContent className="max-w-2xl bg-gray-900 border-gray-700">
+            <DialogHeader>
+              <DialogTitle className="text-white font-orbitron">
+                {selectedLayout?.weapon_name}
+              </DialogTitle>
+            </DialogHeader>
+            <div className="text-sm text-muted-foreground mb-4">
+              View detailed information about this weapon layout.
+            </div>
           {selectedLayout && (
             <div className="space-y-4">
               {selectedLayout.image_url && (

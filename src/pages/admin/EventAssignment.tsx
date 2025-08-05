@@ -109,6 +109,11 @@ export const EventAssignment: React.FC = () => {
   const { data: groups = [] } = useQuery({
     queryKey: ['event-groups', currentEventId],
     queryFn: async () => {
+      // Don't fetch if no valid event ID
+      if (!currentEventId || currentEventId === 'default-event') {
+        return [];
+      }
+      
       const { data, error } = await supabase
         .from('event_groups')
         .select(`
@@ -136,6 +141,7 @@ export const EventAssignment: React.FC = () => {
         participants: group.event_participants || []
       })) as EventGroup[];
     },
+    enabled: !!currentEventId && currentEventId !== 'default-event',
   });
 
   // Create group mutation
