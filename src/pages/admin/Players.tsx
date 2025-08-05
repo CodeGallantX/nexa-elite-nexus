@@ -38,14 +38,11 @@ export const AdminPlayers: React.FC = () => {
     setEditingPlayer(null);
   };
 
-  const handleCreatePlayer = async () => {
-    // This would open a modal to create a new player account
-    // For now, redirect to signup page
-    window.open('/signup', '_blank');
-  };
 
   const handleDeletePlayer = async (playerId: string) => {
-    await deletePlayer.mutateAsync(playerId);
+    if (confirm('Are you sure you want to delete this player? This action cannot be undone.')) {
+      await deletePlayer.mutateAsync(playerId);
+    }
   };
 
   const getRoleColor = (role: string) => {
@@ -98,13 +95,6 @@ export const AdminPlayers: React.FC = () => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold text-white">Players Management</h1>
-        <Button 
-          onClick={handleCreatePlayer}
-          className="bg-[#FF1F44] hover:bg-red-600 text-white"
-        >
-          <UserPlus className="w-4 h-4 mr-2" />
-          Create Player Account
-        </Button>
       </div>
 
       {/* Filters */}

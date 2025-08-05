@@ -69,7 +69,6 @@ export const AdminAttendance: React.FC = () => {
 
   // Mark attendance mutation
   const markAttendanceMutation = useMutation({
-  // 🧠 Mutation function to mark attendance
   mutationFn: async ({ playerId, status, kills }: { playerId: string; status: 'present' | 'absent'; kills?: number }) => {
     const { data, error } = await supabase
       .from('attendance')
@@ -78,23 +77,23 @@ export const AdminAttendance: React.FC = () => {
         status,
         attendance_type: attendanceMode,
         date: selectedDate,
-        event_kills: kills || 0, // <-- use event_kills not kills
+        event_kills: kills || 0,
       });
 
     if (error) throw error;
 
     // Increment total kills only if present and kills > 0
     if (kills && status === 'present') {
-  const { error } = await supabase.rpc('increment_total_kills' as any, {
-    uid: playerId,
-    new_kills: kills,
-  });
+      const { error: rpcError } = await supabase.rpc('increment_total_kills', {
+        uid: playerId,
+        new_kills: kills,
+      });
 
-  if (error) {
-    console.error("RPC error:", error);
-  }
-}
-
+      if (rpcError) {
+        console.error("RPC error:", rpcError);
+        throw rpcError;
+      }
+    }
 
     return data;
   },

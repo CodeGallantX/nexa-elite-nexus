@@ -48,35 +48,31 @@ export const useNotifications = () => {
     enabled: !!profile,
   });
 
-  // Mock admin notifications (replace with real Supabase queries when table is created)
+  // Fetch real admin notifications from database
   const { data: adminNotifications = [] } = useQuery({
     queryKey: ['admin-notifications', profile?.id],
     queryFn: async () => {
       if (profile?.role !== 'admin') return [];
       
-      // Mock notifications for admin - replace with real Supabase query
-      const mockNotifications: Notification[] = [
-        {
-          id: '1',
-          type: 'access_code_request',
-          message: 'Player newPlayer123 is requesting access code ABC123',
-          player_name: 'newPlayer123',
-          access_code: 'ABC123',
-          timestamp: new Date().toISOString(),
-          status: 'unread',
-          action: 'copy_code'
-        },
-        {
-          id: '2',
-          type: 'new_player_joined',
-          message: 'New player TacticalSniper joined the clan',
-          player_name: 'TacticalSniper',
-          timestamp: new Date(Date.now() - 86400000).toISOString(),
-          status: 'read',
-          action: 'view_player'
-        }
-      ];
-      return mockNotifications;
+      const { data, error } = await supabase
+        .from('notifications')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(20);
+
+      if (error) {
+        console.error('Error fetching admin notifications:', error);
+        return [];
+      }
+
+      return data.map(notification => ({
+        id: notification.id,
+        type: notification.type,
+        message: notification.message,
+        timestamp: notification.created_at,
+        status: notification.read ? 'read' : 'unread',
+        action: (notification.action_data as any)?.action || 'view'
+      }));
     },
     enabled: !!profile && profile.role === 'admin',
   });
@@ -90,9 +86,17 @@ export const useNotifications = () => {
   // Mark notification as read
   const markAsReadMutation = useMutation({
     mutationFn: async (notificationId: string) => {
-      // For announcements, we could track read status in a separate table
-      // For now, just log the action
-      console.log('Marking notification as read:', notificationId);
+      // For admin notifications, update the database
+      if (profile?.role === 'admin') {
+        const { error } = await supabase
+          .from('notifications')
+          .update({ read: true })
+          .eq('id', notificationId);
+        
+        if (error) {
+          console.error('Error marking notification as read:', error);
+        }
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['announcements-notifications'] });
@@ -103,7 +107,17 @@ export const useNotifications = () => {
   // Mark all as read
   const markAllAsReadMutation = useMutation({
     mutationFn: async () => {
-      console.log('Marking all notifications as read');
+      // For admin notifications, update all to read
+      if (profile?.role === 'admin') {
+        const { error } = await supabase
+          .from('notifications')
+          .update({ read: true })
+          .eq('read', false);
+        
+        if (error) {
+          console.error('Error marking all notifications as read:', error);
+        }
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['announcements-notifications'] });

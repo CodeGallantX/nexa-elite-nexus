@@ -25,8 +25,7 @@ import { Profile } from '@/pages/Profile';
 import { Settings } from '@/pages/Settings';
 import { Chat } from '@/pages/Chat';
 import { Scrims } from '@/pages/Scrims';
-import { Loadouts } from '@/pages/Loadouts';
-import { WeaponLayouts } from '@/pages/WeaponLayouts';
+import { WeaponLoadouts } from '@/pages/WeaponLoadouts';
 import { Announcements } from '@/pages/Announcements';
 
 // Admin pages
@@ -68,8 +67,7 @@ function App() {
             <Route path="/settings" element={<Layout showSidebar><Settings /></Layout>} />
             <Route path="/chat" element={<Layout showSidebar><Chat /></Layout>} />
             <Route path="/scrims" element={<Layout showSidebar><Scrims /></Layout>} />
-            <Route path="/loadouts" element={<Layout showSidebar><Loadouts /></Layout>} />
-            <Route path="/weapon-layouts" element={<Layout showSidebar><WeaponLayouts /></Layout>} />
+            <Route path="/weapon-layouts" element={<Layout showSidebar><WeaponLoadouts /></Layout>} />
             <Route path="/announcements" element={<Layout showSidebar><Announcements /></Layout>} />
 
             {/* Admin routes */}
