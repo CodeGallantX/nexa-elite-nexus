@@ -22,7 +22,7 @@ export default defineConfig(({ mode }) => ({
         short_name: "Nexa",
         description:
           "Nexa is a competitive clan-based esports platform that empowers gamers to join, manage, and dominate in tournaments. Track progress, build squads, and rise through the ranks in an immersive, mobile-ready experience.",
-        start_url: "/",
+        start_url: "/auth/login",
         scope: "/",
         display: "standalone",
         background_color: "#0f0f0f",
