@@ -82,19 +82,7 @@ export const AdminAttendance: React.FC = () => {
 
     if (error) throw error;
 
-    // Increment total kills only if present and kills > 0
-    if (kills && status === 'present') {
-      const { error: rpcError } = await supabase.rpc('increment_total_kills', {
-        uid: playerId,
-        new_kills: kills,
-      });
-
-      if (rpcError) {
-        console.error("RPC error:", rpcError);
-        throw rpcError;
-      }
-    }
-
+    // Kills are now automatically calculated via trigger
     return data;
   },
   onSuccess: () => {

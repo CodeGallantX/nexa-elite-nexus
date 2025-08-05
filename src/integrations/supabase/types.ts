@@ -578,10 +578,6 @@ export type Database = {
         Args: { user_id: string }
         Returns: Database["public"]["Enums"]["user_role"]
       }
-      increment_total_kills: {
-        Args: { uid: string; new_kills: number }
-        Returns: undefined
-      }
       mark_access_code_used: {
         Args: { code_input: string; email_input: string }
         Returns: boolean
