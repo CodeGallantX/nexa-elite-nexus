@@ -31,7 +31,8 @@ export default defineConfig(({ mode }) => ({
         lang: "en",
         icons: [
           {
-            src: "/icon-192.png",
+            // src: "/icon-192.png",
+            src: "/nexa-logo.jpg",
             sizes: "192x192",
             type: "image/png",
             purpose: "any maskable",
@@ -45,7 +46,8 @@ export default defineConfig(({ mode }) => ({
         ],
         screenshots: [
           {
-            src: "/thumbnail.png",
+            // src: "/thumbnail.png",
+            src: "/nexa-logo.jpg",
             sizes: "640x1136",
             type: "image/png",
             label: "Clan dashboard",
