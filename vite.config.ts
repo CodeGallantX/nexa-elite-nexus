@@ -19,7 +19,7 @@ export default defineConfig(({ mode }) => ({
       },
       manifest: {
         name: "Nexa Esports",
-        short_name: "Nexa",
+        short_name: "Nexa_Esports",
         description:
           "Nexa is a competitive clan-based esports platform that empowers gamers to join, manage, and dominate in tournaments. Track progress, build squads, and rise through the ranks in an immersive, mobile-ready experience.",
         start_url: "/dashboard",
