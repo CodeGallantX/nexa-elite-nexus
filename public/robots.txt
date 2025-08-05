@@ -1,14 +1,17 @@
-User-agent: Googlebot
-Allow: /
-
-User-agent: Bingbot
-Allow: /
-
-User-agent: Twitterbot
-Allow: /
-
-User-agent: facebookexternalhit
-Allow: /
-
 User-agent: *
+Disallow: /auth/
+Disallow: /admin/
+Disallow: /dashboard
+Disallow: /profile
+Disallow: /settings
+Disallow: /chat
+Disallow: /scrims
+Disallow: /weapon-layouts
+Disallow: /loadouts
+Disallow: /announcements
+
+Allow: /landing
+Allow: /public-profile/
 Allow: /
+
+Sitemap: https://nexa-esports.vercel.app/sitemap.xml
