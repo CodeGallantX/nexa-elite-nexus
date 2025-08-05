@@ -136,6 +136,14 @@ export const AdminEventsManagement: React.FC = () => {
         description: "Event has been deleted successfully.",
       });
     },
+    onError: (error: any) => {
+      console.error('Error deleting event:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete event",
+        variant: "destructive",
+      });
+    },
   });
 
   const handleSubmit = (e: React.FormEvent) => {

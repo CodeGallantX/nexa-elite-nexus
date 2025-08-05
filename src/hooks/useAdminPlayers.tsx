@@ -57,12 +57,12 @@ export const useDeletePlayer = () => {
 
   return useMutation({
     mutationFn: async (playerId: string) => {
-      const { error } = await supabase
-        .from('profiles')
-        .delete()
-        .eq('id', playerId);
+      const { data, error } = await supabase.rpc('delete_user_completely', {
+        user_id_to_delete: playerId
+      });
 
       if (error) throw error;
+      if (!data) throw new Error('Failed to delete user');
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-players'] });
