@@ -199,22 +199,23 @@ export const AdminAttendance: React.FC = () => {
       {/* Attendance Mode Toggle */}
       <Card className="bg-card/50 border-border/30">
         <CardContent className="p-4">
-          <div className="flex flex-col md:flex-row gap-4 items-center">
-            <Label className="font-rajdhani text-sm font-medium">Attendance Mode:</Label>
-            <div className="flex rounded-lg bg-background/50 p-1">
+          <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+            <Label className="font-rajdhani text-sm font-medium whitespace-nowrap">Attendance Mode:</Label>
+            <div className="grid grid-cols-2 sm:flex rounded-lg bg-background/50 p-1 w-full sm:w-auto gap-1">
               {(['MP', 'BR', 'Tournament', "Scrims"] as AttendanceMode[]).map((mode) => (
                 <Button
                   key={mode}
                   variant={attendanceMode === mode ? "default" : "ghost"}
                   size="sm"
                   onClick={() => setAttendanceMode(mode)}
-                  className={`font-rajdhani ${
+                  className={`font-rajdhani text-xs sm:text-sm px-2 sm:px-4 ${
                     attendanceMode === mode 
                       ? 'bg-primary text-primary-foreground' 
                       : 'hover:bg-muted/50'
                   }`}
                 >
-                  {mode} Attendance
+                  <span className="hidden sm:inline">{mode} Attendance</span>
+                  <span className="sm:hidden">{mode}</span>
                 </Button>
               ))}
             </div>

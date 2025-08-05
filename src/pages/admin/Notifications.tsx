@@ -52,7 +52,7 @@ export const AdminNotifications: React.FC = () => {
     };
 
     fetchNotifications();
-  })
+  }, [])
 
   const getNotificationIcon = (type: string) => {
     switch (type) {
