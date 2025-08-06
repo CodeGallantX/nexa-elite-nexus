@@ -55,14 +55,14 @@ export const EventAssignment: React.FC = () => {
   const [selectedPlayers, setSelectedPlayers] = useState<string[]>([]);
   const [newGroupName, setNewGroupName] = useState("");
 
-  // Use eventId from URL params, fallback to a default if not provided
-  const currentEventId = eventId || "default-event";
+  // Check if we have a valid eventId
+  const hasValidEventId = eventId && eventId !== "default-event";
 
   // Fetch event details
   const { data: event } = useQuery({
-    queryKey: ["event", currentEventId],
+    queryKey: ["event", eventId],
     queryFn: async () => {
-      if (currentEventId === "default-event") {
+      if (!hasValidEventId) {
         // Return mock data for default route
         return {
           id: "default-event",
@@ -76,7 +76,7 @@ export const EventAssignment: React.FC = () => {
       const { data, error } = await supabase
         .from("events")
         .select("*")
-        .eq("id", currentEventId)
+        .eq("id", eventId!)
         .single();
 
       if (error) {
@@ -106,10 +106,10 @@ export const EventAssignment: React.FC = () => {
 
   // Fetch event groups
   const { data: groups = [] } = useQuery({
-    queryKey: ["event-groups", currentEventId],
+    queryKey: ["event-groups", eventId],
     queryFn: async () => {
       // Don't fetch if no valid event ID
-      if (!currentEventId || currentEventId === "default-event") {
+      if (!hasValidEventId) {
         return [];
       }
 
@@ -131,7 +131,7 @@ export const EventAssignment: React.FC = () => {
           )
         `
         )
-        .eq("event_id", currentEventId);
+        .eq("event_id", eventId!);
 
       if (error) {
         console.error("Error fetching event groups:", error);
@@ -142,17 +142,21 @@ export const EventAssignment: React.FC = () => {
         participants: group.event_participants || [],
       })) as EventGroup[];
     },
-    enabled: !!currentEventId && currentEventId !== "default-event",
+    enabled: hasValidEventId,
   });
 
   // Create group mutation
   const createGroupMutation = useMutation({
     mutationFn: async (groupName: string) => {
+      if (!hasValidEventId) {
+        throw new Error("No valid event ID provided");
+      }
+
       const { data, error } = await supabase
         .from("event_groups")
         .insert([
           {
-            event_id: currentEventId,
+            event_id: eventId!,
             name: groupName,
             max_players: 4,
           },
@@ -190,9 +194,13 @@ export const EventAssignment: React.FC = () => {
       groupId: string;
       playerId: string;
     }) => {
+      if (!hasValidEventId) {
+        throw new Error("No valid event ID provided");
+      }
+
       const { error } = await supabase.from("event_participants").insert([
         {
-          event_id: currentEventId,
+          event_id: eventId!,
           player_id: playerId,
           group_id: groupId,
         },
@@ -296,10 +304,27 @@ export const EventAssignment: React.FC = () => {
 
   const handleCreateGroup = () => {
     if (!newGroupName.trim()) return;
+    if (!hasValidEventId) {
+      toast({
+        title: "Invalid Event",
+        description: "Cannot create groups without a valid event ID.",
+        variant: "destructive",
+      });
+      return;
+    }
     createGroupMutation.mutate(newGroupName);
   };
 
   const handleAddPlayerToGroup = (groupId: string, playerId: string) => {
+    if (!hasValidEventId) {
+      toast({
+        title: "Invalid Event",
+        description: "Cannot add players without a valid event ID.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     const group = groups.find((g) => g.id === groupId);
     if (group && group.participants.length >= group.max_players) {
       toast({
@@ -333,6 +358,21 @@ export const EventAssignment: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Warning for invalid event ID */}
+      {!hasValidEventId && (
+        <Card className="bg-yellow-500/10 border-yellow-500/30">
+          <CardContent className="pt-6">
+            <div className="flex items-center space-x-2">
+              <AlertTriangle className="w-5 h-5 text-yellow-500" />
+              <p className="text-yellow-200">
+                No valid event ID provided. Group creation and player assignment
+                are disabled.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Available Players */}
@@ -382,6 +422,7 @@ export const EventAssignment: React.FC = () => {
                     className={
                       selectedPlayers.includes(player.id) ? "bg-primary/20" : ""
                     }
+                    disabled={!hasValidEventId}
                   >
                     {selectedPlayers.includes(player.id)
                       ? "Selected"
@@ -413,11 +454,14 @@ export const EventAssignment: React.FC = () => {
                   onChange={(e) => setNewGroupName(e.target.value)}
                   placeholder="Group name (e.g., Alpha Squad)"
                   className="bg-background/50"
+                  disabled={!hasValidEventId}
                 />
                 <Button
                   onClick={handleCreateGroup}
                   disabled={
-                    !newGroupName.trim() || createGroupMutation.isPending
+                    !newGroupName.trim() ||
+                    createGroupMutation.isPending ||
+                    !hasValidEventId
                   }
                 >
                   Create Group
@@ -493,7 +537,8 @@ export const EventAssignment: React.FC = () => {
 
                   {/* Add Users */}
                   {selectedPlayers.length > 0 &&
-                    group.participants.length < group.max_players && (
+                    group.participants.length < group.max_players &&
+                    hasValidEventId && (
                       <Button
                         onClick={() => {
                           selectedPlayers.forEach((playerId) => {
@@ -519,7 +564,7 @@ export const EventAssignment: React.FC = () => {
             </Card>
           ))}
 
-          {groups.length === 0 && (
+          {groups.length === 0 && hasValidEventId && (
             <Card className="bg-card/50 border-border/30 backdrop-blur-sm">
               <CardContent className="text-center py-8">
                 <div className="text-muted-foreground">
