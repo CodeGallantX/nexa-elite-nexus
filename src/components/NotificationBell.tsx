@@ -75,8 +75,13 @@ export const NotificationBell: React.FC = () => {
             >
               <div className="flex-1">
                 <p className="text-sm font-medium text-foreground">
-                  {notification.message}
+                  {notification.title || notification.message}
                 </p>
+                {notification.title && notification.title !== notification.message && (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {notification.message}
+                  </p>
+                )}
                 <p className="text-xs text-muted-foreground mt-1">
                   {new Date(notification.timestamp).toLocaleString()}
                 </p>

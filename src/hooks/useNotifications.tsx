@@ -13,6 +13,8 @@ interface Notification {
   timestamp: string;
   status: 'unread' | 'read' | 'responded';
   action?: string;
+  title?: string;
+  data?: any;
 }
 
 export const useNotifications = () => {
@@ -40,6 +42,7 @@ export const useNotifications = () => {
         id: announcement.id,
         type: 'announcement',
         message: announcement.title,
+        title: announcement.title,
         timestamp: announcement.created_at,
         status: 'unread' as const,
         action: 'view_announcement'
@@ -69,9 +72,11 @@ export const useNotifications = () => {
         id: notification.id,
         type: notification.type,
         message: notification.message,
+        title: notification.title,
         timestamp: notification.created_at,
         status: notification.read ? 'read' : 'unread',
-        action: (notification.action_data as any)?.action || 'view'
+        action: (notification.action_data as any)?.action || 'view',
+        data: notification.data
       }));
     },
     enabled: !!profile && profile.role === 'admin',
@@ -135,8 +140,8 @@ export const useNotifications = () => {
   useEffect(() => {
     if (!profile) return;
 
-    const channel = supabase
-      .channel('announcements')
+    const announcementsChannel = supabase
+      .channel('announcements-notifications')
       .on(
         'postgres_changes',
         {
@@ -150,8 +155,25 @@ export const useNotifications = () => {
       )
       .subscribe();
 
+    // Real-time subscription for notifications
+    const notificationsChannel = supabase
+      .channel('notifications-realtime')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'notifications'
+        },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ['admin-notifications'] });
+        }
+      )
+      .subscribe();
+
     return () => {
-      supabase.removeChannel(channel);
+      supabase.removeChannel(announcementsChannel);
+      supabase.removeChannel(notificationsChannel);
     };
   }, [profile, queryClient]);
 
