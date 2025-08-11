@@ -3,9 +3,9 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-// import { KillPerformanceTracker } from '@/components/KillPerformanceTracker';
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useNotifications } from "@/hooks/useNotifications"; // Import the hook
 import {
   Trophy,
   Target,
@@ -19,6 +19,7 @@ import {
 
 export const Dashboard: React.FC = () => {
   const { profile, user } = useAuth();
+  const { notifications: recentNotifications } = useNotifications(); // Use the hook
 
   // Fetch user's scrims/events
   const { data: userEvents = [] } = useQuery({
@@ -70,28 +71,6 @@ export const Dashboard: React.FC = () => {
       }
       return data || [];
     },
-  });
-
-  // Fetch recent notifications for the user
-  const { data: recentNotifications = [] } = useQuery({
-    queryKey: ["recent-notifications", user?.id],
-    queryFn: async () => {
-      if (!user?.id) return [];
-
-      const { data, error } = await supabase
-        .from("notifications")
-        .select("*")
-        .eq("user_id", user.id)
-        .order("created_at", { ascending: false })
-        .limit(3);
-
-      if (error) {
-        console.error("Error fetching notifications:", error);
-        return [];
-      }
-      return data || [];
-    },
-    enabled: !!user?.id,
   });
 
   const getGradeColor = (grade: string) => {
@@ -205,9 +184,6 @@ export const Dashboard: React.FC = () => {
           </CardContent>
         </Card>
       </div>
-
-      {/* Kill Performance Tracker */}
-      {/* <KillPerformanceTracker /> */}
 
       {/* Performance & Activity */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -325,7 +301,7 @@ export const Dashboard: React.FC = () => {
         </Card>
       )}
 
-      {/* Recent Notifications */}
+      {/* Recent Notifications - Now using the same hook as NotificationBell */}
       {recentNotifications.length > 0 && (
         <Card className="bg-gradient-to-r from-blue-500/10 to-purple-600/5 border-blue-500/30 backdrop-blur-sm">
           <CardHeader>
@@ -336,19 +312,49 @@ export const Dashboard: React.FC = () => {
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {recentNotifications.map((notification) => (
-                <div key={notification.id} className="flex items-start space-x-3 p-3 bg-background/20 rounded-lg">
-                  <div className="w-2 h-2 bg-blue-400 rounded-full mt-2"></div>
+              {recentNotifications.slice(0, 3).map((notification) => (
+                <div
+                  key={notification.id}
+                  className="flex items-start space-x-3 p-3 bg-background/20 rounded-lg"
+                >
+                  <div
+                    className={`w-2 h-2 rounded-full mt-2 ${
+                      notification.status === "unread"
+                        ? "bg-blue-400"
+                        : "bg-gray-600"
+                    }`}
+                  ></div>
                   <div className="flex-1">
-                    <h4 className="text-white font-medium">{notification.title}</h4>
-                    <p className="text-gray-300 text-sm">{notification.message}</p>
+                    <h4 className="text-white font-medium">
+                      {notification.title || notification.message}
+                    </h4>
+                    {notification.title &&
+                      notification.message !== notification.title && (
+                        <p className="text-gray-300 text-sm">
+                          {notification.message}
+                        </p>
+                      )}
                     <p className="text-gray-400 text-xs mt-1">
-                      {new Date(notification.created_at).toLocaleDateString()}
+                      {new Date(notification.timestamp).toLocaleDateString()}
                     </p>
                   </div>
                 </div>
               ))}
             </div>
+            {recentNotifications.length > 3 && (
+              <div className="mt-4 text-center">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    /* Navigate to notifications page or show more */
+                  }}
+                  className="text-blue-400 border-blue-400 hover:bg-blue-400/10"
+                >
+                  View All Notifications ({recentNotifications.length})
+                </Button>
+              </div>
+            )}
           </CardContent>
         </Card>
       )}
