@@ -212,7 +212,7 @@ export const EventAssignment: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ["event-groups"] });
       toast({
         title: "Player Added",
-        description: "Player has been added to the group.",
+        description: "Player has been added to the group and notified.",
       });
     },
     onError: (error) => {

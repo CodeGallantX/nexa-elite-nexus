@@ -453,6 +453,7 @@ export const AdminEventsManagement: React.FC = () => {
                       variant="outline"
                       size="sm"
                       onClick={() => navigate(`/admin/events/${event.id}/assign`)}
+                      className="hover:bg-primary/10 hover:text-primary"
                     >
                       <Users className="w-4 h-4 mr-1" />
                       Assign Players

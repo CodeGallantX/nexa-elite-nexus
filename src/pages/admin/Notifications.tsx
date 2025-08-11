@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -113,6 +112,7 @@ export const AdminNotifications: React.FC = () => {
     .from("notifications")
     .update({ read:true })
     .eq('id', notificationId)
+    .eq('user_id', profile?.id)
     
     setNotifications(prev =>
       prev.map(n => n.id === notificationId ? { ...n, status: 'read' } : n)
@@ -123,7 +123,8 @@ export const AdminNotifications: React.FC = () => {
     const { error } = await supabase
       .from("notifications")
       .update({ read: true })
-      .eq('read', false);
+      .eq('read', false)
+      .eq('user_id', profile?.id);
 
     if (error) {
       console.error("Error marking all as read:", error);
@@ -143,7 +144,7 @@ export const AdminNotifications: React.FC = () => {
     const { error } = await supabase
       .from("notifications")
       .delete()
-      .neq('id', '00000000-0000-0000-0000-000000000000'); // Delete all
+      .eq('user_id', profile?.id);
 
     if (error) {
       console.error("Error clearing notifications:", error);
