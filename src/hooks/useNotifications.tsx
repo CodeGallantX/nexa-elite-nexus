@@ -8,12 +8,12 @@ interface Notification {
   id: string;
   type: string;
   message: string;
+  title?: string;
   player_name?: string;
   access_code?: string;
   timestamp: string;
   status: 'unread' | 'read' | 'responded';
   action?: string;
-  title?: string;
   data?: any;
 }
 
@@ -55,11 +55,12 @@ export const useNotifications = () => {
   const { data: adminNotifications = [] } = useQuery({
     queryKey: ['admin-notifications', profile?.id],
     queryFn: async () => {
-      if (profile?.role !== 'admin') return [];
+      if (!profile) return [];
       
       const { data, error } = await supabase
         .from('notifications')
         .select('*')
+        .eq('user_id', profile.id)
         .order('created_at', { ascending: false })
         .limit(20);
 
@@ -79,7 +80,7 @@ export const useNotifications = () => {
         data: notification.data
       }));
     },
-    enabled: !!profile && profile.role === 'admin',
+    enabled: !!profile,
   });
 
   // Combine all notifications
@@ -91,16 +92,14 @@ export const useNotifications = () => {
   // Mark notification as read
   const markAsReadMutation = useMutation({
     mutationFn: async (notificationId: string) => {
-      // For admin notifications, update the database
-      if (profile?.role === 'admin') {
-        const { error } = await supabase
-          .from('notifications')
-          .update({ read: true })
-          .eq('id', notificationId);
-        
-        if (error) {
-          console.error('Error marking notification as read:', error);
-        }
+      const { error } = await supabase
+        .from('notifications')
+        .update({ read: true })
+        .eq('id', notificationId)
+        .eq('user_id', profile?.id);
+      
+      if (error) {
+        console.error('Error marking notification as read:', error);
       }
     },
     onSuccess: () => {
@@ -112,16 +111,14 @@ export const useNotifications = () => {
   // Mark all as read
   const markAllAsReadMutation = useMutation({
     mutationFn: async () => {
-      // For admin notifications, update all to read
-      if (profile?.role === 'admin') {
-        const { error } = await supabase
-          .from('notifications')
-          .update({ read: true })
-          .eq('read', false);
-        
-        if (error) {
-          console.error('Error marking all notifications as read:', error);
-        }
+      const { error } = await supabase
+        .from('notifications')
+        .update({ read: true })
+        .eq('read', false)
+        .eq('user_id', profile?.id);
+      
+      if (error) {
+        console.error('Error marking all notifications as read:', error);
       }
     },
     onSuccess: () => {
@@ -162,6 +159,18 @@ export const useNotifications = () => {
         'postgres_changes',
         {
           event: 'INSERT',
+          schema: 'public',
+          table: 'notifications'
+        },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ['announcements-notifications'] });
+          queryClient.invalidateQueries({ queryKey: ['admin-notifications'] });
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
           schema: 'public',
           table: 'notifications'
         },

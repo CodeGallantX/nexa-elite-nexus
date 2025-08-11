@@ -74,11 +74,17 @@ export const NotificationBell: React.FC = () => {
               onClick={() => handleNotificationClick(notification.id)}
             >
               <div className="flex-1">
-                <p className="text-sm font-medium text-foreground">
-                  {notification.title || notification.message}
-                </p>
-                {notification.title && notification.title !== notification.message && (
-                  <p className="text-xs text-muted-foreground mt-1">
+                {notification.title ? (
+                  <>
+                    <p className="text-sm font-medium text-foreground">
+                      {notification.title}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {notification.message}
+                    </p>
+                  </>
+                ) : (
+                  <p className="text-sm font-medium text-foreground">
                     {notification.message}
                   </p>
                 )}
