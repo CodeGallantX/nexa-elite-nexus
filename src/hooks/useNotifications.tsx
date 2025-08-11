@@ -76,7 +76,7 @@ export const useNotifications = () => {
         title: notification.title,
         timestamp: notification.created_at,
         status: notification.read ? 'read' : 'unread',
-        action: (notification.action_data as any)?.action || 'view',
+        action: (notification.action_data as any)?.action || notification.type,
         data: notification.data
       }));
     },

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -13,7 +14,10 @@ import {
   Key,
   Clock,
   CheckCircle,
-  AlertCircle
+  AlertCircle,
+  Calendar,
+  Target,
+  Users
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
@@ -112,7 +116,6 @@ export const AdminNotifications: React.FC = () => {
     .from("notifications")
     .update({ read:true })
     .eq('id', notificationId)
-    .eq('user_id', profile?.id)
     
     setNotifications(prev =>
       prev.map(n => n.id === notificationId ? { ...n, status: 'read' } : n)
@@ -123,8 +126,7 @@ export const AdminNotifications: React.FC = () => {
     const { error } = await supabase
       .from("notifications")
       .update({ read: true })
-      .eq('read', false)
-      .eq('user_id', profile?.id);
+      .eq('read', false);
 
     if (error) {
       console.error("Error marking all as read:", error);
@@ -144,7 +146,7 @@ export const AdminNotifications: React.FC = () => {
     const { error } = await supabase
       .from("notifications")
       .delete()
-      .eq('user_id', profile?.id);
+      .neq('id', '00000000-0000-0000-0000-000000000000'); // Delete all
 
     if (error) {
       console.error("Error clearing notifications:", error);
