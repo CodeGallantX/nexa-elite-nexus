@@ -289,14 +289,14 @@ export const AdminNotifications: React.FC = () => {
           </p>
         </div>
         <div className="flex gap-2">
-          <Button
+          {/* <Button
             onClick={createTestNotification}
             variant="outline"
             className="font-rajdhani border-green-500 text-green-400 hover:bg-green-500/10"
           >
             <Bell className="w-4 h-4 mr-2" />
             Test Notification
-          </Button>
+          </Button> */}
           <Button
             onClick={markAllAsRead}
             variant="outline"
