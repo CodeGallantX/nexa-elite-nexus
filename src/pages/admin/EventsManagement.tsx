@@ -62,107 +62,7 @@ export const AdminEventsManagement: React.FC = () => {
     status: "upcoming",
   });
 
-  // Function to check if an event should be ongoing or completed
-  const getEventStatus = (
-    eventDate: string,
-    eventTime: string,
-    endTime?: string
-  ) => {
-    const now = new Date();
-    const eventStartDateTime = new Date(`${eventDate}T${eventTime}`);
-    const eventEndDateTime = endTime
-      ? new Date(`${eventDate}T${endTime}`)
-      : null;
-
-    // If current time is before start time, event is upcoming
-    if (now < eventStartDateTime) {
-      return "upcoming";
-    }
-
-    // If end time is set and current time is after end time, event is completed
-    if (eventEndDateTime && now >= eventEndDateTime) {
-      return "completed";
-    }
-
-    // If current time is after start time but before end time (or no end time), event is ongoing
-    if (now >= eventStartDateTime) {
-      return "ongoing";
-    }
-
-    return "upcoming";
-  };
-
-  // Function to automatically update event statuses
-  const updateEventStatuses = async (events: Event[]) => {
-    const eventsToUpdate: {
-      id: string;
-      newStatus: string;
-      oldStatus: string;
-    }[] = [];
-
-    events.forEach((event) => {
-      // Only auto-update events that aren't manually set to cancelled
-      if (event.status !== "cancelled") {
-        const expectedStatus = getEventStatus(
-          event.date,
-          event.time,
-          event.end_time
-        );
-
-        // Only update if status has changed
-        if (event.status !== expectedStatus) {
-          eventsToUpdate.push({
-            id: event.id,
-            newStatus: expectedStatus,
-            oldStatus: event.status,
-          });
-        }
-      }
-    });
-
-    if (eventsToUpdate.length > 0) {
-      try {
-        // Update events in batches
-        for (const eventUpdate of eventsToUpdate) {
-          await supabase
-            .from("events")
-            .update({
-              status: eventUpdate.newStatus,
-              updated_at: new Date().toISOString(),
-            })
-            .eq("id", eventUpdate.id);
-        }
-
-        // Refresh the events list
-        queryClient.invalidateQueries({ queryKey: ["events"] });
-
-        // Show toast notification with details
-        const upcomingToOngoing = eventsToUpdate.filter(
-          (e) => e.oldStatus === "upcoming" && e.newStatus === "ongoing"
-        ).length;
-        const ongoingToCompleted = eventsToUpdate.filter(
-          (e) => e.oldStatus === "ongoing" && e.newStatus === "completed"
-        ).length;
-
-        let message = "";
-        if (upcomingToOngoing > 0)
-          message += `${upcomingToOngoing} event(s) started. `;
-        if (ongoingToCompleted > 0)
-          message += `${ongoingToCompleted} event(s) completed.`;
-
-        if (message) {
-          toast({
-            title: "Event Status Updated",
-            description: message.trim(),
-          });
-        }
-      } catch (error) {
-        console.error("Error updating event statuses:", error);
-      }
-    }
-  };
-
-  // Fetch events
+  // Fetch events using useQuery
   const { data: events = [], isLoading } = useQuery({
     queryKey: ["events"],
     queryFn: async () => {
@@ -181,24 +81,101 @@ export const AdminEventsManagement: React.FC = () => {
     },
   });
 
-  // Auto-update effect - runs every minute to check for status updates
-  useEffect(() => {
-    if (events.length > 0) {
-      // Check immediately when events load
-      updateEventStatuses(events);
+  // Function to check and return the correct status based on time
+  const getEventStatus = (
+    eventDate: string,
+    eventTime: string,
+    endTime?: string
+  ) => {
+    const now = new Date();
+    const eventStartDateTime = new Date(`${eventDate}T${eventTime}`);
+    const eventEndDateTime = endTime
+      ? new Date(`${eventDate}T${endTime}`)
+      : null;
 
-      // Set up interval to check every minute
-      const interval = setInterval(() => {
-        updateEventStatuses(events);
-      }, 60000); // Check every 60 seconds
-
-      return () => clearInterval(interval);
+    if (now < eventStartDateTime) {
+      return "upcoming";
     }
-  }, [events]);
 
-  // Alternative: Real-time updates using Supabase subscriptions
+    if (eventEndDateTime && now >= eventEndDateTime) {
+      return "completed";
+    }
+
+    if (now >= eventStartDateTime) {
+      return "ongoing";
+    }
+
+    return "upcoming";
+  };
+
+  // Function to automatically update event statuses in the database
+  const updateEventStatuses = async (eventsToProcess: Event[]) => {
+    if (!eventsToProcess || eventsToProcess.length === 0) return;
+
+    const eventsToUpdate = eventsToProcess.filter((event) => {
+      // Only auto-update if the status isn't manually set to cancelled
+      if (event.status === "cancelled") {
+        return false;
+      }
+
+      const newStatus = getEventStatus(event.date, event.time, event.end_time);
+      return event.status !== newStatus;
+    });
+
+    if (eventsToUpdate.length > 0) {
+      try {
+        await Promise.all(
+          eventsToUpdate.map((event) =>
+            supabase
+              .from("events")
+              .update({
+                status: getEventStatus(event.date, event.time, event.end_time),
+                updated_at: new Date().toISOString(),
+              })
+              .eq("id", event.id)
+          )
+        );
+
+        queryClient.invalidateQueries({ queryKey: ["events"] });
+
+        const upcomingToOngoingCount = eventsToUpdate.filter(
+          (e) => getEventStatus(e.date, e.time, e.end_time) === "ongoing"
+        ).length;
+        const ongoingToCompletedCount = eventsToUpdate.filter(
+          (e) => getEventStatus(e.date, e.time, e.end_time) === "completed"
+        ).length;
+
+        let message = "";
+        if (upcomingToOngoingCount > 0)
+          message += `${upcomingToOngoingCount} event(s) started. `;
+        if (ongoingToCompletedCount > 0)
+          message += `${ongoingToCompletedCount} event(s) completed.`;
+
+        if (message) {
+          toast({
+            title: "Event Status Updated",
+            description: message.trim(),
+          });
+        }
+      } catch (error) {
+        console.error("Error updating event statuses:", error);
+      }
+    }
+  };
+
+  // Main effect for auto-updates and real-time subscription
   useEffect(() => {
-    // Optional: Set up real-time subscription to events table
+    // Check and update statuses every minute
+    if (events.length > 0) {
+      updateEventStatuses(events);
+    }
+    const intervalId = setInterval(() => {
+      if (events.length > 0) {
+        updateEventStatuses(events);
+      }
+    }, 60000);
+
+    // Set up real-time subscription
     const subscription = supabase
       .channel("events_changes")
       .on(
@@ -211,9 +188,10 @@ export const AdminEventsManagement: React.FC = () => {
       .subscribe();
 
     return () => {
+      clearInterval(intervalId);
       subscription.unsubscribe();
     };
-  }, [queryClient]);
+  }, [events, queryClient]);
 
   // Create/Update event mutation
   const saveEventMutation = useMutation({
