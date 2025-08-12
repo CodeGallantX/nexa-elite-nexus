@@ -1,33 +1,39 @@
-
-import React, { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
-import { useToast } from '@/hooks/use-toast';
-import { useAuth } from '@/contexts/AuthContext';
-import { useNavigate } from 'react-router-dom';
-import { 
-  Calendar, 
-  Clock, 
-  Plus, 
-  Edit, 
-  Trash2, 
+import React, { useState, useEffect } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
+import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
+import { useNavigate } from "react-router-dom";
+import {
+  Calendar,
+  Clock,
+  Plus,
+  Edit,
+  Trash2,
   Users,
   Search,
-  Filter
-} from 'lucide-react';
+  Filter,
+} from "lucide-react";
 
 interface Event {
   id: string;
   name: string;
-  type: 'MP' | 'BR' | 'Tournament' | 'Scrims';
+  type: "MP" | "BR" | "Tournament" | "Scrims";
   date: string;
   time: string;
+  end_time?: string;
   description?: string;
   status: string;
   created_at: string;
@@ -39,76 +45,250 @@ export const AdminEventsManagement: React.FC = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
-  
+
   const [isCreating, setIsCreating] = useState(false);
   const [editingEvent, setEditingEvent] = useState<Event | null>(null);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [typeFilter, setTypeFilter] = useState<string>('all');
-  const [statusFilter, setStatusFilter] = useState<string>('all');
-  
+  const [searchTerm, setSearchTerm] = useState("");
+  const [typeFilter, setTypeFilter] = useState<string>("all");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+
   const [formData, setFormData] = useState({
-    name: '',
-    type: 'MP' as 'MP' | 'BR' | 'Tournament' | 'Scrims',
-    date: '',
-    time: '',
-    description: '',
-    status: 'upcoming'
+    name: "",
+    type: "MP" as "MP" | "BR" | "Tournament" | "Scrims",
+    date: "",
+    time: "",
+    end_time: "",
+    description: "",
+    status: "upcoming",
   });
+
+  // Function to check if an event should be ongoing or completed
+  const getEventStatus = (
+    eventDate: string,
+    eventTime: string,
+    endTime?: string
+  ) => {
+    const now = new Date();
+    const eventStartDateTime = new Date(`${eventDate}T${eventTime}`);
+    const eventEndDateTime = endTime
+      ? new Date(`${eventDate}T${endTime}`)
+      : null;
+
+    // If current time is before start time, event is upcoming
+    if (now < eventStartDateTime) {
+      return "upcoming";
+    }
+
+    // If end time is set and current time is after end time, event is completed
+    if (eventEndDateTime && now >= eventEndDateTime) {
+      return "completed";
+    }
+
+    // If current time is after start time but before end time (or no end time), event is ongoing
+    if (now >= eventStartDateTime) {
+      return "ongoing";
+    }
+
+    return "upcoming";
+  };
+
+  // Function to automatically update event statuses
+  const updateEventStatuses = async (events: Event[]) => {
+    const eventsToUpdate: {
+      id: string;
+      newStatus: string;
+      oldStatus: string;
+    }[] = [];
+
+    events.forEach((event) => {
+      // Only auto-update events that aren't manually set to cancelled
+      if (event.status !== "cancelled") {
+        const expectedStatus = getEventStatus(
+          event.date,
+          event.time,
+          event.end_time
+        );
+
+        // Only update if status has changed
+        if (event.status !== expectedStatus) {
+          eventsToUpdate.push({
+            id: event.id,
+            newStatus: expectedStatus,
+            oldStatus: event.status,
+          });
+        }
+      }
+    });
+
+    if (eventsToUpdate.length > 0) {
+      try {
+        // Update events in batches
+        for (const eventUpdate of eventsToUpdate) {
+          await supabase
+            .from("events")
+            .update({
+              status: eventUpdate.newStatus,
+              updated_at: new Date().toISOString(),
+            })
+            .eq("id", eventUpdate.id);
+        }
+
+        // Refresh the events list
+        queryClient.invalidateQueries({ queryKey: ["events"] });
+
+        // Show toast notification with details
+        const upcomingToOngoing = eventsToUpdate.filter(
+          (e) => e.oldStatus === "upcoming" && e.newStatus === "ongoing"
+        ).length;
+        const ongoingToCompleted = eventsToUpdate.filter(
+          (e) => e.oldStatus === "ongoing" && e.newStatus === "completed"
+        ).length;
+
+        let message = "";
+        if (upcomingToOngoing > 0)
+          message += `${upcomingToOngoing} event(s) started. `;
+        if (ongoingToCompleted > 0)
+          message += `${ongoingToCompleted} event(s) completed.`;
+
+        if (message) {
+          toast({
+            title: "Event Status Updated",
+            description: message.trim(),
+          });
+        }
+      } catch (error) {
+        console.error("Error updating event statuses:", error);
+      }
+    }
+  };
 
   // Fetch events
   const { data: events = [], isLoading } = useQuery({
-    queryKey: ['events'],
+    queryKey: ["events"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('events')
-        .select(`
+        .from("events")
+        .select(
+          `
           *,
           event_participants (count)
-        `)
-        .order('date', { ascending: false });
+        `
+        )
+        .order("date", { ascending: false });
 
       if (error) throw error;
       return data as Event[];
     },
   });
 
+  // Auto-update effect - runs every minute to check for status updates
+  useEffect(() => {
+    if (events.length > 0) {
+      // Check immediately when events load
+      updateEventStatuses(events);
+
+      // Set up interval to check every minute
+      const interval = setInterval(() => {
+        updateEventStatuses(events);
+      }, 60000); // Check every 60 seconds
+
+      return () => clearInterval(interval);
+    }
+  }, [events]);
+
+  // Alternative: Real-time updates using Supabase subscriptions
+  useEffect(() => {
+    // Optional: Set up real-time subscription to events table
+    const subscription = supabase
+      .channel("events_changes")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "events" },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ["events"] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [queryClient]);
+
   // Create/Update event mutation
   const saveEventMutation = useMutation({
     mutationFn: async (eventData: typeof formData) => {
       if (editingEvent) {
         const { error } = await supabase
-          .from('events')
+          .from("events")
           .update({
             ...eventData,
-            updated_at: new Date().toISOString()
+            updated_at: new Date().toISOString(),
           })
-          .eq('id', editingEvent.id);
+          .eq("id", editingEvent.id);
         if (error) throw error;
       } else {
-        const { error } = await supabase
-          .from('events')
-          .insert([{
+        const { error } = await supabase.from("events").insert([
+          {
             ...eventData,
-            created_by: profile?.id
-          }]);
+            created_by: profile?.id,
+          },
+        ]);
         if (error) throw error;
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['events'] });
+      queryClient.invalidateQueries({ queryKey: ["events"] });
       setIsCreating(false);
       setEditingEvent(null);
       setFormData({
-        name: '',
-        type: 'MP',
-        date: '',
-        time: '',
-        description: '',
-        status: 'upcoming'
+        name: "",
+        type: "MP",
+        date: "",
+        time: "",
+        end_time: "",
+        description: "",
+        status: "upcoming",
       });
       toast({
         title: editingEvent ? "Event Updated" : "Event Created",
-        description: `Event has been ${editingEvent ? 'updated' : 'created'} successfully.`,
+        description: `Event has been ${
+          editingEvent ? "updated" : "created"
+        } successfully.`,
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Manual status update mutation (for admin override)
+  const updateStatusMutation = useMutation({
+    mutationFn: async ({
+      eventId,
+      newStatus,
+    }: {
+      eventId: string;
+      newStatus: string;
+    }) => {
+      const { error } = await supabase
+        .from("events")
+        .update({
+          status: newStatus,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", eventId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["events"] });
+      toast({
+        title: "Status Updated",
+        description: "Event status has been updated successfully.",
       });
     },
     onError: (error: any) => {
@@ -124,20 +304,20 @@ export const AdminEventsManagement: React.FC = () => {
   const deleteEventMutation = useMutation({
     mutationFn: async (eventId: string) => {
       const { error } = await supabase
-        .from('events')
+        .from("events")
         .delete()
-        .eq('id', eventId);
+        .eq("id", eventId);
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['events'] });
+      queryClient.invalidateQueries({ queryKey: ["events"] });
       toast({
         title: "Event Deleted",
         description: "Event has been deleted successfully.",
       });
     },
     onError: (error: any) => {
-      console.error('Error deleting event:', error);
+      console.error("Error deleting event:", error);
       toast({
         title: "Error",
         description: "Failed to delete event",
@@ -158,45 +338,119 @@ export const AdminEventsManagement: React.FC = () => {
       type: event.type,
       date: event.date,
       time: event.time,
-      description: event.description || '',
-      status: event.status
+      end_time: event.end_time || "",
+      description: event.description || "",
+      status: event.status,
     });
     setIsCreating(true);
   };
 
   const handleDelete = (eventId: string) => {
-    if (confirm('Are you sure you want to delete this event?')) {
+    if (confirm("Are you sure you want to delete this event?")) {
       deleteEventMutation.mutate(eventId);
     }
   };
 
-  const filteredEvents = events.filter(event => {
-    const matchesSearch = event.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         event.description?.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesType = typeFilter === 'all' || event.type === typeFilter;
-    const matchesStatus = statusFilter === 'all' || event.status === statusFilter;
-    
+  const handleStatusChange = (eventId: string, newStatus: string) => {
+    updateStatusMutation.mutate({ eventId, newStatus });
+  };
+
+  const filteredEvents = events.filter((event) => {
+    const matchesSearch =
+      event.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      event.description?.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesType = typeFilter === "all" || event.type === typeFilter;
+    const matchesStatus =
+      statusFilter === "all" || event.status === statusFilter;
+
     return matchesSearch && matchesType && matchesStatus;
   });
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'upcoming': return 'bg-blue-100 text-blue-800';
-      case 'ongoing': return 'bg-green-100 text-green-800';
-      case 'completed': return 'bg-gray-100 text-gray-800';
-      case 'cancelled': return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case "upcoming":
+        return "bg-blue-100 text-blue-800";
+      case "ongoing":
+        return "bg-green-100 text-green-800";
+      case "completed":
+        return "bg-gray-100 text-gray-800";
+      case "cancelled":
+        return "bg-red-100 text-red-800";
+      default:
+        return "bg-gray-100 text-gray-800";
     }
   };
 
   const getTypeColor = (type: string) => {
     switch (type) {
-      case 'MP': return 'bg-purple-100 text-purple-800';
-      case 'BR': return 'bg-orange-100 text-orange-800';
-      case 'Tournament': return 'bg-green-100 text-green-800';
-      case 'Scrims': return 'bg-indigo-100 text-indigo-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case "MP":
+        return "bg-purple-100 text-purple-800";
+      case "BR":
+        return "bg-orange-100 text-orange-800";
+      case "Tournament":
+        return "bg-green-100 text-green-800";
+      case "Scrims":
+        return "bg-indigo-100 text-indigo-800";
+      default:
+        return "bg-gray-100 text-gray-800";
     }
+  };
+
+  // Helper function to get detailed event time status
+  const getEventTimeStatus = (
+    eventDate: string,
+    eventTime: string,
+    endTime?: string
+  ) => {
+    const now = new Date();
+    const eventStartDateTime = new Date(`${eventDate}T${eventTime}`);
+    const eventEndDateTime = endTime
+      ? new Date(`${eventDate}T${endTime}`)
+      : null;
+
+    if (now < eventStartDateTime) {
+      const timeDiff = eventStartDateTime.getTime() - now.getTime();
+      const days = Math.floor(timeDiff / (1000 * 60 * 60 * 24));
+      const hours = Math.floor(
+        (timeDiff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)
+      );
+      const minutes = Math.floor((timeDiff % (1000 * 60 * 60)) / (1000 * 60));
+
+      if (days > 0) return `Starts in ${days}d ${hours}h`;
+      return `Starts in ${hours}h ${minutes}m`;
+    }
+
+    if (eventEndDateTime && now >= eventEndDateTime) {
+      const timeDiff = now.getTime() - eventEndDateTime.getTime();
+      const days = Math.floor(timeDiff / (1000 * 60 * 60 * 24));
+      const hours = Math.floor(
+        (timeDiff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)
+      );
+      const minutes = Math.floor((timeDiff % (1000 * 60 * 60)) / (1000 * 60));
+
+      if (days > 0) return `Ended ${days}d ${hours}h ago`;
+      return `Ended ${hours}h ${minutes}m ago`;
+    }
+
+    if (now >= eventStartDateTime) {
+      if (eventEndDateTime) {
+        const timeToEnd = eventEndDateTime.getTime() - now.getTime();
+        const hours = Math.floor(timeToEnd / (1000 * 60 * 60));
+        const minutes = Math.floor(
+          (timeToEnd % (1000 * 60 * 60)) / (1000 * 60)
+        );
+
+        if (hours > 0) return `Ends in ${hours}h ${minutes}m`;
+        return `Ends in ${minutes}m`;
+      } else {
+        const timeDiff = now.getTime() - eventStartDateTime.getTime();
+        const hours = Math.floor(timeDiff / (1000 * 60 * 60));
+        const minutes = Math.floor((timeDiff % (1000 * 60 * 60)) / (1000 * 60));
+        return `Started ${hours}h ${minutes}m ago`;
+      }
+    }
+
+    return "";
   };
 
   return (
@@ -205,19 +459,22 @@ export const AdminEventsManagement: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-white">Events Management</h1>
-          <p className="text-muted-foreground">Create and manage tournament events</p>
+          <p className="text-muted-foreground">
+            Create and manage tournament events with auto status updates
+          </p>
         </div>
         <Button
           onClick={() => {
             setIsCreating(true);
             setEditingEvent(null);
             setFormData({
-              name: '',
-              type: 'MP',
-              date: '',
-              time: '',
-              description: '',
-              status: 'upcoming'
+              name: "",
+              type: "MP",
+              date: "",
+              time: "",
+              end_time: "",
+              description: "",
+              status: "upcoming",
             });
           }}
           className="bg-primary hover:bg-primary/90"
@@ -275,7 +532,7 @@ export const AdminEventsManagement: React.FC = () => {
         <Card className="bg-card/50 border-border/30 backdrop-blur-sm">
           <CardHeader>
             <CardTitle>
-              {editingEvent ? 'Edit Event' : 'Create New Event'}
+              {editingEvent ? "Edit Event" : "Create New Event"}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -286,20 +543,22 @@ export const AdminEventsManagement: React.FC = () => {
                   <Input
                     id="name"
                     value={formData.name}
-                    onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                    onChange={(e) =>
+                      setFormData((prev) => ({ ...prev, name: e.target.value }))
+                    }
                     placeholder="Tournament Championship"
                     className="bg-background/50"
                     required
                   />
                 </div>
-                
+
                 <div>
                   <Label htmlFor="type">Event Type</Label>
-                  <Select 
-                    value={formData.type} 
-                    onValueChange={(value: 'MP' | 'BR' | 'Tournament' | 'Scrims') => 
-                      setFormData(prev => ({ ...prev, type: value }))
-                    }
+                  <Select
+                    value={formData.type}
+                    onValueChange={(
+                      value: "MP" | "BR" | "Tournament" | "Scrims"
+                    ) => setFormData((prev) => ({ ...prev, type: value }))}
                   >
                     <SelectTrigger className="bg-background/50">
                       <SelectValue />
@@ -312,36 +571,62 @@ export const AdminEventsManagement: React.FC = () => {
                     </SelectContent>
                   </Select>
                 </div>
-                
+
                 <div>
                   <Label htmlFor="date">Date</Label>
                   <Input
                     id="date"
                     type="date"
                     value={formData.date}
-                    onChange={(e) => setFormData(prev => ({ ...prev, date: e.target.value }))}
-                    className="bg-background/50"
-                    required
-                  />
-                </div>
-                
-                <div>
-                  <Label htmlFor="time">Time</Label>
-                  <Input
-                    id="time"
-                    type="time"
-                    value={formData.time}
-                    onChange={(e) => setFormData(prev => ({ ...prev, time: e.target.value }))}
+                    onChange={(e) =>
+                      setFormData((prev) => ({ ...prev, date: e.target.value }))
+                    }
                     className="bg-background/50"
                     required
                   />
                 </div>
 
                 <div>
+                  <Label htmlFor="time">Start Time</Label>
+                  <Input
+                    id="time"
+                    type="time"
+                    value={formData.time}
+                    onChange={(e) =>
+                      setFormData((prev) => ({ ...prev, time: e.target.value }))
+                    }
+                    className="bg-background/50"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="end_time">End Time (Optional)</Label>
+                  <Input
+                    id="end_time"
+                    type="time"
+                    value={formData.end_time}
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        end_time: e.target.value,
+                      }))
+                    }
+                    className="bg-background/50"
+                    placeholder="Leave empty for open-ended events"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Events will auto-complete when end time is reached
+                  </p>
+                </div>
+
+                <div>
                   <Label htmlFor="status">Status</Label>
-                  <Select 
-                    value={formData.status} 
-                    onValueChange={(value) => setFormData(prev => ({ ...prev, status: value }))}
+                  <Select
+                    value={formData.status}
+                    onValueChange={(value) =>
+                      setFormData((prev) => ({ ...prev, status: value }))
+                    }
                   >
                     <SelectTrigger className="bg-background/50">
                       <SelectValue />
@@ -355,21 +640,26 @@ export const AdminEventsManagement: React.FC = () => {
                   </Select>
                 </div>
               </div>
-              
+
               <div>
                 <Label htmlFor="description">Description (Optional)</Label>
                 <Input
                   id="description"
                   value={formData.description}
-                  onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      description: e.target.value,
+                    }))
+                  }
                   placeholder="Event description..."
                   className="bg-background/50"
                 />
               </div>
-              
+
               <div className="flex space-x-2">
                 <Button type="submit" disabled={saveEventMutation.isPending}>
-                  {editingEvent ? 'Update Event' : 'Create Event'}
+                  {editingEvent ? "Update Event" : "Create Event"}
                 </Button>
                 <Button
                   type="button"
@@ -399,31 +689,55 @@ export const AdminEventsManagement: React.FC = () => {
           <Card className="bg-card/50 border-border/30 backdrop-blur-sm">
             <CardContent className="p-8 text-center">
               <div className="text-muted-foreground">
-                {searchTerm || typeFilter !== 'all' || statusFilter !== 'all' 
-                  ? 'No events match your filters.' 
-                  : 'No events created yet.'}
+                {searchTerm || typeFilter !== "all" || statusFilter !== "all"
+                  ? "No events match your filters."
+                  : "No events created yet."}
               </div>
             </CardContent>
           </Card>
         ) : (
           filteredEvents.map((event) => (
-            <Card key={event.id} className="bg-card/50 border-border/30 backdrop-blur-sm">
+            <Card
+              key={event.id}
+              className="bg-card/50 border-border/30 backdrop-blur-sm"
+            >
               <CardContent className="p-6">
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                   <div className="flex-1">
                     <div className="flex items-start gap-3">
                       <div className="flex-1">
-                        <h3 className="text-lg font-semibold text-white mb-2">{event.name}</h3>
-                        
+                        <h3 className="text-lg font-semibold text-white mb-2">
+                          {event.name}
+                        </h3>
+
                         <div className="flex flex-wrap items-center gap-2 mb-2">
                           <Badge className={getTypeColor(event.type)}>
                             {event.type}
                           </Badge>
-                          <Badge className={getStatusColor(event.status)}>
+                          <Badge
+                            className={getStatusColor(event.status)}
+                            onClick={() => {
+                              // Quick status toggle for admin
+                              const statusCycle = {
+                                upcoming: "ongoing",
+                                ongoing: "completed",
+                                completed: "upcoming",
+                                cancelled: "upcoming",
+                              };
+                              handleStatusChange(
+                                event.id,
+                                statusCycle[
+                                  event.status as keyof typeof statusCycle
+                                ] || "upcoming"
+                              );
+                            }}
+                            style={{ cursor: "pointer" }}
+                            title="Click to cycle status"
+                          >
                             {event.status}
                           </Badge>
                         </div>
-                        
+
                         <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
                           <div className="flex items-center gap-1">
                             <Calendar className="w-4 h-4" />
@@ -432,13 +746,22 @@ export const AdminEventsManagement: React.FC = () => {
                           <div className="flex items-center gap-1">
                             <Clock className="w-4 h-4" />
                             {event.time}
+                            {event.end_time && ` - ${event.end_time}`}
                           </div>
                           <div className="flex items-center gap-1">
                             <Users className="w-4 h-4" />
-                            {event.event_participants?.[0]?.count || 0} participants
+                            {event.event_participants?.[0]?.count || 0}{" "}
+                            participants
+                          </div>
+                          <div className="text-xs font-medium">
+                            {getEventTimeStatus(
+                              event.date,
+                              event.time,
+                              event.end_time
+                            )}
                           </div>
                         </div>
-                        
+
                         {event.description && (
                           <p className="text-sm text-muted-foreground mt-2">
                             {event.description}
@@ -447,12 +770,14 @@ export const AdminEventsManagement: React.FC = () => {
                       </div>
                     </div>
                   </div>
-                  
+
                   <div className="flex items-center gap-2">
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => navigate(`/admin/events/${event.id}/assign`)}
+                      onClick={() =>
+                        navigate(`/admin/events/${event.id}/assign`)
+                      }
                       className="hover:bg-primary/10 hover:text-primary"
                     >
                       <Users className="w-4 h-4 mr-1" />
