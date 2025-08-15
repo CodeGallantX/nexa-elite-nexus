@@ -2,7 +2,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Shield, Users, Trophy, Target, ArrowRight, Star, Gamepad2 } from 'lucide-react';
+import { Shield, Users, Trophy, Target, ArrowRight, Star, Gamepad2, Mail } from 'lucide-react';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { ClanGallery } from '@/components/ClanGallery';
 
@@ -175,6 +175,57 @@ export const Landing: React.FC = () => {
               <ArrowRight className="w-6 h-6 ml-3" />
             </Button>
           </Link>
+        </div>
+      </section>
+
+      {/* Contact Section */}
+      <section className="relative z-10 px-6 py-20 bg-gradient-to-b from-transparent to-card/30">
+        <div className="max-w-4xl mx-auto text-center">
+          <div className="inline-flex items-center space-x-2 px-4 py-2 bg-primary/10 border border-primary/30 rounded-full mb-6 nexa-glow">
+            <Mail className="w-4 h-4 text-primary" />
+            <span className="text-sm text-primary font-medium font-rajdhani">Get in Touch</span>
+          </div>
+          <h2 className="text-4xl font-orbitron font-bold mb-6">
+            <span className="bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
+              Contact Us
+            </span>
+          </h2>
+          <p className="text-muted-foreground text-lg mb-12 max-w-2xl mx-auto font-rajdhani">
+            Have questions or want to learn more about NeXa_Esports? Reach out to us!
+          </p>
+
+          <form className="grid grid-cols-1 gap-8 text-left">
+            <div>
+              <label htmlFor="name" className="block text-muted-foreground text-sm font-rajdhani mb-2">Name</label>
+              <input 
+                type="text" 
+                id="name" 
+                className="w-full p-3 rounded-lg bg-card border border-border focus:outline-none focus:ring-2 focus:ring-primary/50 font-rajdhani text-foreground" 
+                placeholder="Your Name" 
+              />
+            </div>
+            <div>
+              <label htmlFor="email" className="block text-muted-foreground text-sm font-rajdhani mb-2">Email</label>
+              <input 
+                type="email" 
+                id="email" 
+                className="w-full p-3 rounded-lg bg-card border border-border focus:outline-none focus:ring-2 focus:ring-primary/50 font-rajdhani text-foreground" 
+                placeholder="your@example.com" 
+              />
+            </div>
+            <div>
+              <label htmlFor="message" className="block text-muted-foreground text-sm font-rajdhani mb-2">Message</label>
+              <textarea 
+                id="message" 
+                rows={5} 
+                className="w-full p-3 rounded-lg bg-card border border-border focus:outline-none focus:ring-2 focus:ring-primary/50 font-rajdhani text-foreground" 
+                placeholder="Your message..."
+              ></textarea>
+            </div>
+            <Button type="submit" size="lg" className="nexa-button px-12 py-4 text-lg font-rajdhani font-bold mx-auto">
+              Send Message
+            </Button>
+          </form>
         </div>
       </section>
     </div>
