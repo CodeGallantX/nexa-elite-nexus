@@ -20,7 +20,7 @@ export const sendContactEmail = async (formData: ContactFormData): Promise<boole
       from_name: formData.name,
       from_email: formData.email,
       message: formData.message,
-      to_email: 'nexaesports@gmail.com', // Your Brevo email address
+      to_email: 'ajibodegbolahan275@gmail.com', // Your Brevo email address
       reply_to: formData.email,
       subject: `Contact Form Submission from ${formData.name}`,
     };
