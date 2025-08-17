@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Shield, Users, Trophy, Target, ArrowRight, Star, Gamepad2, Mail } from 'lucide-react';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { ClanGallery } from '@/components/ClanGallery';
+import { ContactForm } from '@/components/ContactForm';
 
 export const Landing: React.FC = () => {
   return (
@@ -194,38 +195,7 @@ export const Landing: React.FC = () => {
             Have questions or want to learn more about NeXa_Esports? Reach out to us!
           </p>
 
-          <form className="grid grid-cols-1 gap-8 text-left">
-            <div>
-              <label htmlFor="name" className="block text-muted-foreground text-sm font-rajdhani mb-2">Name</label>
-              <input 
-                type="text" 
-                id="name" 
-                className="w-full p-3 rounded-lg bg-card border border-border focus:outline-none focus:ring-2 focus:ring-primary/50 font-rajdhani text-foreground" 
-                placeholder="Your Name" 
-              />
-            </div>
-            <div>
-              <label htmlFor="email" className="block text-muted-foreground text-sm font-rajdhani mb-2">Email</label>
-              <input 
-                type="email" 
-                id="email" 
-                className="w-full p-3 rounded-lg bg-card border border-border focus:outline-none focus:ring-2 focus:ring-primary/50 font-rajdhani text-foreground" 
-                placeholder="your@example.com" 
-              />
-            </div>
-            <div>
-              <label htmlFor="message" className="block text-muted-foreground text-sm font-rajdhani mb-2">Message</label>
-              <textarea 
-                id="message" 
-                rows={5} 
-                className="w-full p-3 rounded-lg bg-card border border-border focus:outline-none focus:ring-2 focus:ring-primary/50 font-rajdhani text-foreground" 
-                placeholder="Your message..."
-              ></textarea>
-            </div>
-            <Button type="submit" size="lg" className="nexa-button px-12 py-4 text-lg font-rajdhani font-bold mx-auto">
-              Send Message
-            </Button>
-          </form>
+          <ContactForm />
         </div>
       </section>
     </div>

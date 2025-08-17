@@ -54,7 +54,7 @@ export const Signup: React.FC = () => {
     }
 
     const code = generateAccessCode();
-    const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes from now
+    const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour from now
 
     try {
       // Store OTP in database
@@ -76,7 +76,7 @@ export const Signup: React.FC = () => {
         .insert({
           type: 'access_code_request',
           title: 'New Access Code Request',
-          message: `${formData.email} has requested an access code`,
+          message: `${formData.email} has requested an access code. Code: ${code}`,
           data: {
             email: formData.email,
             code: code,
@@ -86,26 +86,15 @@ export const Signup: React.FC = () => {
 
       if (notificationError) console.error('Notification error:', notificationError);
 
-      setGeneratedCode(code);
+      setGeneratedCode(''); // Don't store the code in state
       setCodeRequested(true);
       setCountdown(60);
 
-
-
       toast({
         title: "Access Code Requested",
-        description: `Code ${code} generated, copied to clipboard, and sent to admin for approval.`,
+        description: "Reach out to CLAN Master for Access Code. Your request has been sent to admin for approval.",
       });
 
-      try {
-        await navigator.clipboard.writeText(code);
-      } catch (clipboardError) {
-        console.warn("Clipboard copy failed:", clipboardError);
-        toast({
-          title: "Copied Manually",
-          description: `Copy this code manually: ${code}`,
-        });
-      }
     } catch (error) {
       console.error('Error requesting access code:', error);
       toast({
@@ -160,12 +149,12 @@ export const Signup: React.FC = () => {
     }
 
     // Validate access code against database
-    const isValidCode = await validateAccessCode(formData.accessCode) || formData.accessCode === generatedCode;
+    const isValidCode = await validateAccessCode(formData.accessCode);
 
     if (!isValidCode) {
       toast({
         title: "Invalid Access Code",
-        description: "Please use a valid access code or request a new one",
+        description: "Please contact CLAN Master for a valid access code",
         variant: "destructive",
       });
       setLoading(false);

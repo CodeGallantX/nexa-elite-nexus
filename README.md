@@ -64,6 +64,12 @@ npm run dev
 ```env
 VITE_SUPABASE_URL=your_supabase_url
 VITE_SUPABASE_ANON_KEY=your_anon_key
+
+# Email Service Configuration (for contact form)
+BREVO_API_KEY=your_brevo_api_key
+EMAILJS_SERVICE_ID=your_emailjs_service_id
+EMAILJS_TEMPLATE_ID=your_emailjs_template_id
+EMAILJS_PUBLIC_KEY=your_emailjs_public_key
 ```
 
 ---
