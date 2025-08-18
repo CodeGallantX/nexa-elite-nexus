@@ -1,72 +1,42 @@
-import React, { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Label } from '@/components/ui/label';
-import { useToast } from '@/hooks/use-toast';
-import { Mail, Send, Loader } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
+// src/components/ContactForm.tsx
+import React, { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { useToast } from "@/hooks/use-toast";
+import { Loader, Send } from "lucide-react";
+import { sendContactEmail } from "@/lib/contact";
 
-interface ContactFormProps {
-  className?: string;
-}
-
-export const ContactForm: React.FC<ContactFormProps> = ({ className }) => {
+export const ContactForm: React.FC<{ className?: string }> = ({ className }) => {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    message: ''
-  });
+  const [formData, setFormData] = useState({ name: "", email: "", message: "" });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    setFormData(prev => ({
-      ...prev,
-      [e.target.name]: e.target.value
-    }));
+    setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
     if (!formData.name || !formData.email || !formData.message) {
-      toast({
-        title: "Missing Information",
-        description: "Please fill in all fields before submitting.",
-        variant: "destructive",
-      });
+      toast({ title: "Missing Information", description: "Please fill in all fields.", variant: "destructive" });
       return;
     }
 
     setIsSubmitting(true);
-
     try {
-      // Send email via Supabase Edge Function
-      const { data, error } = await supabase.functions.invoke('send-contact-email', {
-        body: formData
-      });
-
-      if (!error && data?.success) {
-        toast({
-          title: "Message Sent Successfully!",
-          description: "Thank you for contacting NeXa_Esports. We'll get back to you soon.",
-        });
-
-        // Reset form
-        setFormData({
-          name: '',
-          email: '',
-          message: ''
-        });
+      const success = await sendContactEmail(formData);
+      if (success) {
+        toast({ title: "✅ Message Sent!", description: "We'll get back to you soon." });
+        setFormData({ name: "", email: "", message: "" });
       } else {
-        throw new Error(error?.message || data?.error || 'Failed to send email');
+        throw new Error("Email sending failed");
       }
     } catch (error) {
-      console.error('Email sending error:', error);
       toast({
-        title: "Message Failed to Send",
-        description: "There was an error sending your message. Please try again or contact us directly at nexaesports@gmail.com",
+        title: "❌ Failed to Send",
+        description: "Please try again later or email us directly at nexaesports@gmail.com",
         variant: "destructive",
       });
     } finally {
@@ -75,73 +45,67 @@ export const ContactForm: React.FC<ContactFormProps> = ({ className }) => {
   };
 
   return (
-    <form onSubmit={handleSubmit} className={`grid grid-cols-1 gap-6 text-left ${className}`}>
+    <form onSubmit={handleSubmit} className={`grid gap-6 max-w-xl mx-auto ${className}`}>
       <div>
-        <Label htmlFor="name" className="block text-muted-foreground text-sm font-rajdhani mb-2">
+        <Label htmlFor="name" className="block mb-2 font-semibold text-sm text-muted-foreground">
           Name *
         </Label>
-        <Input 
-          type="text" 
+        <Input
           id="name"
           name="name"
           value={formData.name}
           onChange={handleChange}
-          className="w-full p-3 rounded-lg bg-card border border-border focus:outline-none focus:ring-2 focus:ring-primary/50 font-rajdhani text-foreground" 
           placeholder="Your Name"
-          required
           disabled={isSubmitting}
+          required
         />
       </div>
-      
+
       <div>
-        <Label htmlFor="email" className="block text-muted-foreground text-sm font-rajdhani mb-2">
+        <Label htmlFor="email" className="block mb-2 font-semibold text-sm text-muted-foreground">
           Email *
         </Label>
-        <Input 
-          type="email" 
+        <Input
           id="email"
+          type="email"
           name="email"
           value={formData.email}
           onChange={handleChange}
-          className="w-full p-3 rounded-lg bg-card border border-border focus:outline-none focus:ring-2 focus:ring-primary/50 font-rajdhani text-foreground" 
-          placeholder="your@example.com"
-          required
+          placeholder="you@example.com"
           disabled={isSubmitting}
+          required
         />
       </div>
-      
+
       <div>
-        <Label htmlFor="message" className="block text-muted-foreground text-sm font-rajdhani mb-2">
+        <Label htmlFor="message" className="block mb-2 font-semibold text-sm text-muted-foreground">
           Message *
         </Label>
-        <Textarea 
+        <Textarea
           id="message"
           name="message"
           value={formData.message}
           onChange={handleChange}
-          rows={5} 
-          className="w-full p-3 rounded-lg bg-card border border-border focus:outline-none focus:ring-2 focus:ring-primary/50 font-rajdhani text-foreground" 
-          placeholder="Your message..."
-          required
+          rows={5}
+          placeholder="Write your message..."
           disabled={isSubmitting}
+          required
         />
       </div>
-      
-      <Button 
-        type="submit" 
-        size="lg" 
-        className="nexa-button px-12 py-4 text-lg font-rajdhani font-bold mx-auto"
+
+      <Button
+        type="submit"
+        size="lg"
+        className="px-10 py-4 font-bold rounded-2xl shadow-md transition transform hover:scale-105"
         disabled={isSubmitting}
       >
         {isSubmitting ? (
           <>
-            <Loader className="w-5 h-5 mr-2 animate-spin" />
-            Sending...
+            <Loader className="w-5 h-5 mr-2 animate-spin" /> Sending...
           </>
         ) : (
           <>
-            <Send className="w-5 h-5 mr-2" />
-            Send Message
+            <Send className="w-5 h-5 mr-2" /> Send Message
           </>
         )}
       </Button>
