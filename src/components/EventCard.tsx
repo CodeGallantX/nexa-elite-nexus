@@ -50,8 +50,10 @@ export const EventCard: React.FC<EventCardProps> = ({ event }) => {
         .single();
 
       if (participantError || !participantData?.group_id) {
+        console.log("User not assigned to a group for this event or participant data error:", participantError);
         return { is_assigned: false };
       }
+      console.log("Participant Data:", participantData);
 
       // If assigned, fetch group members and group name
       const { data: groupData, error: groupError } = await supabase
@@ -60,12 +62,12 @@ export const EventCard: React.FC<EventCardProps> = ({ event }) => {
           `
           group_id,
           player_id,
-          role, // Fetch role from event_participants
+          role,
           profiles:player_id (
             id,
             username,
             ign,
-            avatar_url // Fetch avatar_url from profiles
+            avatar_url
           )
         `
         )
@@ -76,6 +78,8 @@ export const EventCard: React.FC<EventCardProps> = ({ event }) => {
         console.error("Error fetching group members:", groupError);
         return { is_assigned: true, members: [], group_name: "Unknown Group" };
       }
+      console.log("Group Data (members):", groupData);
+
 
       // Fetch group name
       const { data: groupNameData, error: groupNameError } = await supabase
@@ -87,6 +91,7 @@ export const EventCard: React.FC<EventCardProps> = ({ event }) => {
       if (groupNameError) {
         console.error("Error fetching group name:", groupNameError);
       }
+      console.log("Group Name Data:", groupNameData);
 
       return {
         is_assigned: true,
