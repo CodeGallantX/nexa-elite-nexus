@@ -103,6 +103,7 @@ export const useNotifications = () => {
           "new_player_joined",
           "player_left",
           "admin_alert",
+          "assignment_request",
         ])
         .order("created_at", { ascending: false })
         .limit(20);
@@ -247,6 +248,30 @@ export const useNotifications = () => {
     },
   });
 
+  // Send notification
+  const sendNotificationMutation = useMutation({
+    mutationFn: async (notificationData: {
+      user_id: string;
+      title: string;
+      message: string;
+      type: string;
+      data?: any;
+    }) => {
+      const { error } = await supabase
+        .from("notifications")
+        .insert([notificationData]);
+
+      if (error) {
+        console.error("Error sending notification:", error);
+        throw error;
+      }
+    },
+    onSuccess: () => {
+      // Invalidate admin notifications as assignment requests go to admins
+      queryClient.invalidateQueries({ queryKey: ["admin-notifications"] });
+    },
+  });
+
   // Update unread count
   useEffect(() => {
     const unread = notifications.filter((n) => n.status === "unread").length;
@@ -334,6 +359,7 @@ export const useNotifications = () => {
     unreadCount,
     markAsRead: markAsReadMutation.mutate,
     markAllAsRead: markAllAsReadMutation.mutate,
+    sendNotification: sendNotificationMutation.mutate,
     isLoading: false,
   };
 };

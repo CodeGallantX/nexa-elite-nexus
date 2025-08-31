@@ -6,6 +6,7 @@ import { Progress } from "@/components/ui/progress";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useNotifications } from "@/hooks/useNotifications"; // Import the hook
+import { EventCard } from "@/components/EventCard";
 import {
   Trophy,
   Target,
@@ -21,7 +22,6 @@ export const Dashboard: React.FC = () => {
   const { profile, user } = useAuth();
   const { notifications: recentNotifications } = useNotifications(); // Use the hook
 
-  // Fetch user's scrims/events
   const { data: userEvents = [] } = useQuery({
     queryKey: ["user-events", user?.id],
     queryFn: async () => {
@@ -29,29 +29,34 @@ export const Dashboard: React.FC = () => {
 
       const { data, error } = await supabase
         .from("event_participants")
-        .select(
-          `
-          *,
-          events (
-            id,
-            name,
-            type,
-            date,
-            time
-          )
-        `
-        )
-        .eq("player_id", user.id)
-        .order("created_at", { ascending: false })
-        .limit(5);
+        .select("id")
+        .eq("player_id", user.id);
 
       if (error) {
-        console.error("Error fetching user events:", error);
+        console.error("Error fetching user events count:", error);
         return [];
       }
       return data || [];
     },
     enabled: !!user?.id,
+  });
+
+  // Fetch all recent events
+  const { data: allEvents = [], isLoading: isLoadingEvents } = useQuery({
+    queryKey: ["all-recent-events"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("events")
+        .select("*")
+        .order("date", { ascending: true })
+        .limit(10);
+
+      if (error) {
+        console.error("Error fetching all events:", error);
+        return [];
+      }
+      return data || [];
+    },
   });
 
   // Fetch recent announcements
@@ -197,32 +202,17 @@ export const Dashboard: React.FC = () => {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {userEvents.length > 0 ? (
-                userEvents.map((participation) => (
-                  <div
-                    key={participation.id}
-                    className="flex items-center space-x-3 p-3 bg-white/5 rounded-lg"
-                  >
-                    <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
-                    <div className="flex-1">
-                      <p className="text-white text-sm">
-                        {participation.events?.name}
-                      </p>
-                      <p className="text-gray-400 text-xs">
-                        {participation.events?.date} •{" "}
-                        {participation.events?.type}
-                      </p>
-                    </div>
-                    {participation.kills && (
-                      <div className="text-green-400 text-sm font-medium">
-                        {participation.kills} kills
-                      </div>
-                    )}
-                  </div>
+              {isLoadingEvents ? (
+                <div className="text-center py-4 text-muted-foreground">
+                  Loading events...
+                </div>
+              ) : allEvents.length > 0 ? (
+                allEvents.map((event) => (
+                  <EventCard key={event.id} event={event} />
                 ))
               ) : (
                 <div className="text-center py-4 text-muted-foreground">
-                  No recent events
+                  No upcoming events
                 </div>
               )}
             </div>
