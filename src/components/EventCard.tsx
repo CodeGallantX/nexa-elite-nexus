@@ -53,17 +53,19 @@ export const EventCard: React.FC<EventCardProps> = ({ event }) => {
         return { is_assigned: false };
       }
 
-      // If assigned, fetch group members
+      // If assigned, fetch group members and group name
       const { data: groupData, error: groupError } = await supabase
         .from("event_participants")
         .select(
           `
           group_id,
           player_id,
+          role, // Fetch role from event_participants
           profiles:player_id (
             id,
             username,
-            ign
+            ign,
+            avatar_url // Fetch avatar_url from profiles
           )
         `
         )
@@ -72,13 +74,25 @@ export const EventCard: React.FC<EventCardProps> = ({ event }) => {
 
       if (groupError) {
         console.error("Error fetching group members:", groupError);
-        return { is_assigned: true, members: [] };
+        return { is_assigned: true, members: [], group_name: "Unknown Group" };
+      }
+
+      // Fetch group name
+      const { data: groupNameData, error: groupNameError } = await supabase
+        .from("event_groups")
+        .select("name")
+        .eq("id", participantData.group_id)
+        .single();
+
+      if (groupNameError) {
+        console.error("Error fetching group name:", groupNameError);
       }
 
       return {
         is_assigned: true,
         group_id: participantData.group_id,
-        members: groupData.map((p) => p.profiles),
+        group_name: groupNameData?.name || `Group ${participantData.group_id.substring(0, 8)}`, // Use a truncated ID if name not found
+        members: groupData.map((p) => ({ ...p.profiles, role: p.role })), // Include role in member object
       };
     },
     enabled: !!user?.id,
@@ -147,18 +161,43 @@ export const EventCard: React.FC<EventCardProps> = ({ event }) => {
         {isLoadingGroup ? (
           <div className="text-center text-gray-400">Loading group info...</div>
         ) : groupInfo?.is_assigned ? (
-          <div>
-            <h4 className="font-bold text-white mb-2 flex items-center">
-              <Users className="w-4 h-4 mr-2" />
-              Your Group
-            </h4>
-            <ul className="space-y-2">
-              {groupInfo.members?.map((member) => (
-                <li key={member.id} className="text-sm text-gray-300">
-                  {member.username}
-                </li>
-              ))}
-            </ul>
+          <div className="text-center">
+            <p className="text-white mb-2">
+              You've been assigned to <span className="font-bold text-[#FF1F44]">{groupInfo.group_name}</span>
+            </p>
+            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+              <DialogTrigger asChild>
+                <Button className="bg-[#FF1F44] hover:bg-red-600 text-white mt-2">
+                  View Team members
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="bg-gray-800 text-white border-gray-700">
+                <DialogHeader>
+                  <DialogTitle className="text-white">Team Members: {groupInfo.group_name}</DialogTitle>
+                  <DialogDescription className="text-gray-400">
+                    Here are the members of your assigned group.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 py-4">
+                  {groupInfo.members?.map((member) => (
+                    <div key={member.id} className="flex items-center space-x-3 bg-gray-700 p-3 rounded-lg">
+                      <img
+                        src={member.avatar_url || `https://ui-avatars.com/api/?name=${member.username}&background=random`}
+                        alt={member.username}
+                        className="w-10 h-10 rounded-full object-cover"
+                      />
+                      <div>
+                        <p className="font-bold text-white">Ɲ・乂 {member.ign || member.username}</p>
+                        <p className="text-sm text-gray-400 capitalize">{member.role || 'Player'}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setIsDialogOpen(false)}>Close</Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
           </div>
         ) : (
           <div className="text-center">
