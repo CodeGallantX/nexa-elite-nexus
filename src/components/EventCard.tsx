@@ -58,19 +58,7 @@ export const EventCard: React.FC<EventCardProps> = ({ event }) => {
       // If assigned, fetch group members and group name
       const { data: groupData, error: groupError } = await supabase
         .from("event_participants")
-        .select(
-          `
-          group_id,
-          player_id,
-          role,
-          profiles:player_id (
-            id,
-            username,
-            ign,
-            avatar_url
-          )
-        `
-        )
+        .select("id, group_id, player_id, role, kills, verified, profiles!event_participants_player_id_fkey(id, username, ign, avatar_url)")
         .eq("event_id", event.id)
         .eq("group_id", participantData.group_id);
 
