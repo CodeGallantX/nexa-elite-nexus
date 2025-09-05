@@ -577,6 +577,30 @@ export type Database = {
         Args: { user_id_to_delete: string }
         Returns: boolean
       }
+      get_public_profiles: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          attendance: number
+          avatar_url: string
+          best_gun: string
+          br_class: string
+          created_at: string
+          date_joined: string
+          device: string
+          grade: string
+          id: string
+          ign: string
+          kills: number
+          mp_class: string
+          player_uid: string
+          preferred_mode: string
+          role: Database["public"]["Enums"]["user_role"]
+          tier: string
+          tiktok_handle: string
+          updated_at: string
+          username: string
+        }[]
+      }
       get_user_role: {
         Args: { user_id: string }
         Returns: Database["public"]["Enums"]["user_role"]
