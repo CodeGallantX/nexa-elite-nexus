@@ -49,6 +49,7 @@ export const Sidebar: React.FC = () => {
 
   const isAdmin = profile?.role === 'admin' || profile?.role === 'clan_master';
   const isPlayer = profile?.role === 'player';
+  const isModerator = profile?.role === 'moderator';
 
   const playerMenuItems = [
     { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
@@ -57,6 +58,18 @@ export const Sidebar: React.FC = () => {
     { icon: Crosshair, label: 'Scrims', path: '/scrims' },
     { icon: Package, label: 'My Loadouts', path: '/loadouts' },
     { icon: Sword, label: 'Weapon Layouts', path: '/weapon-layouts' },
+    { icon: Megaphone, label: 'Announcements', path: '/announcements' },
+    { icon: Settings, label: 'Settings', path: '/settings' },
+  ];
+
+  const moderatorMenuItems = [
+    { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
+    { icon: User, label: 'Profile', path: '/profile' },
+    { icon: MessageSquare, label: 'Chat', path: '/chat' },
+    { icon: Crosshair, label: 'Scrims', path: '/scrims' },
+    { icon: Package, label: 'My Loadouts', path: '/loadouts' },
+    { icon: Sword, label: 'Weapon Layouts', path: '/weapon-layouts' },
+    { icon: Clock, label: 'Attendance', path: '/admin/attendance' },
     { icon: Megaphone, label: 'Announcements', path: '/announcements' },
     { icon: Settings, label: 'Settings', path: '/settings' },
   ];
@@ -139,6 +152,30 @@ export const Sidebar: React.FC = () => {
                 </div>
               )}
               {playerMenuItems.map((item) => (
+                <NavItem
+                  key={item.path}
+                  icon={item.icon}
+                  label={item.label}
+                  path={item.path}
+                  isActive={location.pathname === item.path}
+                  isCollapsed={isCollapsed}
+                  onClick={() => navigate(item.path)}
+                />
+              ))}
+            </>
+          )}
+
+          {/* Moderator Menu - Only show for moderators */}
+          {isModerator && (
+            <>
+              {!isCollapsed && (
+                <div className="pb-2">
+                  <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                    Moderator Menu
+                  </h3>
+                </div>
+              )}
+              {moderatorMenuItems.map((item) => (
                 <NavItem
                   key={item.path}
                   icon={item.icon}
