@@ -340,6 +340,16 @@ export const AdminPlayers: React.FC = () => {
                     </SelectContent>
                   </Select>
                 </div>
+                <div>
+                  <label className="text-gray-300 text-sm">Total Kills</label>
+                  <Input
+                    type="number"
+                    value={editingPlayer.kills || 0}
+                    onChange={(e) => setEditingPlayer({...editingPlayer, kills: parseInt(e.target.value) || 0})}
+                    className="bg-gray-800 border-gray-600 text-white"
+                    placeholder="Enter total kills"
+                  />
+                </div>
               </div>
               <div className="flex justify-end space-x-2">
                 <Button variant="outline" onClick={() => setEditingPlayer(null)}>
@@ -349,7 +359,8 @@ export const AdminPlayers: React.FC = () => {
                   onClick={() => handleUpdatePlayer({
                     role: editingPlayer.role,
                     grade: editingPlayer.grade,
-                    tier: editingPlayer.tier
+                    tier: editingPlayer.tier,
+                    kills: editingPlayer.kills
                   })}
                   className="bg-[#FF1F44] hover:bg-red-600"
                 >
