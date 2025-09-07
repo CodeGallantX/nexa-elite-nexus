@@ -15,6 +15,7 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { NotificationSettings } from "@/components/NotificationSettings";
 import {
   Settings as SettingsIcon,
   User,
@@ -34,6 +35,7 @@ import {
   Award,
   TrendingUp,
   Star,
+  Bell,
 } from "lucide-react";
 
 // Device and brand data
@@ -1016,6 +1018,15 @@ export const Settings: React.FC = () => {
                     </div>
                   </div>
                 </div>
+              </div>
+
+              {/* Push Notifications Section */}
+              <div className="mt-8 space-y-4">
+                <h4 className="text-white font-medium flex items-center">
+                  <Bell className="w-4 h-4 mr-2 text-[#FF1F44]" />
+                  Notification Preferences
+                </h4>
+                <NotificationSettings />
               </div>
 
               {/* Security Notice */}
