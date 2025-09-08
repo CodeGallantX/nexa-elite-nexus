@@ -265,6 +265,19 @@ export const useNotifications = () => {
         console.error("Error sending notification:", error);
         throw error;
       }
+
+      // Send push notification if user has enabled it
+      try {
+        const { sendPushNotification } = await import('@/lib/pushNotifications');
+        await sendPushNotification([notificationData.user_id], {
+          title: notificationData.title,
+          message: notificationData.message,
+          data: notificationData.data
+        });
+      } catch (pushError) {
+        console.warn('Failed to send push notification:', pushError);
+        // Don't throw error as in-app notification was successful
+      }
     },
     onSuccess: () => {
       // Invalidate admin notifications as assignment requests go to admins

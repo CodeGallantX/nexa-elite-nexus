@@ -17,6 +17,9 @@ export default defineConfig(({ mode }) => ({
       devOptions: {
         enabled: true,
       },
+      workbox: {
+        maximumFileSizeToCacheInBytes: 3 * 1024 * 1024, // 3MB limit
+      },
       manifest: {
         name: "Nexa Esports",
         short_name: "Nexa_Esports",
