@@ -1,3 +1,4 @@
+import "https://deno.land/x/xhr@0.1.0/mod.ts"
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
@@ -18,61 +19,109 @@ serve(async (req) => {
     )
 
     const { notification, userIds } = await req.json()
+    console.log('Push notification request:', { notification, userIds })
+
+    let targetUserIds = userIds
+
+    // If no userIds provided, get all users with push subscriptions (broadcast)
+    if (!userIds || userIds.length === 0) {
+      console.log('Broadcasting to all subscribed users')
+      const { data: subscriptions, error: subError } = await supabaseClient
+        .from('push_subscriptions')
+        .select('user_id')
+
+      if (subError) {
+        console.error('Error getting broadcast subscriptions:', subError)
+        throw subError
+      }
+
+      targetUserIds = subscriptions?.map(sub => sub.user_id) || []
+      console.log(`Found ${targetUserIds.length} subscribed users for broadcast`)
+    }
+
+    if (!targetUserIds || targetUserIds.length === 0) {
+      console.log('No target users for push notification')
+      return new Response(
+        JSON.stringify({ message: 'No users to notify', results: [] }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
 
     // Get push subscriptions for target users
     const { data: subscriptions, error } = await supabaseClient
       .from('push_subscriptions')
       .select('*')
-      .in('user_id', userIds || [])
+      .in('user_id', targetUserIds)
 
     if (error) {
+      console.error('Error getting push subscriptions:', error)
       throw error
     }
 
-    // Send push notifications
+    if (!subscriptions || subscriptions.length === 0) {
+      console.log('No push subscriptions found for target users')
+      return new Response(
+        JSON.stringify({ message: 'No push subscriptions found', results: [] }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    console.log(`Sending push notifications to ${subscriptions.length} subscribers`)
+
+    // Send push notifications using simplified approach for demo
     const results = await Promise.allSettled(
       subscriptions.map(async (sub) => {
-        const pushSubscription = {
-          endpoint: sub.endpoint,
-          keys: {
-            p256dh: sub.p256dh_key,
-            auth: sub.auth_key
-          }
-        }
-
-        const payload = JSON.stringify({
-          title: notification.title,
-          body: notification.message,
-          icon: '/nexa-logo.jpg',
-          badge: '/nexa-logo.jpg',
-          data: notification.data
-        })
-
-        // Use web-push library to send notification
-        const response = await fetch('https://fcm.googleapis.com/fcm/send', {
-          method: 'POST',
-          headers: {
-            'Authorization': `key=${Deno.env.get('FCM_SERVER_KEY')}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            to: pushSubscription.endpoint.split('/').pop(),
-            notification: {
-              title: notification.title,
-              body: notification.message,
-              icon: '/nexa-logo.jpg'
+        try {
+          const payload = JSON.stringify({
+            title: notification.title,
+            body: notification.message,
+            icon: '/nexa-logo.jpg',
+            badge: '/nexa-logo.jpg',
+            tag: 'nexa-notification',
+            data: {
+              ...notification.data,
+              url: notification.data?.url || '/dashboard',
+              timestamp: Date.now(),
+              appName: 'Nexa Esports'
             },
-            data: notification.data
+            actions: [
+              {
+                action: 'open',
+                title: 'Open App',
+                icon: '/nexa-logo.jpg'
+              }
+            ],
+            requireInteraction: false,
+            silent: false
           })
-        })
 
-        return { success: response.ok, userId: sub.user_id }
+          // Simplified push notification - in production, use proper web-push encryption
+          const response = await fetch(sub.endpoint, {
+            method: 'POST',
+            headers: {
+              'TTL': '86400',
+              'Content-Type': 'application/json',
+            },
+            body: payload
+          })
+
+          console.log(`Push notification sent to user ${sub.user_id}: ${response.status}`)
+          return { success: response.ok, userId: sub.user_id, status: response.status }
+        } catch (pushError) {
+          console.error(`Failed to send push notification to user ${sub.user_id}:`, pushError)
+          return { success: false, userId: sub.user_id, error: pushError.message }
+        }
       })
     )
 
+    const successCount = results.filter(r => r.status === 'fulfilled' && r.value.success).length
+    console.log(`Push notifications sent successfully to ${successCount} out of ${subscriptions.length} subscribers`)
+
     return new Response(
       JSON.stringify({ 
-        message: 'Push notifications sent',
+        message: `Push notifications processed for ${subscriptions.length} subscribers`,
+        successCount,
+        totalSubscriptions: subscriptions.length,
         results: results.map(r => r.status === 'fulfilled' ? r.value : { success: false })
       }),
       { 
@@ -82,11 +131,12 @@ serve(async (req) => {
     )
 
   } catch (error) {
+    console.error('Push notification error:', error)
     return new Response(
       JSON.stringify({ error: error.message }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 400 
+        status: 500 
       }
     )
   }

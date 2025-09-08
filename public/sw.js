@@ -1,97 +1,140 @@
-// Service Worker for Push Notifications
-const CACHE_NAME = 'nexa-elite-v1';
+const CACHE_NAME = 'nexa-esports-v1';
+const urlsToCache = [
+  '/',
+  '/dashboard',
+  '/announcements',
+  '/nexa-logo.jpg'
+];
 
-// Install event - cache essential resources
+// Service Worker lifecycle - install
 self.addEventListener('install', (event) => {
-  console.log('Service Worker installing...');
+  console.log('[SW] Installing Nexa Esports service worker');
   self.skipWaiting();
 });
 
-// Activate event - clean up old caches
+// Service Worker lifecycle - activate
 self.addEventListener('activate', (event) => {
-  console.log('Service Worker activating...');
+  console.log('[SW] Activating Nexa Esports service worker');
   event.waitUntil(self.clients.claim());
 });
 
-// Push event - handle incoming push notifications
+// Handle push events
 self.addEventListener('push', (event) => {
-  console.log('Push event received:', event);
+  console.log('[SW] Push notification received');
   
   let notificationData = {
-    title: 'NeXa Elite Nexus',
-    body: 'You have a new notification',
+    title: 'Nexa Esports',
+    body: 'New notification',
     icon: '/nexa-logo.jpg',
     badge: '/nexa-logo.jpg',
     tag: 'nexa-notification',
-    requireInteraction: false,
-    actions: [
-      {
-        action: 'open',
-        title: 'Open App'
-      },
-      {
-        action: 'dismiss',
-        title: 'Dismiss'
-      }
-    ]
+    data: { url: '/dashboard', appName: 'Nexa Esports' }
   };
 
   if (event.data) {
     try {
       const data = event.data.json();
       notificationData = {
-        ...notificationData,
-        ...data,
-        data: data // Store original data for click handling
+        title: data.title || 'Nexa Esports',
+        body: data.body || data.message || 'New notification',
+        icon: data.icon || '/nexa-logo.jpg',
+        badge: data.badge || '/nexa-logo.jpg',
+        tag: data.tag || 'nexa-notification',
+        data: {
+          url: data.data?.url || '/dashboard',
+          appName: 'Nexa Esports',
+          timestamp: data.data?.timestamp || Date.now(),
+          ...data.data
+        },
+        actions: [
+          {
+            action: 'open',
+            title: 'Open App',
+            icon: '/nexa-logo.jpg'
+          },
+          {
+            action: 'close',
+            title: 'Dismiss'
+          }
+        ]
       };
-    } catch (e) {
-      console.error('Error parsing push data:', e);
+    } catch (error) {
+      console.error('[SW] Error parsing push data:', error);
     }
   }
 
-  event.waitUntil(
-    self.registration.showNotification(notificationData.title, notificationData)
+  const promiseChain = self.registration.showNotification(
+    notificationData.title,
+    {
+      body: notificationData.body,
+      icon: notificationData.icon,
+      badge: notificationData.badge,
+      tag: notificationData.tag,
+      data: notificationData.data,
+      actions: notificationData.actions || [],
+      requireInteraction: false,
+      silent: false,
+      vibrate: [200, 100, 200],
+      timestamp: notificationData.data.timestamp || Date.now()
+    }
   );
+
+  event.waitUntil(promiseChain);
 });
 
-// Notification click event
+// Handle notification clicks
 self.addEventListener('notificationclick', (event) => {
-  console.log('Notification clicked:', event);
+  console.log('[SW] Notification clicked, action:', event.action);
   
   event.notification.close();
 
-  if (event.action === 'dismiss') {
+  if (event.action === 'close') {
     return;
   }
 
-  // Open the app or focus existing window
-  event.waitUntil(
-    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
-      // Check if app is already open
-      for (const client of clientList) {
-        if (client.url.includes(self.location.origin) && 'focus' in client) {
-          return client.focus();
+  const urlToOpen = event.notification.data?.url || '/dashboard';
+  
+  const promiseChain = self.clients.matchAll({
+    type: 'window',
+    includeUncontrolled: true
+  }).then((windowClients) => {
+    // Try to find an existing window with our app
+    let matchingClient = null;
+
+    for (let i = 0; i < windowClients.length; i++) {
+      const windowClient = windowClients[i];
+      if (windowClient.url.includes(self.location.origin)) {
+        matchingClient = windowClient;
+        break;
+      }
+    }
+
+    if (matchingClient) {
+      // Focus existing window and navigate to the URL
+      return matchingClient.focus().then(() => {
+        if (urlToOpen !== '/dashboard') {
+          return matchingClient.navigate(urlToOpen);
         }
-      }
-      
-      // Open new window if app not open
-      if (clients.openWindow) {
-        return clients.openWindow('/');
-      }
-    })
-  );
+        return matchingClient;
+      });
+    } else {
+      // Open new window
+      return self.clients.openWindow(urlToOpen);
+    }
+  });
+
+  event.waitUntil(promiseChain);
 });
 
-// Background sync for offline actions
+// Handle background sync
 self.addEventListener('sync', (event) => {
-  console.log('Background sync event:', event.tag);
+  console.log('[SW] Background sync triggered:', event.tag);
   
   if (event.tag === 'background-sync') {
-    event.waitUntil(doBackgroundSync());
+    // Handle any background synchronization here
+    event.waitUntil(
+      // Perform background sync operations
+      Promise.resolve()
+    );
   }
 });
-
-async function doBackgroundSync() {
-  // Handle any queued actions when back online
-  console.log('Performing background sync...');
-}

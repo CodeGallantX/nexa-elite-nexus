@@ -19,6 +19,20 @@ export default defineConfig(({ mode }) => ({
       },
       workbox: {
         maximumFileSizeToCacheInBytes: 3 * 1024 * 1024, // 3MB limit
+        globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
+        runtimeCaching: [
+          {
+            urlPattern: /^https:\/\/.*\.(png|jpg|jpeg|svg|gif|webp)$/,
+            handler: "CacheFirst",
+            options: {
+              cacheName: "images",
+              expiration: {
+                maxEntries: 100,
+                maxAgeSeconds: 60 * 60 * 24 * 30, // 30 Days
+              },
+            },
+          },
+        ],
       },
       manifest: {
         name: "Nexa Esports",
@@ -484,7 +498,6 @@ export default defineConfig(({ mode }) => ({
         ],
         screenshots: [
           {
-            // src: "/thumbnail.png",
             src: "/nexa-logo.jpg",
             sizes: "640x1136",
             type: "image/png",
@@ -501,34 +514,8 @@ export default defineConfig(({ mode }) => ({
       includeAssets: [
         "favicon.ico",
         "robots.txt",
-        // "apple-touch-icon.png",
-        // "apple-splash-640x1136.png",
-        // "apple-splash-750x1334.png",
-        // "apple-splash-828x1792.png",
-        // "apple-splash-1125x2436.png",
-        // "apple-splash-1242x2208.png",
-        // "apple-splash-1242x2688.png",
-        // "apple-splash-1536x2048.png",
-        // "apple-splash-1668x2224.png",
-        // "apple-splash-1668x2388.png",
-        // "apple-splash-2048x2732.png",
         "nexa-logo.jpg",
       ],
-      workbox: {
-        runtimeCaching: [
-          {
-            urlPattern: /^https:\/\/.*\.(png|jpg|jpeg|svg|gif|webp)$/,
-            handler: "CacheFirst",
-            options: {
-              cacheName: "images",
-              expiration: {
-                maxEntries: 100,
-                maxAgeSeconds: 60 * 60 * 24 * 30, // 30 Days
-              },
-            },
-          },
-        ],
-      },
     }),
   ].filter(Boolean),
   resolve: {
