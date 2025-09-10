@@ -64,6 +64,9 @@ export const Scrims: React.FC = () => {
   const { data: events = [], isLoading } = useQuery({
     queryKey: ['events'],
     queryFn: async () => {
+      // First, update event status
+      await supabase.rpc('update_event_status');
+      
       const { data, error } = await supabase
         .from('events')
         .select(`

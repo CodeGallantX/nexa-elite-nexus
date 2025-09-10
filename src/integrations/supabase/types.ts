@@ -639,6 +639,10 @@ export type Database = {
         Args: { code_input: string; email_input: string }
         Returns: boolean
       }
+      update_event_status: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
       validate_access_code: {
         Args: { code_input: string; email_input: string }
         Returns: boolean

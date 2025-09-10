@@ -45,9 +45,17 @@ export const Dashboard: React.FC = () => {
   const { data: allEvents = [], isLoading: isLoadingEvents } = useQuery({
     queryKey: ["all-recent-events"],
     queryFn: async () => {
+      // First, update event status
+      await supabase.rpc('update_event_status');
+      
+      // Get current date minus 3 days for filtering old completed events
+      const threeDaysAgo = new Date();
+      threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
+      
       const { data, error } = await supabase
         .from("events")
         .select("*")
+        .or(`status.neq.completed,updated_at.gte.${threeDaysAgo.toISOString()}`)
         .order("date", { ascending: true })
         .limit(10);
 

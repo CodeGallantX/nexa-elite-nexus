@@ -23,6 +23,7 @@ interface Event {
   name: string;
   date: string;
   type: string;
+  status: string;
   group_id?: string;
 }
 
@@ -144,14 +145,23 @@ export const EventCard: React.FC<EventCardProps> = ({ event }) => {
       <CardHeader>
         <CardTitle className="text-white flex items-center">
           <Calendar className="w-5 h-5 mr-2 text-[#FF1F44]" />
-          {event.name}
+          {event.status === 'completed' ? `${event.name} has been completed` : event.name}
         </CardTitle>
         <p className="text-gray-400 text-xs">
           {event.date} • {event.type}
+          {event.status === 'completed' && (
+            <span className="ml-2 px-2 py-1 bg-gray-500/20 border border-gray-500/50 text-gray-300 rounded-md text-xs">
+              COMPLETED
+            </span>
+          )}
         </p>
       </CardHeader>
       <CardContent>
-        {isLoadingGroup ? (
+        {event.status === 'completed' ? (
+          <div className="text-center py-4">
+            <p className="text-gray-400">This event has been completed.</p>
+          </div>
+        ) : isLoadingGroup ? (
           <div className="text-center text-gray-400">Loading group info...</div>
         ) : groupInfo?.is_assigned ? (
           <div className="text-center">
@@ -211,7 +221,7 @@ export const EventCard: React.FC<EventCardProps> = ({ event }) => {
                     This will send a request to the admin to assign you to a group for this event.
                   </DialogDescription>
                 </DialogHeader>
-                <DialogFooter>
+                 <DialogFooter>
                   <Button variant="outline" onClick={() => setIsDialogOpen(false)}>Cancel</Button>
                   <Button className="bg-[#FF1F44] hover:bg-red-600 text-white" onClick={handleRequestAssignment}>Confirm</Button>
                 </DialogFooter>
