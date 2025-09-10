@@ -116,7 +116,7 @@ export const usePushNotifications = () => {
 
       // Save to database
       const { error } = await supabase
-        .from('push_subscriptions' as any)
+        .from('push_subscriptions')
         .upsert(subscriptionData, { 
           onConflict: 'user_id',
           ignoreDuplicates: false 
@@ -151,7 +151,7 @@ export const usePushNotifications = () => {
     try {
       // Remove from database
       const { error } = await supabase
-        .from('push_subscriptions' as any)  
+        .from('push_subscriptions')
         .delete()
         .eq('user_id', userId);
 

@@ -257,9 +257,19 @@ export const useNotifications = () => {
       type: string;
       data?: any;
     }) => {
+      // Enhanced data with URL routing information
+      const enhancedData = {
+        ...notificationData.data,
+        type: notificationData.type,
+        url: getUrlForNotificationType(notificationData.type, notificationData.data)
+      };
+
       const { error } = await supabase
         .from("notifications")
-        .insert([notificationData]);
+        .insert([{
+          ...notificationData,
+          data: enhancedData
+        }]);
 
       if (error) {
         console.error("Error sending notification:", error);
@@ -272,7 +282,7 @@ export const useNotifications = () => {
         await sendPushNotification([notificationData.user_id], {
           title: notificationData.title,
           message: notificationData.message,
-          data: notificationData.data
+          data: enhancedData
         });
       } catch (pushError) {
         console.warn('Failed to send push notification:', pushError);
@@ -375,4 +385,30 @@ export const useNotifications = () => {
     sendNotification: sendNotificationMutation.mutate,
     isLoading: false,
   };
+};
+
+// Helper function to determine the correct URL for notification types
+const getUrlForNotificationType = (type: string, data?: any): string => {
+  switch (type) {
+    case 'event_created':
+    case 'event_assignment':
+    case 'event_updated':
+    case 'event_reminder':
+    case 'scrim_scheduled':
+      return '/scrims';
+    case 'announcement':
+      return '/announcements';  
+    case 'access_code_request':
+    case 'new_player_joined':
+    case 'player_left':
+    case 'admin_alert':
+    case 'assignment_request':
+      return '/admin/notifications';
+    case 'chat_message':
+      return '/chat';
+    case 'profile_update':
+      return '/profile';
+    default:
+      return '/dashboard';
+  }
 };

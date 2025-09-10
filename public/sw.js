@@ -92,7 +92,29 @@ self.addEventListener('notificationclick', (event) => {
     return;
   }
 
-  const urlToOpen = event.notification.data?.url || '/dashboard';
+  // Determine URL based on notification type and data
+  let urlToOpen = '/dashboard';
+  
+  if (event.notification.data) {
+    const { type, url, event_id, announcement_id } = event.notification.data;
+    
+    // Route based on notification type
+    switch (type) {
+      case 'event_created':
+      case 'event_assignment':
+        urlToOpen = '/scrims';
+        break;
+      case 'announcement':
+        urlToOpen = '/announcements';
+        break;
+      case 'access_code_request':
+      case 'new_player_joined':
+        urlToOpen = '/admin/notifications';
+        break;
+      default:
+        urlToOpen = event.notification.data.url || '/dashboard';
+    }
+  }
   
   const promiseChain = self.clients.matchAll({
     type: 'window',
