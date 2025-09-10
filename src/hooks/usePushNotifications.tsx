@@ -79,7 +79,7 @@ export const usePushNotifications = () => {
 
     setIsLoading(true);
     try {
-      // Request permission
+      // Request permission explicitly
       const permission = await Notification.requestPermission();
       if (permission !== 'granted') {
         toast({
