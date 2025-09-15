@@ -44,6 +44,39 @@ export type Database = {
         }
         Relationships: []
       }
+      activities: {
+        Row: {
+          action_description: string
+          action_type: string
+          created_at: string | null
+          id: string
+          new_value: Json | null
+          old_value: Json | null
+          performed_by: string | null
+          target_user_id: string | null
+        }
+        Insert: {
+          action_description: string
+          action_type: string
+          created_at?: string | null
+          id?: string
+          new_value?: Json | null
+          old_value?: Json | null
+          performed_by?: string | null
+          target_user_id?: string | null
+        }
+        Update: {
+          action_description?: string
+          action_type?: string
+          created_at?: string | null
+          id?: string
+          new_value?: Json | null
+          old_value?: Json | null
+          performed_by?: string | null
+          target_user_id?: string | null
+        }
+        Relationships: []
+      }
       announcements: {
         Row: {
           content: string
@@ -550,6 +583,7 @@ export type Database = {
           player_id: string
           updated_at: string | null
           view_count: number | null
+          weapon_code: string | null
           weapon_name: string
           weapon_type: string
         }
@@ -563,6 +597,7 @@ export type Database = {
           player_id: string
           updated_at?: string | null
           view_count?: number | null
+          weapon_code?: string | null
           weapon_name: string
           weapon_type: string
         }
@@ -576,6 +611,7 @@ export type Database = {
           player_id?: string
           updated_at?: string | null
           view_count?: number | null
+          weapon_code?: string | null
           weapon_name?: string
           weapon_type?: string
         }
