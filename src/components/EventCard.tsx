@@ -48,7 +48,7 @@ export const EventCard: React.FC<EventCardProps> = ({ event }) => {
         .select("group_id")
         .eq("event_id", event.id)
         .eq("player_id", user.id)
-        .single();
+        .maybeSingle();
 
       if (participantError || !participantData?.group_id) {
         console.log("User not assigned to a group for this event or participant data error:", participantError);
