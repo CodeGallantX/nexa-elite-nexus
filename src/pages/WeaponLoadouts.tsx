@@ -28,6 +28,7 @@ interface WeaponLayout {
   weapon_name: string;
   weapon_type: string;
   mode: string;
+  weapon_code?: string;
   image_url?: string;
   image_name?: string;
   view_count: number;
@@ -55,6 +56,7 @@ export const WeaponLoadouts: React.FC = () => {
     weapon_name: '',
     weapon_type: '',
     mode: '',
+    weapon_code: '',
     image_file: null as File | null
   });
 
@@ -105,6 +107,7 @@ export const WeaponLoadouts: React.FC = () => {
         weapon_name: formData.weapon_name,
         weapon_type: formData.weapon_type,
         mode: formData.mode,
+        weapon_code: formData.weapon_code,
         player_id: user?.id,
         ...(imageUrl && { 
           image_url: imageUrl, 
@@ -137,6 +140,7 @@ export const WeaponLoadouts: React.FC = () => {
         weapon_name: '',
         weapon_type: '',
         mode: '',
+        weapon_code: '',
         image_file: null
       });
       toast({
@@ -179,39 +183,46 @@ export const WeaponLoadouts: React.FC = () => {
     }
   });
 
-  // Copy layout mutation
-  const copyLayoutMutation = useMutation({
-    mutationFn: async (layout: any) => {
-      if (!user?.id) throw new Error('User not authenticated');
-
-      const { error } = await supabase
-        .from('weapon_layouts')
-        .insert({
-          weapon_name: layout.weapon_name,
-          weapon_type: layout.weapon_type,
-          mode: layout.mode,
-          player_id: user.id,
-          image_url: layout.image_url
+  // Copy layout code to clipboard function
+  const copyLayoutCode = (layout: any) => {
+    const layoutCode = layout.weapon_code || `${layout.weapon_name}-${layout.weapon_type}-${layout.mode}`;
+    
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(layoutCode).then(() => {
+        toast({
+          title: "Code Copied!",
+          description: "Weapon layout code has been copied to your clipboard",
         });
-
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['weapon-layouts'] });
-      toast({
-        title: "Success",
-        description: "Layout copied to your collection",
+      }).catch(() => {
+        toast({
+          title: "Copy Failed",
+          description: "Unable to copy to clipboard",
+          variant: "destructive",
+        });
       });
-    },
-    onError: (error) => {
-      console.error('Error copying layout:', error);
-      toast({
-        title: "Error",
-        description: "Failed to copy layout",
-        variant: "destructive",
-      });
-    },
-  });
+    } else {
+      // Fallback for older browsers
+      const textArea = document.createElement('textarea');
+      textArea.value = layoutCode;
+      document.body.appendChild(textArea);
+      textArea.select();
+      try {
+        document.execCommand('copy');
+        toast({
+          title: "Code Copied!",
+          description: "Weapon layout code has been copied to your clipboard",
+        });
+      } catch (err) {
+        toast({
+          title: "Copy Failed",
+          description: "Unable to copy to clipboard",
+          variant: "destructive",
+        });
+      } finally {
+        document.body.removeChild(textArea);
+      }
+    }
+  };
 
   // Update view count mutation
   const updateViewCountMutation = useMutation({
@@ -246,6 +257,7 @@ export const WeaponLoadouts: React.FC = () => {
       weapon_name: layout.weapon_name,
       weapon_type: layout.weapon_type,
       mode: layout.mode,
+      weapon_code: layout.weapon_code || '',
       image_file: null
     });
     setIsDialogOpen(true);
@@ -304,6 +316,7 @@ export const WeaponLoadouts: React.FC = () => {
                   weapon_name: '',
                   weapon_type: '',
                   mode: '',
+                  weapon_code: '',
                   image_file: null
                 });
               }}
@@ -374,6 +387,20 @@ export const WeaponLoadouts: React.FC = () => {
                 </Select>
               </div>
               
+              <div>
+                <Label htmlFor="weapon_code" className="text-white">Weapon Code</Label>
+                <Input
+                  id="weapon_code"
+                  value={formData.weapon_code}
+                  onChange={(e) => setFormData({...formData, weapon_code: e.target.value})}
+                  placeholder="e.g., AK47-MP-RDS-COMP-GRIP"
+                  className="bg-background/50 border-border text-white"
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Optional: Enter a specific code for this weapon configuration
+                </p>
+              </div>
+
               <div>
                 <Label htmlFor="image" className="text-white">Layout Image</Label>
                 <Input
@@ -545,8 +572,7 @@ export const WeaponLoadouts: React.FC = () => {
                       </Button>
                       <Button
                         size="sm"
-                        onClick={() => copyLayoutMutation.mutate(layout)}
-                        disabled={copyLayoutMutation.isPending}
+                        onClick={() => copyLayoutCode(layout)}
                         className="bg-[#FF1F44] hover:bg-red-600 text-white"
                       >
                         <Copy className="w-3 h-3" />
@@ -616,6 +642,10 @@ export const WeaponLoadouts: React.FC = () => {
                 <div>
                   <Label className="text-gray-300">Views</Label>
                   <p className="text-white">{selectedLayout.view_count || 0}</p>
+                </div>
+                <div>
+                  <Label className="text-gray-300">Weapon Code</Label>
+                  <p className="text-white">{selectedLayout.weapon_code || 'Not specified'}</p>
                 </div>
               </div>
             </div>

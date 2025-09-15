@@ -42,6 +42,7 @@ import { AdminAttendance } from '@/pages/admin/Attendance';
 import { AdminAnnouncementsManagement } from '@/pages/admin/AnnouncementsManagement';
 import { AdminNotifications } from '@/pages/admin/Notifications';
 import AdminDashboard from '@/pages/AdminDashboard';
+import Activities from '@/pages/admin/Activities';
 
 function App() {
   return (
@@ -86,6 +87,7 @@ function App() {
             <Route path="/admin/attendance" element={<Layout showSidebar><AdminAttendance /></Layout>} />
             <Route path="/admin/announcements" element={<Layout showSidebar><AdminAnnouncementsManagement /></Layout>} />
             <Route path="/admin/notifications" element={<Layout showSidebar><AdminNotifications /></Layout>} />
+            <Route path="/admin/activities" element={<Layout showSidebar><Activities /></Layout>} />
 
             {/* 404 */}
             <Route path="*" element={<NotFound />} />

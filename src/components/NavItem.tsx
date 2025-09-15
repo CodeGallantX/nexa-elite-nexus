@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { LucideIcon } from 'lucide-react';
 import { useChatNotifications } from '@/hooks/useChatNotifications';
 import { useNotifications } from '@/hooks/useNotifications';
+import { useActivities } from '@/hooks/useActivities';
 import { useAuth } from '@/contexts/AuthContext';
 
 interface NavItemProps {
@@ -25,10 +26,12 @@ export const NavItem: React.FC<NavItemProps> = ({
 }) => {
   const { hasUnreadMessages, hasUnreadAdminMessages } = useChatNotifications();
   const { unreadCount } = useNotifications();
+  const { data: activitiesCount = 0 } = useActivities();
   const { profile } = useAuth();
   
   const isChatItem = path === '/chat';
   const isNotificationsItem = path === '/admin/notifications';
+  const isActivitiesItem = path === '/admin/activities';
 
   const handleClick = () => {
     onClick();
@@ -62,6 +65,15 @@ export const NavItem: React.FC<NavItemProps> = ({
           isCollapsed ? 'top-0 right-0 text-[10px]' : 'top-1 right-1'
         }`}>
           {unreadCount > 99 ? '99+' : unreadCount}
+        </div>
+      )}
+
+      {/* Activities badge */}
+      {isActivitiesItem && activitiesCount > 0 && (
+        <div className={`absolute bg-orange-500 text-white text-xs rounded-full min-w-[16px] h-4 flex items-center justify-center ${
+          isCollapsed ? 'top-0 right-0 text-[10px]' : 'top-1 right-1'
+        }`}>
+          {activitiesCount > 99 ? '99+' : activitiesCount}
         </div>
       )}
     </Button>
