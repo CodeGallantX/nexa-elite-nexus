@@ -144,6 +144,9 @@ export default function Activities() {
     switch (type) {
       case 'update_kills': return 'bg-red-500/20 text-red-400 border-red-500/50';
       case 'create_event': return 'bg-blue-500/20 text-blue-400 border-blue-500/50';
+      case 'update_event': return 'bg-cyan-500/20 text-cyan-400 border-cyan-500/50';
+      case 'delete_event': return 'bg-red-500/20 text-red-400 border-red-500/50';
+      case 'update_event_status': return 'bg-purple-500/20 text-purple-400 border-purple-500/50';
       case 'update_player': return 'bg-green-500/20 text-green-400 border-green-500/50';
       case 'delete_player': return 'bg-red-500/20 text-red-400 border-red-500/50';
       default: return 'bg-gray-500/20 text-gray-400 border-gray-500/50';
@@ -153,7 +156,10 @@ export default function Activities() {
   const getActionIcon = (type: string) => {
     switch (type) {
       case 'update_kills': return Target;
-      case 'create_event': return Clock;
+      case 'create_event': 
+      case 'update_event':
+      case 'delete_event':
+      case 'update_event_status': return Clock;
       case 'update_player': 
       case 'delete_player': return User;
       default: return Activity;
@@ -208,13 +214,13 @@ export default function Activities() {
         <Card className="bg-white/5 border-white/10 backdrop-blur-sm">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-gray-300 flex items-center">
-              <Target className="w-4 h-4 mr-2 text-red-400" />
-              Kill Updates
+              <Clock className="w-4 h-4 mr-2 text-blue-400" />
+              Event Actions
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-white">
-              {activities.filter(a => a.action_type === 'update_kills').length}
+              {activities.filter(a => a.action_type.includes('event')).length}
             </div>
           </CardContent>
         </Card>
@@ -271,6 +277,9 @@ export default function Activities() {
                 <SelectItem value="all">All Types</SelectItem>
                 <SelectItem value="update_kills">Kill Updates</SelectItem>
                 <SelectItem value="create_event">Event Creation</SelectItem>
+                <SelectItem value="update_event">Event Updates</SelectItem>
+                <SelectItem value="delete_event">Event Deletion</SelectItem>
+                <SelectItem value="update_event_status">Event Status</SelectItem>
                 <SelectItem value="update_player">Player Updates</SelectItem>
                 <SelectItem value="delete_player">Player Deletion</SelectItem>
               </SelectContent>

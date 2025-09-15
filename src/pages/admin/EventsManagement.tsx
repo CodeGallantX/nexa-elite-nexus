@@ -16,6 +16,7 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
+import { logEventCreate, logEventUpdate, logEventDelete, logEventStatusUpdate } from "@/lib/activityLogger";
 import {
   Calendar,
   Clock,
@@ -205,6 +206,9 @@ export const AdminEventsManagement: React.FC = () => {
           })
           .eq("id", editingEvent.id);
         if (error) throw error;
+
+        // Log event update
+        await logEventUpdate(eventData.name, editingEvent, eventData);
       } else {
         const { error } = await supabase.from("events").insert([
           {
@@ -213,10 +217,14 @@ export const AdminEventsManagement: React.FC = () => {
           },
         ]);
         if (error) throw error;
+
+        // Log event creation
+        await logEventCreate(eventData.name, eventData);
       }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["events"] });
+      queryClient.invalidateQueries({ queryKey: ["activities"] });
       setIsCreating(false);
       setEditingEvent(null);
       setFormData({
@@ -249,9 +257,13 @@ export const AdminEventsManagement: React.FC = () => {
     mutationFn: async ({
       eventId,
       newStatus,
+      eventName,
+      oldStatus,
     }: {
       eventId: string;
       newStatus: string;
+      eventName: string;
+      oldStatus: string;
     }) => {
       const { error } = await supabase
         .from("events")
@@ -261,9 +273,13 @@ export const AdminEventsManagement: React.FC = () => {
         })
         .eq("id", eventId);
       if (error) throw error;
+
+      // Log status update
+      await logEventStatusUpdate(eventName, oldStatus, newStatus);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["events"] });
+      queryClient.invalidateQueries({ queryKey: ["activities"] });
       toast({
         title: "Status Updated",
         description: "Event status has been updated successfully.",
@@ -280,15 +296,19 @@ export const AdminEventsManagement: React.FC = () => {
 
   // Delete event mutation
   const deleteEventMutation = useMutation({
-    mutationFn: async (eventId: string) => {
+    mutationFn: async ({ eventId, eventName }: { eventId: string; eventName: string }) => {
       const { error } = await supabase
         .from("events")
         .delete()
         .eq("id", eventId);
       if (error) throw error;
+
+      // Log event deletion
+      await logEventDelete(eventName);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["events"] });
+      queryClient.invalidateQueries({ queryKey: ["activities"] });
       toast({
         title: "Event Deleted",
         description: "Event has been deleted successfully.",
@@ -323,14 +343,19 @@ export const AdminEventsManagement: React.FC = () => {
     setIsCreating(true);
   };
 
-  const handleDelete = (eventId: string) => {
+  const handleDelete = (event: Event) => {
     if (confirm("Are you sure you want to delete this event?")) {
-      deleteEventMutation.mutate(eventId);
+      deleteEventMutation.mutate({ eventId: event.id, eventName: event.name });
     }
   };
 
-  const handleStatusChange = (eventId: string, newStatus: string) => {
-    updateStatusMutation.mutate({ eventId, newStatus });
+  const handleStatusChange = (event: Event, newStatus: string) => {
+    updateStatusMutation.mutate({ 
+      eventId: event.id, 
+      newStatus, 
+      eventName: event.name,
+      oldStatus: event.status 
+    });
   };
 
   const filteredEvents = events.filter((event) => {
@@ -703,7 +728,7 @@ export const AdminEventsManagement: React.FC = () => {
                                 cancelled: "upcoming",
                               };
                               handleStatusChange(
-                                event.id,
+                                event,
                                 statusCycle[
                                   event.status as keyof typeof statusCycle
                                 ] || "upcoming"
@@ -771,7 +796,7 @@ export const AdminEventsManagement: React.FC = () => {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => handleDelete(event.id)}
+                      onClick={() => handleDelete(event)}
                       className="text-red-400 hover:text-red-300"
                     >
                       <Trash2 className="w-4 h-4" />

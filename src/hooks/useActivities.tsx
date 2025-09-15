@@ -14,8 +14,12 @@ export const useActivities = () => {
         .select('id')
         .gte('created_at', twentyFourHoursAgo.toISOString());
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching activities:', error);
+        return 0;
+      }
       return data?.length || 0;
     },
+    refetchInterval: 30000, // Refetch every 30 seconds
   });
 };

@@ -2,6 +2,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { logPlayerUpdate, logPlayerDelete } from '@/lib/activityLogger';
 
 export const useAdminPlayers = () => {
   return useQuery({
@@ -24,6 +25,13 @@ export const useUpdatePlayer = () => {
 
   return useMutation({
     mutationFn: async ({ id, updates }: { id: string; updates: any }) => {
+      // Get current player data first for logging
+      const { data: currentPlayer } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', id)
+        .single();
+
       const { data, error } = await supabase
         .from('profiles')
         .update(updates)
@@ -31,10 +39,17 @@ export const useUpdatePlayer = () => {
         .select();
 
       if (error) throw error;
+
+      // Log the activity
+      if (currentPlayer && data[0]) {
+        await logPlayerUpdate(id, currentPlayer.ign, currentPlayer, updates);
+      }
+
       return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-players'] });
+      queryClient.invalidateQueries({ queryKey: ['activities'] });
       toast({
         title: "Success",
         description: "Player updated successfully",
@@ -57,15 +72,28 @@ export const useDeletePlayer = () => {
 
   return useMutation({
     mutationFn: async (playerId: string) => {
+      // Get player data first for logging
+      const { data: player } = await supabase
+        .from('profiles')
+        .select('ign')
+        .eq('id', playerId)
+        .single();
+
       const { data, error } = await supabase.rpc('delete_user_completely', {
         user_id_to_delete: playerId
       });
 
       if (error) throw error;
       if (!data) throw new Error('Failed to delete user');
+
+      // Log the activity
+      if (player) {
+        await logPlayerDelete(playerId, player.ign);
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-players'] });
+      queryClient.invalidateQueries({ queryKey: ['activities'] });
       toast({
         title: "Success",
         description: "Player deleted successfully",
