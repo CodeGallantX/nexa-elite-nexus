@@ -4,18 +4,17 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { 
   Activity, 
   Clock, 
   User, 
   Target,
-  Filter,
   Search,
   RefreshCw
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { ActivitySummary } from '@/components/ActivitySummary';
 import { useToast } from '@/hooks/use-toast';
 
 interface ActivityRecord {
@@ -44,19 +43,6 @@ export default function Activities() {
   
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState('all');
-
-  // Only allow clan masters to access this page
-  if (profile?.role !== 'clan_master') {
-    return (
-      <div className="flex items-center justify-center min-h-96">
-        <div className="text-center">
-          <Activity className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-          <p className="text-gray-400 mb-4">Access Denied</p>
-          <p className="text-sm text-gray-500">Only clan masters can view activities</p>
-        </div>
-      </div>
-    );
-  }
 
   // Fetch activities with simpler query to avoid relation issues
   const { data: activities = [], isLoading, refetch } = useQuery({
@@ -101,6 +87,25 @@ export default function Activities() {
     },
   });
 
+  // Real-time subscription
+  React.useEffect(() => {
+    const channel = supabase
+      .channel('activities-db-changes')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'activities' },
+        (payload) => {
+          console.log('Change received!', payload);
+          queryClient.invalidateQueries({ queryKey: ['activities'] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [queryClient]);
+
   // Clear activities mutation (optional - for cleanup)
   const clearActivitiesMutation = useMutation({
     mutationFn: async () => {
@@ -127,6 +132,19 @@ export default function Activities() {
       });
     }
   });
+
+  // Only allow clan masters to access this page
+  if (profile?.role !== 'clan_master') {
+    return (
+      <div className="flex items-center justify-center min-h-96">
+        <div className="text-center">
+          <Activity className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+          <p className="text-gray-400 mb-4">Access Denied</p>
+          <p className="text-sm text-gray-500">Only clan masters can view activities</p>
+        </div>
+      </div>
+    );
+  }
 
   // Filter activities
   const filteredActivities = activities.filter(activity => {
@@ -164,10 +182,6 @@ export default function Activities() {
       case 'delete_player': return User;
       default: return Activity;
     }
-  };
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleString();
   };
 
   return (
@@ -306,49 +320,12 @@ export default function Activities() {
             return (
               <Card key={activity.id} className="bg-white/5 border-white/10 backdrop-blur-sm hover:bg-white/10 transition-colors">
                 <CardContent className="p-4">
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-start space-x-3">
-                      <div className="mt-1">
-                        <ActionIcon className="w-5 h-5 text-blue-400" />
-                      </div>
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1">
-                          <Badge className={getActionTypeColor(activity.action_type)}>
-                            {activity.action_type.replace('_', ' ').toUpperCase()}
-                          </Badge>
-                          <span className="text-xs text-gray-400">
-                            {formatDate(activity.created_at)}
-                          </span>
-                        </div>
-                        <p className="text-white text-sm mb-1">{activity.action_description}</p>
-                        <div className="flex items-center gap-4 text-xs text-gray-400">
-                          <span>
-                            Performed by: <strong>Ɲ・乂{activity.performer?.ign || 'System'}</strong>
-                          </span>
-                          {activity.target && (
-                            <span>
-                              Target: <strong>Ɲ・乂{activity.target.ign}</strong>
-                            </span>
-                          )}
-                        </div>
-                        {(activity.old_value || activity.new_value) && (
-                          <div className="mt-2 text-xs">
-                            {activity.old_value && (
-                              <span className="text-red-400">
-                                From: {JSON.stringify(activity.old_value)}
-                              </span>
-                            )}
-                            {activity.old_value && activity.new_value && (
-                              <span className="text-gray-400 mx-2">→</span>
-                            )}
-                            {activity.new_value && (
-                              <span className="text-green-400">
-                                To: {JSON.stringify(activity.new_value)}
-                              </span>
-                            )}
-                          </div>
-                        )}
-                      </div>
+                  <div className="flex items-start space-x-3">
+                    <div className="mt-1">
+                      <ActionIcon className="w-5 h-5 text-blue-400" />
+                    </div>
+                    <div className="flex-1">
+                      <ActivitySummary activity={activity} />
                     </div>
                   </div>
                 </CardContent>
