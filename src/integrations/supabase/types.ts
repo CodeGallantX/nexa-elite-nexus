@@ -474,7 +474,10 @@ export type Database = {
         Row: {
           attendance: number | null
           avatar_url: string | null
+          ban_reason: string | null
           banking_info: Json | null
+          banned_at: string | null
+          banned_by: string | null
           best_gun: string | null
           br_class: string | null
           created_at: string | null
@@ -483,6 +486,7 @@ export type Database = {
           grade: string | null
           id: string
           ign: string
+          is_banned: boolean | null
           kills: number | null
           mp_class: string | null
           player_uid: string | null
@@ -497,7 +501,10 @@ export type Database = {
         Insert: {
           attendance?: number | null
           avatar_url?: string | null
+          ban_reason?: string | null
           banking_info?: Json | null
+          banned_at?: string | null
+          banned_by?: string | null
           best_gun?: string | null
           br_class?: string | null
           created_at?: string | null
@@ -506,6 +513,7 @@ export type Database = {
           grade?: string | null
           id: string
           ign?: string
+          is_banned?: boolean | null
           kills?: number | null
           mp_class?: string | null
           player_uid?: string | null
@@ -520,7 +528,10 @@ export type Database = {
         Update: {
           attendance?: number | null
           avatar_url?: string | null
+          ban_reason?: string | null
           banking_info?: Json | null
+          banned_at?: string | null
+          banned_by?: string | null
           best_gun?: string | null
           br_class?: string | null
           created_at?: string | null
@@ -529,6 +540,7 @@ export type Database = {
           grade?: string | null
           id?: string
           ign?: string
+          is_banned?: boolean | null
           kills?: number | null
           mp_class?: string | null
           player_uid?: string | null

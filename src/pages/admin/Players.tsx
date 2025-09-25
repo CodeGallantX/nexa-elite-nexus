@@ -9,6 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { useAdminPlayers, useUpdatePlayer, useDeletePlayer } from '@/hooks/useAdminPlayers';
+import { logPlayerBan, logPlayerUnban, logRoleChange } from '@/lib/activityLogger';
 import { Search, Edit, Trash2, Eye, UserPlus } from 'lucide-react';
 
 export const AdminPlayers: React.FC = () => {
@@ -31,6 +32,11 @@ export const AdminPlayers: React.FC = () => {
   const handleUpdatePlayer = async (updates: any) => {
     if (!editingPlayer) return;
     
+    // Log role changes
+    if (updates.role && updates.role !== editingPlayer.role) {
+      await logRoleChange(editingPlayer.id, editingPlayer.ign, editingPlayer.role, updates.role);
+    }
+    
     await updatePlayer.mutateAsync({
       id: editingPlayer.id,
       updates
@@ -42,6 +48,39 @@ export const AdminPlayers: React.FC = () => {
   const handleDeletePlayer = async (playerId: string) => {
     if (confirm('Are you sure you want to delete this player? This action cannot be undone.')) {
       await deletePlayer.mutateAsync(playerId);
+    }
+  };
+
+  const handleBanPlayer = async (player: any) => {
+    const reason = prompt('Please provide a reason for banning this player:');
+    if (!reason || reason.trim() === '') return;
+    
+    await updatePlayer.mutateAsync({
+      id: player.id,
+      updates: {
+        is_banned: true,
+        banned_at: new Date().toISOString(),
+        ban_reason: reason.trim()
+      }
+    });
+    
+    // Log ban activity
+    await logPlayerBan(player.id, player.ign, reason.trim());
+  };
+
+  const handleUnbanPlayer = async (player: any) => {
+    if (confirm(`Are you sure you want to unban ${player.username}?`)) {
+      await updatePlayer.mutateAsync({
+        id: player.id,
+        updates: {
+          is_banned: false,
+          banned_at: null,
+          ban_reason: null
+        }
+      });
+      
+      // Log unban activity
+      await logPlayerUnban(player.id, player.ign);
     }
   };
 
@@ -160,6 +199,11 @@ export const AdminPlayers: React.FC = () => {
                       <div>
                         <div className="font-medium">Ɲ・乂{player.ign}</div>
                         <div className="text-sm text-gray-400">@{player.username}</div>
+                        {player.is_banned && (
+                          <Badge className="bg-red-100 text-red-800 text-xs mt-1">
+                            Banned
+                          </Badge>
+                        )}
                       </div>
                     </div>
                   </TableCell>
@@ -242,6 +286,50 @@ export const AdminPlayers: React.FC = () => {
                         <Edit className="w-4 h-4" />
                       </Button>
                       
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button 
+                            size="sm" 
+                            variant="ghost" 
+                            className="text-gray-400 hover:text-red-400"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Delete Player</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Are you sure you want to delete {player.username}? This action cannot be undone.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={() => handleDeletePlayer(player.id)}
+                              className="bg-red-600 hover:bg-red-700"
+                            >
+                              Delete
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+
+                      {/* Ban/Unban Button */}
+                      {(player.role === 'admin' || player.role === 'moderator') && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className={`${player.is_banned 
+                            ? 'text-green-400 hover:text-green-300' 
+                            : 'text-orange-400 hover:text-orange-300'
+                          }`}
+                          onClick={() => player.is_banned ? handleUnbanPlayer(player) : handleBanPlayer(player)}
+                        >
+                          {player.is_banned ? 'Unban' : 'Ban'}
+                        </Button>
+                      )}
+
                       <AlertDialog>
                         <AlertDialogTrigger asChild>
                           <Button 

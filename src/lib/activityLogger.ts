@@ -76,3 +76,30 @@ export const logEventStatusUpdate = async (eventName: string, oldStatus: string,
     new_value: { status: newStatus },
   });
 };
+
+export const logPlayerBan = async (playerId: string, playerIGN: string, reason: string) => {
+  await logActivity({
+    action_type: 'ban_player',
+    action_description: `Banned player ${playerIGN}`,
+    target_user_id: playerId,
+    new_value: { reason, banned_at: new Date().toISOString() },
+  });
+};
+
+export const logPlayerUnban = async (playerId: string, playerIGN: string) => {
+  await logActivity({
+    action_type: 'unban_player',
+    action_description: `Unbanned player ${playerIGN}`,
+    target_user_id: playerId,
+  });
+};
+
+export const logRoleChange = async (playerId: string, playerIGN: string, oldRole: string, newRole: string) => {
+  await logActivity({
+    action_type: 'change_role',
+    action_description: `Changed ${playerIGN}'s role from ${oldRole} to ${newRole}`,
+    target_user_id: playerId,
+    old_value: { role: oldRole },
+    new_value: { role: newRole },
+  });
+};

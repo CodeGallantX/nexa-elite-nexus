@@ -90,16 +90,22 @@ export default function Activities() {
   // Real-time subscription
   React.useEffect(() => {
     const channel = supabase
-      .channel('activities-db-changes')
+      .channel('activities-realtime')
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'activities' },
         (payload) => {
-          console.log('Change received!', payload);
+          console.log('Activity change received!', payload);
+          // Refetch activities when any change occurs
           queryClient.invalidateQueries({ queryKey: ['activities'] });
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log('Activities realtime status:', status);
+        if (status === 'SUBSCRIBED') {
+          console.log('Successfully subscribed to activities updates');
+        }
+      });
 
     return () => {
       supabase.removeChannel(channel);
@@ -167,6 +173,9 @@ export default function Activities() {
       case 'update_event_status': return 'bg-purple-500/20 text-purple-400 border-purple-500/50';
       case 'update_player': return 'bg-green-500/20 text-green-400 border-green-500/50';
       case 'delete_player': return 'bg-red-500/20 text-red-400 border-red-500/50';
+      case 'ban_player': return 'bg-red-600/20 text-red-300 border-red-600/50';
+      case 'unban_player': return 'bg-green-600/20 text-green-300 border-green-600/50';
+      case 'change_role': return 'bg-orange-500/20 text-orange-400 border-orange-500/50';
       default: return 'bg-gray-500/20 text-gray-400 border-gray-500/50';
     }
   };
@@ -190,7 +199,11 @@ export default function Activities() {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h1 className="text-3xl font-bold text-white font-orbitron">Activities</h1>
-          <p className="text-gray-400">Track moderator and admin actions</p>
+          <p className="text-gray-400">Track moderator and admin actions in real-time</p>
+          <div className="flex items-center gap-2 mt-2">
+            <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+            <span className="text-xs text-green-400">Live Updates Active</span>
+          </div>
         </div>
         <div className="flex gap-2">
           <Button
@@ -213,7 +226,7 @@ export default function Activities() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
         <Card className="bg-white/5 border-white/10 backdrop-blur-sm">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-gray-300 flex items-center">
@@ -242,12 +255,25 @@ export default function Activities() {
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-gray-300 flex items-center">
               <User className="w-4 h-4 mr-2 text-green-400" />
-              Player Actions
+              Player Actions  
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-white">
-              {activities.filter(a => a.action_type.includes('player')).length}
+              {activities.filter(a => a.action_type.includes('player') || a.action_type.includes('ban') || a.action_type.includes('role')).length}
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="bg-white/5 border-white/10 backdrop-blur-sm">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-gray-300 flex items-center">
+              <Target className="w-4 h-4 mr-2 text-red-400" />
+              Moderation
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-white">
+              {activities.filter(a => a.action_type.includes('ban') || a.action_type.includes('delete')).length}
             </div>
           </CardContent>
         </Card>
@@ -296,6 +322,9 @@ export default function Activities() {
                 <SelectItem value="update_event_status">Event Status</SelectItem>
                 <SelectItem value="update_player">Player Updates</SelectItem>
                 <SelectItem value="delete_player">Player Deletion</SelectItem>
+                <SelectItem value="ban_player">Player Bans</SelectItem>
+                <SelectItem value="unban_player">Player Unbans</SelectItem>
+                <SelectItem value="change_role">Role Changes</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -317,15 +346,21 @@ export default function Activities() {
         ) : (
           filteredActivities.map((activity) => {
             const ActionIcon = getActionIcon(activity.action_type);
+            const actionColor = getActionTypeColor(activity.action_type);
             return (
               <Card key={activity.id} className="bg-white/5 border-white/10 backdrop-blur-sm hover:bg-white/10 transition-colors">
                 <CardContent className="p-4">
-                  <div className="flex items-start space-x-3">
-                    <div className="mt-1">
-                      <ActionIcon className="w-5 h-5 text-blue-400" />
-                    </div>
-                    <div className="flex-1">
-                      <ActivitySummary activity={activity} />
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-start space-x-3 flex-1">
+                      <div className={`mt-1 p-2 rounded-full border ${actionColor}`}>
+                        <ActionIcon className="w-4 h-4" />
+                      </div>
+                      <div className="flex-1">
+                        <ActivitySummary activity={activity} />
+                        <div className="text-xs text-gray-500 mt-1">
+                          Action Type: {activity.action_type.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase())}
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </CardContent>

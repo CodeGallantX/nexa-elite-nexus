@@ -93,6 +93,33 @@ export const ActivitySummary: React.FC<ActivitySummaryProps> = ({ activity }) =>
     case 'update_player':
       summaryText = generateUpdatePlayerSummary(activity);
       break;
+    case 'ban_player':
+      summaryText = `banned ${activity.target?.ign || 'a player'} ${activity.new_value?.reason ? `for: ${activity.new_value.reason}` : ''}.`;
+      break;
+    case 'unban_player':
+      summaryText = `unbanned ${activity.target?.ign || 'a player'}.`;
+      break;
+    case 'change_role':
+      summaryText = `changed ${activity.target?.ign || "a player"}'s role from ${activity.old_value?.role || 'unknown'} to ${activity.new_value?.role || 'unknown'}.`;
+      break;
+    case 'create_event':
+      summaryText = `created event "${activity.new_value?.name || 'unnamed event'}" scheduled for ${activity.new_value?.date ? new Date(activity.new_value.date).toLocaleDateString() : 'unknown date'}.`;
+      break;
+    case 'update_event':
+      summaryText = `updated event "${activity.new_value?.name || activity.old_value?.name || 'unnamed event'}".`;
+      break;
+    case 'delete_event':
+      summaryText = `deleted event "${activity.old_value?.name || 'unnamed event'}".`;
+      break;
+    case 'update_event_status':
+      summaryText = `changed event status from ${activity.old_value?.status || 'unknown'} to ${activity.new_value?.status || 'unknown'}.`;
+      break;
+    case 'delete_player':
+      summaryText = `deleted player ${activity.target?.ign || 'unknown player'}.`;
+      break;
+    case 'update_kills':
+      summaryText = `updated kill count for ${activity.target?.ign || 'a player'} from ${activity.old_value?.kills || 0} to ${activity.new_value?.kills || 0} kills.`;
+      break;
     default:
       summaryText = activity.action_description;
       break;
