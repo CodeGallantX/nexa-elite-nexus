@@ -1,8 +1,6 @@
-
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { useIsMobile } from '@/hooks/use-mobile';
 import { Button } from '@/components/ui/button';
 import {
   LayoutDashboard,
@@ -40,13 +38,33 @@ export const Sidebar: React.FC = () => {
   const { profile, logout } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
-  const isMobile = useIsMobile();
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isMediumScreen, setIsMediumScreen] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
 
-  // Collapse sidebar by default on mobile
+  // Handle responsive sidebar behavior
   useEffect(() => {
-    setIsCollapsed(isMobile);
-  }, [isMobile]);
+    const checkScreenSize = () => {
+      const width = window.innerWidth;
+      const isMobileSize = width < 768; // md breakpoint
+      const isMediumSize = width >= 768 && width < 1024; // md to lg breakpoint
+      
+      setIsMobile(isMobileSize);
+      setIsMediumScreen(isMediumSize);
+      
+      if (isMobileSize) {
+        setIsCollapsed(true); // Completely collapsed on mobile
+      } else if (isMediumSize) {
+        setIsCollapsed(false); // Semi-collapsed on tablets - handled in width class
+      } else {
+        setIsCollapsed(false); // Full width on desktop
+      }
+    };
+
+    checkScreenSize();
+    window.addEventListener('resize', checkScreenSize);
+    return () => window.removeEventListener('resize', checkScreenSize);
+  }, []);
 
   const isAdmin = profile?.role === 'admin' || profile?.role === 'clan_master';
   const isPlayer = profile?.role === 'player';
@@ -109,14 +127,30 @@ export const Sidebar: React.FC = () => {
   }
 
   return (
-    <div className={`bg-card border-r border-border transition-all duration-300 ${
-  isCollapsed ? 'w-16' : 'w-64'
-} h-screen sticky top-0 overflow-y-auto flex flex-col`}>
+    <>
+      {/* Overlay for mobile when sidebar is open */}
+      {!isCollapsed && isMobile && (
+        <div 
+          className="fixed inset-0 bg-black/50 z-40 md:hidden"
+          onClick={() => setIsCollapsed(true)}
+        />
+      )}
+      
+      <div className={`
+        fixed left-0 top-0 h-full bg-card border-r border-border z-50
+        transition-all duration-300 overflow-y-auto flex flex-col
+        ${isMobile 
+          ? (isCollapsed ? '-translate-x-full' : 'w-64 translate-x-0')
+          : isMediumScreen 
+            ? 'w-16' // Semi-collapsed on medium screens
+            : (isCollapsed ? 'w-16' : 'w-64') // Full control on desktop
+        }
+      `}>
 
       {/* Header */}
       <div className="p-4 border-b border-border">
         <div className="flex items-center justify-between">
-          {!isCollapsed && (
+          {!isCollapsed && !isMediumScreen && (
             <div className="flex items-center space-x-3">
               <img
                 src={profile?.avatar_url || '/placeholder.svg'}
@@ -135,7 +169,7 @@ export const Sidebar: React.FC = () => {
             onClick={() => setIsCollapsed(!isCollapsed)}
             className="text-muted-foreground hover:text-foreground"
           >
-            {isCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
+            {(isCollapsed || isMediumScreen) ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
           </Button>
         </div>
       </div>
@@ -146,7 +180,7 @@ export const Sidebar: React.FC = () => {
           {/* Player Menu - Only show for players */}
           {isPlayer && (
             <>
-              {!isCollapsed && (
+              {!isCollapsed && !isMediumScreen && (
                 <div className="pb-2">
                   <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                     Player Menu
@@ -160,7 +194,7 @@ export const Sidebar: React.FC = () => {
                   label={item.label}
                   path={item.path}
                   isActive={location.pathname === item.path}
-                  isCollapsed={isCollapsed}
+                  isCollapsed={isCollapsed || isMediumScreen}
                   onClick={() => navigate(item.path)}
                 />
               ))}
@@ -170,7 +204,7 @@ export const Sidebar: React.FC = () => {
           {/* Moderator Menu - Only show for moderators */}
           {isModerator && (
             <>
-              {!isCollapsed && (
+              {!isCollapsed && !isMediumScreen && (
                 <div className="pb-2">
                   <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                     Moderator Menu
@@ -184,7 +218,7 @@ export const Sidebar: React.FC = () => {
                   label={item.label}
                   path={item.path}
                   isActive={location.pathname === item.path}
-                  isCollapsed={isCollapsed}
+                  isCollapsed={isCollapsed || isMediumScreen}
                   onClick={() => navigate(item.path)}
                 />
               ))}
@@ -194,7 +228,7 @@ export const Sidebar: React.FC = () => {
           {/* Admin Menu - Only show for admins */}
           {isAdmin && (
             <>
-              {!isCollapsed && (
+              {!isCollapsed && !isMediumScreen && (
                 <div className="pb-2">
                   <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                     Admin Menu
@@ -208,7 +242,7 @@ export const Sidebar: React.FC = () => {
                   label={item.label}
                   path={item.path}
                   isActive={location.pathname === item.path}
-                  isCollapsed={isCollapsed}
+                  isCollapsed={isCollapsed || isMediumScreen}
                   onClick={() => navigate(item.path)}
                 />
               ))}
@@ -223,13 +257,14 @@ export const Sidebar: React.FC = () => {
           variant="ghost"
           onClick={handleLogout}
           className={`w-full justify-start text-muted-foreground hover:text-foreground ${
-            isCollapsed ? 'px-0 justify-center' : ''
+            (isCollapsed || isMediumScreen) ? 'px-0 justify-center' : ''
           }`}
         >
           <LogOut className="w-4 h-4" />
-          {!isCollapsed && <span className="ml-2">Logout</span>}
+          {!isCollapsed && !isMediumScreen && <span className="ml-2">Logout</span>}
         </Button>
       </div>
-    </div>
+      </div>
+    </>
   );
 };

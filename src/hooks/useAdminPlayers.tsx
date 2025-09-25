@@ -40,9 +40,9 @@ export const useUpdatePlayer = () => {
 
       if (error) throw error;
 
-      // Log the activity
+      // Log the activity with complete old and new data
       if (currentPlayer && data[0]) {
-        await logPlayerProfileUpdate(id, currentPlayer.ign, currentPlayer, updates);
+        await logPlayerProfileUpdate(id, currentPlayer.ign, currentPlayer, data[0]);
       }
 
       return data;

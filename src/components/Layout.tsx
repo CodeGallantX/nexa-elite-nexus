@@ -35,11 +35,11 @@ export const Layout: React.FC<LayoutProps> = ({
   }
 
   return (
-    <div className="min-h-screen bg-background flex w-full">
+    <div className="min-h-screen bg-background">
       <Sidebar />
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="min-h-screen md:ml-16 lg:ml-64 transition-all duration-300">
         <Header />
-        <main className="flex-1 p-6 overflow-auto">{children}</main>
+        <main className="p-6 overflow-auto">{children}</main>
       </div>
     </div>
   );
