@@ -34,31 +34,29 @@ interface MenuItem {
   path: string;
 }
 
-export const Sidebar: React.FC = () => {
+interface SidebarProps {
+  isCollapsed: boolean;
+  setIsCollapsed: (collapsed: boolean) => void;
+  isMobile: boolean;
+}
+
+export const Sidebar: React.FC<SidebarProps> = ({ 
+  isCollapsed, 
+  setIsCollapsed, 
+  isMobile 
+}) => {
   const { profile, logout } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
-  const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMediumScreen, setIsMediumScreen] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
 
   // Handle responsive sidebar behavior
   useEffect(() => {
     const checkScreenSize = () => {
       const width = window.innerWidth;
-      const isMobileSize = width < 768; // md breakpoint
       const isMediumSize = width >= 768 && width < 1024; // md to lg breakpoint
       
-      setIsMobile(isMobileSize);
       setIsMediumScreen(isMediumSize);
-      
-      if (isMobileSize) {
-        setIsCollapsed(true); // Completely collapsed on mobile
-      } else if (isMediumSize) {
-        setIsCollapsed(false); // Semi-collapsed on tablets - handled in width class
-      } else {
-        setIsCollapsed(false); // Full width on desktop
-      }
     };
 
     checkScreenSize();

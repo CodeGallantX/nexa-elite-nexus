@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Navigate } from "react-router-dom";
 import { Sidebar } from "@/components/Sidebar";
@@ -14,6 +14,30 @@ export const Layout: React.FC<LayoutProps> = ({
   showSidebar = false,
 }) => {
   const { user, loading } = useAuth();
+  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Handle responsive sidebar behavior
+  useEffect(() => {
+    const checkScreenSize = () => {
+      const width = window.innerWidth;
+      const isMobileSize = width < 768; // md breakpoint
+      
+      setIsMobile(isMobileSize);
+      
+      if (isMobileSize) {
+        setIsCollapsed(true); // Completely collapsed on mobile
+      }
+    };
+
+    checkScreenSize();
+    window.addEventListener('resize', checkScreenSize);
+    return () => window.removeEventListener('resize', checkScreenSize);
+  }, []);
+
+  const handleSidebarToggle = () => {
+    setIsCollapsed(!isCollapsed);
+  };
 
   if (loading) {
     return (
@@ -36,9 +60,13 @@ export const Layout: React.FC<LayoutProps> = ({
 
   return (
     <div className="min-h-screen bg-background">
-      <Sidebar />
-      <div className="min-h-screen md:ml-16 lg:ml-64 transition-all duration-300">
-        <Header />
+      <Sidebar 
+        isCollapsed={isCollapsed} 
+        setIsCollapsed={setIsCollapsed}
+        isMobile={isMobile}
+      />
+      <div className="min-h-screen transition-all duration-300">
+        <Header onSidebarToggle={handleSidebarToggle} />
         <main className="p-6 overflow-auto">{children}</main>
       </div>
     </div>

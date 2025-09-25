@@ -6,8 +6,13 @@ import { Button } from '@/components/ui/button';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { NotificationBell } from '@/components/NotificationBell';
 import { FaTiktok } from "react-icons/fa6"
+import { Menu } from 'lucide-react';
 
-export const Header: React.FC = () => {
+interface HeaderProps {
+  onSidebarToggle?: () => void;
+}
+
+export const Header: React.FC<HeaderProps> = ({ onSidebarToggle }) => {
   const { profile } = useAuth();
   const navigate = useNavigate();
 
@@ -18,7 +23,22 @@ export const Header: React.FC = () => {
   };
 
   return (
-    <header className="h-14 border-b border-border flex items-center justify-end px-4 bg-card/50">
+    <header className="h-14 border-b border-border flex items-center justify-between px-4 bg-card/50">
+      {/* Left side - Sidebar toggle */}
+      <div className="flex items-center">
+        {onSidebarToggle && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onSidebarToggle}
+            className="text-muted-foreground hover:text-foreground lg:hidden"
+          >
+            <Menu className="w-5 h-5" />
+          </Button>
+        )}
+      </div>
+
+      {/* Right side - Existing items */}
       <div className="flex items-center space-x-4">
         
         {/* Tiktok*/}
