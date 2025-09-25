@@ -2,7 +2,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { logPlayerUpdate, logPlayerDelete } from '@/lib/activityLogger';
+import { logPlayerProfileUpdate, logPlayerDelete } from '@/lib/activityLogger';
 
 export const useAdminPlayers = () => {
   return useQuery({
@@ -42,7 +42,7 @@ export const useUpdatePlayer = () => {
 
       // Log the activity
       if (currentPlayer && data[0]) {
-        await logPlayerUpdate(id, currentPlayer.ign, currentPlayer, updates);
+        await logPlayerProfileUpdate(id, currentPlayer.ign, currentPlayer, updates);
       }
 
       return data;

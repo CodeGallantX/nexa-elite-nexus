@@ -166,12 +166,14 @@ export default function Activities() {
 
   const getActionTypeColor = (type: string) => {
     switch (type) {
-      case 'update_kills': return 'bg-red-500/20 text-red-400 border-red-500/50';
+      case 'update_player_kills_manual': return 'bg-red-500/20 text-red-400 border-red-500/50';
+      case 'update_player_kills_attendance': return 'bg-orange-500/20 text-orange-400 border-orange-500/50';
+      case 'update_attendance': return 'bg-yellow-500/20 text-yellow-400 border-yellow-500/50';
       case 'create_event': return 'bg-blue-500/20 text-blue-400 border-blue-500/50';
       case 'update_event': return 'bg-cyan-500/20 text-cyan-400 border-cyan-500/50';
       case 'delete_event': return 'bg-red-500/20 text-red-400 border-red-500/50';
       case 'update_event_status': return 'bg-purple-500/20 text-purple-400 border-purple-500/50';
-      case 'update_player': return 'bg-green-500/20 text-green-400 border-green-500/50';
+      case 'update_player_profile': return 'bg-green-500/20 text-green-400 border-green-500/50';
       case 'delete_player': return 'bg-red-500/20 text-red-400 border-red-500/50';
       case 'ban_player': return 'bg-red-600/20 text-red-300 border-red-600/50';
       case 'unban_player': return 'bg-green-600/20 text-green-300 border-green-600/50';
@@ -182,12 +184,14 @@ export default function Activities() {
 
   const getActionIcon = (type: string) => {
     switch (type) {
-      case 'update_kills': return Target;
+      case 'update_player_kills_manual':
+      case 'update_player_kills_attendance': return Target;
+      case 'update_attendance': return Clock;
       case 'create_event': 
       case 'update_event':
       case 'delete_event':
       case 'update_event_status': return Clock;
-      case 'update_player': 
+      case 'update_player_profile': 
       case 'delete_player': return User;
       default: return Activity;
     }
@@ -315,12 +319,14 @@ export default function Activities() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Types</SelectItem>
-                <SelectItem value="update_kills">Kill Updates</SelectItem>
+                <SelectItem value="update_player_kills_manual">Manual Kill Updates</SelectItem>
+                <SelectItem value="update_player_kills_attendance">Attendance Kill Updates</SelectItem>
+                <SelectItem value="update_attendance">Attendance Changes</SelectItem>
                 <SelectItem value="create_event">Event Creation</SelectItem>
                 <SelectItem value="update_event">Event Updates</SelectItem>
                 <SelectItem value="delete_event">Event Deletion</SelectItem>
                 <SelectItem value="update_event_status">Event Status</SelectItem>
-                <SelectItem value="update_player">Player Updates</SelectItem>
+                <SelectItem value="update_player_profile">Profile Updates</SelectItem>
                 <SelectItem value="delete_player">Player Deletion</SelectItem>
                 <SelectItem value="ban_player">Player Bans</SelectItem>
                 <SelectItem value="unban_player">Player Unbans</SelectItem>

@@ -26,13 +26,41 @@ export const logActivity = async (activity: ActivityLog) => {
 };
 
 // Helper functions for common activity types
-export const logPlayerUpdate = async (playerId: string, playerIGN: string, oldValues: any, newValues: any) => {
+export const logPlayerProfileUpdate = async (playerId: string, playerIGN: string, oldValues: any, newValues: any) => {
   await logActivity({
-    action_type: 'update_player',
-    action_description: `Updated player ${playerIGN}`,
+    action_type: 'update_player_profile',
+    action_description: `Updated ${playerIGN}'s profile information`,
     target_user_id: playerId,
     old_value: oldValues,
     new_value: newValues,
+  });
+};
+
+export const logPlayerKillsUpdate = async (playerId: string, playerIGN: string, oldKills: number, newKills: number, method: 'manual' | 'attendance') => {
+  const actionType = method === 'manual' ? 'update_player_kills_manual' : 'update_player_kills_attendance';
+  const description = method === 'manual' 
+    ? `Manually updated ${playerIGN}'s total kill count from ${oldKills} to ${newKills}`
+    : `Updated ${playerIGN}'s kill count via attendance from ${oldKills} to ${newKills}`;
+    
+  await logActivity({
+    action_type: actionType,
+    action_description: description,
+    target_user_id: playerId,
+    old_value: { kills: oldKills, method },
+    new_value: { kills: newKills, method },
+  });
+};
+
+export const logAttendanceUpdate = async (playerId: string, playerIGN: string, eventName: string, status: string, kills?: number) => {
+  const description = kills !== undefined 
+    ? `Set ${playerIGN}'s attendance for "${eventName}" to ${status} with ${kills} kills`
+    : `Set ${playerIGN}'s attendance for "${eventName}" to ${status}`;
+    
+  await logActivity({
+    action_type: 'update_attendance',
+    action_description: description,
+    target_user_id: playerId,
+    new_value: { event: eventName, status, kills },
   });
 };
 

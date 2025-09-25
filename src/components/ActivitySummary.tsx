@@ -90,8 +90,17 @@ export const ActivitySummary: React.FC<ActivitySummaryProps> = ({ activity }) =>
   let summaryText = '';
 
   switch (activity.action_type) {
-    case 'update_player':
+    case 'update_player_profile':
       summaryText = generateUpdatePlayerSummary(activity);
+      break;
+    case 'update_player_kills_manual':
+      summaryText = `manually updated ${activity.target?.ign || 'a player'}'s total kill count from ${activity.old_value?.kills || 0} to ${activity.new_value?.kills || 0} kills.`;
+      break;
+    case 'update_player_kills_attendance':
+      summaryText = `updated ${activity.target?.ign || 'a player'}'s kill count via attendance from ${activity.old_value?.kills || 0} to ${activity.new_value?.kills || 0} kills.`;
+      break;
+    case 'update_attendance':
+      summaryText = `set ${activity.target?.ign || 'a player'}'s attendance for "${activity.new_value?.event || 'an event'}" to ${activity.new_value?.status || 'unknown'}${activity.new_value?.kills ? ` with ${activity.new_value.kills} kills` : ''}.`;
       break;
     case 'ban_player':
       summaryText = `banned ${activity.target?.ign || 'a player'} ${activity.new_value?.reason ? `for: ${activity.new_value.reason}` : ''}.`;
