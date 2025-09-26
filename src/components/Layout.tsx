@@ -65,7 +65,15 @@ export const Layout: React.FC<LayoutProps> = ({
         setIsCollapsed={setIsCollapsed}
         isMobile={isMobile}
       />
-      <div className="min-h-screen transition-all duration-300">
+      <div className={`
+        min-h-screen transition-all duration-300
+        ${showSidebar 
+          ? (isMobile 
+            ? 'ml-0' 
+            : (isCollapsed ? 'ml-16' : 'ml-64'))
+          : 'ml-0'
+        }
+      `}>
         <Header onSidebarToggle={handleSidebarToggle} />
         <main className="p-6 overflow-auto">{children}</main>
       </div>
