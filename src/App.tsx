@@ -23,7 +23,7 @@ import { Onboarding } from '@/pages/auth/Onboarding';
 import { Dashboard } from '@/pages/Dashboard';
 import { Profile } from '@/pages/Profile';
 import { Settings } from '@/pages/Settings';
-import { Chat } from '@/pages/Chat';
+
 import { Scrims } from '@/pages/Scrims';
 import { WeaponLoadouts } from '@/pages/WeaponLoadouts';
 import { Loadouts } from '@/pages/Loadouts';
@@ -68,7 +68,7 @@ function App() {
             <Route path="/dashboard" element={<Layout showSidebar><Dashboard /></Layout>} />
             <Route path="/profile" element={<Layout showSidebar><Profile /></Layout>} />
             <Route path="/settings" element={<Layout showSidebar><Settings /></Layout>} />
-            <Route path="/chat" element={<Layout showSidebar><Chat /></Layout>} />
+
             <Route path="/scrims" element={<Layout showSidebar><Scrims /></Layout>} />
             <Route path="/weapon-layouts" element={<Layout showSidebar><WeaponLoadouts /></Layout>} />
             <Route path="/loadouts" element={<Layout showSidebar><Loadouts /></Layout>} />

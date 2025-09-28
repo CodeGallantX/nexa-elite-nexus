@@ -404,8 +404,7 @@ const getUrlForNotificationType = (type: string, data?: any): string => {
     case 'admin_alert':
     case 'assignment_request':
       return '/admin/notifications';
-    case 'chat_message':
-      return '/chat';
+
     case 'profile_update':
       return '/profile';
     default:

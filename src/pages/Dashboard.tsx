@@ -359,18 +359,7 @@ export const Dashboard: React.FC = () => {
 
       {/* Quick Actions */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Button
-          onClick={() => (window.location.href = "/chat")}
-          className="p-6 h-auto bg-white/5 hover:bg-white/10 border border-white/10 text-white"
-        >
-          <div className="flex flex-col items-center space-y-2">
-            <Users className="w-8 h-8 text-[#FF1F44]" />
-            <span className="font-medium">Team Chat</span>
-            <span className="text-xs text-gray-400">
-              Join active discussions
-            </span>
-          </div>
-        </Button>
+
 
         <Button
           onClick={() => (window.location.href = "/loadouts")}

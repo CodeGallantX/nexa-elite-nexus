@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import {
@@ -8,7 +7,6 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { LucideIcon } from 'lucide-react';
-import { useChatNotifications } from '@/hooks/useChatNotifications';
 import { useNotifications } from '@/hooks/useNotifications';
 import { useActivities } from '@/hooks/useActivities';
 import { useAuth } from '@/contexts/AuthContext';
@@ -30,40 +28,23 @@ export const NavItem: React.FC<NavItemProps> = ({
   isCollapsed,
   onClick
 }) => {
-  const { hasUnreadMessages, hasUnreadAdminMessages } = useChatNotifications();
   const { unreadCount } = useNotifications();
   const { data: activitiesCount = 0 } = useActivities();
   const { profile } = useAuth();
   
-  const isChatItem = path === '/chat';
   const isNotificationsItem = path === '/admin/notifications';
   const isActivitiesItem = path === '/admin/activities';
-
-  const handleClick = () => {
-    onClick();
-    // Mark chat as seen when navigating to chat
-    if (isChatItem && (hasUnreadMessages || hasUnreadAdminMessages)) {
-      // This will be handled by the chat page component
-    }
-  };
 
   const navItemContent = (
     <Button
       variant={isActive ? 'secondary' : 'ghost'}
-      onClick={handleClick}
+      onClick={onClick}
       className={`w-full justify-start text-left relative ${
         isCollapsed ? 'px-2 justify-center' : 'px-3'
       } ${isActive ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:text-foreground'}`}
     >
       <Icon className={`w-4 h-4 ${isCollapsed ? '' : 'mr-2'}`} />
       {!isCollapsed && <span>{label}</span>}
-      
-      {/* Chat notification badge */}
-      {isChatItem && (hasUnreadMessages || (hasUnreadAdminMessages && profile?.role === 'admin')) && (
-        <div className={`absolute w-2 h-2 bg-destructive rounded-full ${
-          isCollapsed ? 'top-1 right-1' : 'top-2 right-2'
-        }`} />
-      )}
       
       {/* Notifications badge */}
       {isNotificationsItem && unreadCount > 0 && (

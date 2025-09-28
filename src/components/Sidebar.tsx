@@ -71,7 +71,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const playerMenuItems = [
     { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
     { icon: User, label: 'Profile', path: '/profile' },
-    { icon: MessageSquare, label: 'Chat', path: '/chat' },
     { icon: Crosshair, label: 'Scrims', path: '/scrims' },
     { icon: Package, label: 'My Loadouts', path: '/loadouts' },
     { icon: Sword, label: 'Weapon Layouts', path: '/weapon-layouts' },
@@ -82,7 +81,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const moderatorMenuItems = [
     { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
     { icon: User, label: 'Profile', path: '/profile' },
-    { icon: MessageSquare, label: 'Chat', path: '/chat' },
     { icon: Crosshair, label: 'Scrims', path: '/scrims' },
     { icon: Package, label: 'My Loadouts', path: '/loadouts' },
     { icon: Sword, label: 'Weapon Layouts', path: '/weapon-layouts' },
@@ -94,7 +92,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const adminMenuItems = [
     { icon: Shield, label: 'Admin Dashboard', path: '/admin' },
     { icon: Users, label: 'Players', path: '/admin/players' },
-    { icon: MessageSquare, label: 'Chat', path: '/chat' },
+
     { icon: BarChart3, label: 'Statistics', path: '/admin/stats' },
     { icon: UserCog, label: 'Profiles', path: '/admin/profiles' },
     { icon: Package, label: 'My Loadouts', path: '/loadouts' },

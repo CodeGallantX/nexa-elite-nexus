@@ -9,27 +9,41 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { useAdminPlayers, useUpdatePlayer, useDeletePlayer } from '@/hooks/useAdminPlayers';
+import { useAuth } from '@/contexts/AuthContext';
 import { logPlayerBan, logPlayerUnban, logRoleChange } from '@/lib/activityLogger';
 import { Search, Edit, Trash2, Eye, UserPlus } from 'lucide-react';
+import { Database } from '@/integrations/supabase/types';
+
+type Player = Database['public']['Tables']['profiles']['Row'];
 
 export const AdminPlayers: React.FC = () => {
+  const { profile } = useAuth();
   const { data: players, isLoading } = useAdminPlayers();
   const updatePlayer = useUpdatePlayer();
   const deletePlayer = useDeletePlayer();
   
   const [searchTerm, setSearchTerm] = useState('');
   const [filterRole, setFilterRole] = useState('all');
-  const [selectedPlayer, setSelectedPlayer] = useState<any>(null);
-  const [editingPlayer, setEditingPlayer] = useState<any>(null);
+  const [sortOrder, setSortOrder] = useState('asc');
+  const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
+  const [editingPlayer, setEditingPlayer] = useState<Player | null>(null);
+  const [banningPlayer, setBanningPlayer] = useState<Player | null>(null);
+  const [banReason, setBanReason] = useState('');
+  const [banDuration, setBanDuration] = useState('7');
 
   const filteredPlayers = players?.filter(player => {
     const matchesSearch = player.username?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          player.ign?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesRole = filterRole === 'all' || player.role === filterRole;
     return matchesSearch && matchesRole;
+  }).sort((a, b) => {
+    if (sortOrder === 'asc') {
+      return (a.kills || 0) - (b.kills || 0);
+    }
+    return (b.kills || 0) - (a.kills || 0);
   }) || [];
 
-  const handleUpdatePlayer = async (updates: any) => {
+  const handleUpdatePlayer = async (updates: Partial<Player>) => {
     if (!editingPlayer) return;
     
     // Log role changes
@@ -51,24 +65,32 @@ export const AdminPlayers: React.FC = () => {
     }
   };
 
-  const handleBanPlayer = async (player: any) => {
-    const reason = prompt('Please provide a reason for banning this player:');
-    if (!reason || reason.trim() === '') return;
-    
+  const handleBanPlayer = (player: Player) => {
+    setBanningPlayer(player);
+  };
+
+  const handleConfirmBan = async () => {
+    if (!banningPlayer || !banReason) return;
+
+    const banUntil = new Date();
+    banUntil.setDate(banUntil.getDate() + parseInt(banDuration));
+
     await updatePlayer.mutateAsync({
-      id: player.id,
+      id: banningPlayer.id,
       updates: {
         is_banned: true,
         banned_at: new Date().toISOString(),
-        ban_reason: reason.trim()
+        ban_reason: banReason,
+        ban_until: banUntil.toISOString(),
       }
     });
     
-    // Log ban activity
-    await logPlayerBan(player.id, player.ign, reason.trim());
+    await logPlayerBan(banningPlayer.id, banningPlayer.ign, banReason);
+    setBanningPlayer(null);
+    setBanReason('');
   };
 
-  const handleUnbanPlayer = async (player: any) => {
+  const handleUnbanPlayer = async (player: Player) => {
     if (confirm(`Are you sure you want to unban ${player.username}?`)) {
       await updatePlayer.mutateAsync({
         id: player.id,
@@ -162,6 +184,15 @@ export const AdminPlayers: React.FC = () => {
                 <SelectItem value="moderator">Moderator</SelectItem>
                 <SelectItem value="admin">Admin</SelectItem>
                 <SelectItem value="clan_master">Clan Master</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={sortOrder} onValueChange={setSortOrder}>
+              <SelectTrigger className="bg-gray-800 border-gray-600 text-white">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="desc">Kills: Descending</SelectItem>
+                <SelectItem value="asc">Kills: Ascending</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -315,8 +346,7 @@ export const AdminPlayers: React.FC = () => {
                         </AlertDialogContent>
                       </AlertDialog>
 
-                      {/* Ban/Unban Button */}
-                      {(player.role === 'admin' || player.role === 'moderator') && (
+                      {(profile?.role === 'admin' || profile?.role === 'moderator') && (
                         <Button
                           size="sm"
                           variant="ghost"
@@ -330,34 +360,8 @@ export const AdminPlayers: React.FC = () => {
                         </Button>
                       )}
 
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button 
-                            size="sm" 
-                            variant="ghost" 
-                            className="text-gray-400 hover:text-red-400"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>Delete Player</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              Are you sure you want to delete {player.username}? This action cannot be undone.
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction
-                              onClick={() => handleDeletePlayer(player.id)}
-                              className="bg-red-600 hover:bg-red-700"
-                            >
-                              Delete
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
+
+
                     </div>
                   </TableCell>
                 </TableRow>
@@ -469,6 +473,50 @@ export const AdminPlayers: React.FC = () => {
                   className="bg-[#FF1F44] hover:bg-red-600"
                 >
                   Save Changes
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* Ban Player Dialog */}
+      {banningPlayer && (
+        <Dialog open={!!banningPlayer} onOpenChange={() => setBanningPlayer(null)}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle className="text-white">Ban Player</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <p>Are you sure you want to ban {banningPlayer.ign}?</p>
+              <div>
+                <label className="text-gray-300 text-sm">Reason</label>
+                <Input
+                  value={banReason}
+                  onChange={(e) => setBanReason(e.target.value)}
+                  className="bg-gray-800 border-gray-600 text-white"
+                  placeholder="Enter ban reason"
+                />
+              </div>
+              <div>
+                <label className="text-gray-300 text-sm">Duration</label>
+                <Select value={banDuration} onValueChange={setBanDuration}>
+                  <SelectTrigger className="bg-gray-800 border-gray-600 text-white">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="2">2 Days</SelectItem>
+                    <SelectItem value="3">3 Days</SelectItem>
+                    <SelectItem value="7">7 Days (1 Week)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex justify-end space-x-2">
+                <Button variant="outline" onClick={() => setBanningPlayer(null)}>
+                  Cancel
+                </Button>
+                <Button onClick={handleConfirmBan} className="bg-red-600 hover:bg-red-700">
+                  Confirm Ban
                 </Button>
               </div>
             </div>

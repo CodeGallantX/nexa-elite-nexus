@@ -22,20 +22,33 @@ import {
   CalendarDays
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { Database } from '@/integrations/supabase/types';
 
-type AttendanceMode = 'MP' | 'BR' | 'Tournament' | 'Scrims';
+type Player = Database['public']['Tables']['profiles']['Row'];
+type AttendanceRecord = Database['public']['Tables']['attendance']['Row'] & {
+  profiles: {
+    username: string;
+    ign: string;
+  } | null;
+  events: {
+    name: string;
+  } | null;
+};
+
+type AttendanceMode = 'MP' | 'BR';
 
 export const AdminAttendance: React.FC = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [attendanceMode, setAttendanceMode] = useState<AttendanceMode>('MP');
+  const [selectedLobby, setSelectedLobby] = useState<number>(1);
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState('all');
   const [killsInput, setKillsInput] = useState<{ [playerId: string]: number}>({});
 
   // Fetch players
-  const { data: players = [], isLoading: playersLoading } = useQuery({
+  const { data: players = [], isLoading: playersLoading } = useQuery<Player[]>({
     queryKey: ['players'],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -49,8 +62,8 @@ export const AdminAttendance: React.FC = () => {
   });
 
   // Fetch attendance records
-  const { data: attendanceRecords = [], isLoading: attendanceLoading } = useQuery({
-    queryKey: ['attendance', attendanceMode],
+  const { data: attendanceRecords = [], isLoading: attendanceLoading } = useQuery<AttendanceRecord[]>({
+    queryKey: ['attendance', attendanceMode, selectedLobby],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('attendance')
@@ -60,6 +73,7 @@ export const AdminAttendance: React.FC = () => {
           events(name)
         `)
         .eq('attendance_type', attendanceMode)
+        .eq('lobby', selectedLobby) // Filter by lobby
         .order('created_at', { ascending: false });
       
       if (error) throw error;
@@ -68,8 +82,9 @@ export const AdminAttendance: React.FC = () => {
   });
 
   // Mark attendance mutation
+  // TODO: Add a 'lobby' column (integer) to the 'attendance' table in the database.
   const markAttendanceMutation = useMutation({
-  mutationFn: async ({ playerId, status, kills }: { playerId: string; status: 'present' | 'absent'; kills?: number }) => {
+  mutationFn: async ({ playerId, status, kills, lobby }: { playerId: string; status: 'present' | 'absent'; kills?: number; lobby: number }) => {
     const { data, error } = await supabase
       .from('attendance')
       .insert({
@@ -78,6 +93,7 @@ export const AdminAttendance: React.FC = () => {
         attendance_type: attendanceMode,
         date: selectedDate,
         event_kills: kills || 0,
+        lobby: lobby, // Add lobby to the insert object
       });
 
     if (error) throw error;
@@ -99,10 +115,10 @@ export const AdminAttendance: React.FC = () => {
   kills?: number
 ) => {
   try {
-    await markAttendanceMutation.mutateAsync({ playerId, status, kills });
+    await markAttendanceMutation.mutateAsync({ playerId, status, kills, lobby: selectedLobby });
     toast({
       title: "Attendance Marked",
-      description: `${playerIgn} marked as ${status} (${kills || 0} kills) for ${attendanceMode} on ${new Date(selectedDate).toLocaleDateString()}`,
+      description: `${playerIgn} marked as ${status} (${kills || 0} kills) for ${attendanceMode} - Lobby ${selectedLobby} on ${new Date(selectedDate).toLocaleDateString()}`,
     });
   } catch (error) {
     console.error('Error marking attendance:', error);
@@ -196,13 +212,12 @@ export const AdminAttendance: React.FC = () => {
         </Card>
       </div>
 
-      {/* Attendance Mode Toggle */}
+      {/* Attendance Mode & Lobby Selection */}
       <Card className="bg-card/50 border-border/30">
         <CardContent className="p-4">
           <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
-            <Label className="font-rajdhani text-sm font-medium whitespace-nowrap">Attendance Mode:</Label>
             <div className="grid grid-cols-2 sm:flex rounded-lg bg-background/50 p-1 w-full sm:w-auto gap-1">
-              {(['MP', 'BR', 'Tournament', "Scrims"] as AttendanceMode[]).map((mode) => (
+              {(['MP', 'BR'] as AttendanceMode[]).map((mode) => (
                 <Button
                   key={mode}
                   variant={attendanceMode === mode ? "default" : "ghost"}
@@ -214,8 +229,24 @@ export const AdminAttendance: React.FC = () => {
                       : 'hover:bg-muted/50'
                   }`}
                 >
-                  <span className="hidden sm:inline">{mode} Attendance</span>
-                  <span className="sm:hidden">{mode}</span>
+                  {mode}
+                </Button>
+              ))}
+            </div>
+            <div className="grid grid-cols-4 sm:flex rounded-lg bg-background/50 p-1 w-full sm:w-auto gap-1">
+              {[1, 2, 3, 4].map((lobby) => (
+                <Button
+                  key={lobby}
+                  variant={selectedLobby === lobby ? "default" : "ghost"}
+                  size="sm"
+                  onClick={() => setSelectedLobby(lobby)}
+                  className={`font-rajdhani text-xs sm:text-sm px-2 sm:px-4 ${
+                    selectedLobby === lobby 
+                      ? 'bg-primary text-primary-foreground' 
+                      : 'hover:bg-muted/50'
+                  }`}
+                >
+                  Lobby {lobby}
                 </Button>
               ))}
             </div>
@@ -295,7 +326,7 @@ export const AdminAttendance: React.FC = () => {
         <CardHeader>
           <CardTitle className="text-foreground font-orbitron flex items-center">
             <UserCheck className="w-5 h-5 mr-2 text-primary" />
-            {attendanceMode} Attendance - {new Date(selectedDate).toLocaleDateString()}
+            {attendanceMode} Lobby {selectedLobby} Attendance - {new Date(selectedDate).toLocaleDateString()}
           </CardTitle>
         </CardHeader>
         <CardContent>
