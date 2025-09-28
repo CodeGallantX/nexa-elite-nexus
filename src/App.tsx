@@ -41,6 +41,7 @@ import { EventAssignment } from '@/pages/admin/EventAssignment';
 import { AdminAttendance } from '@/pages/admin/Attendance';
 import { AdminAnnouncementsManagement } from '@/pages/admin/AnnouncementsManagement';
 import { AdminNotifications } from '@/pages/admin/Notifications';
+import { AdminConfig } from '@/pages/admin/Config';
 import AdminDashboard from '@/pages/AdminDashboard';
 import Activities from '@/pages/admin/Activities';
 
@@ -88,6 +89,7 @@ function App() {
             <Route path="/admin/announcements" element={<Layout showSidebar><AdminAnnouncementsManagement /></Layout>} />
             <Route path="/admin/notifications" element={<Layout showSidebar><AdminNotifications /></Layout>} />
             <Route path="/admin/activities" element={<Layout showSidebar><Activities /></Layout>} />
+            <Route path="/admin/config" element={<Layout showSidebar><AdminConfig /></Layout>} />
 
             {/* 404 */}
             <Route path="*" element={<NotFound />} />

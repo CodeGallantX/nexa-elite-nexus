@@ -1,6 +1,12 @@
 
 import React from 'react';
 import { Button } from '@/components/ui/button';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { LucideIcon } from 'lucide-react';
 import { useChatNotifications } from '@/hooks/useChatNotifications';
 import { useNotifications } from '@/hooks/useNotifications';
@@ -41,7 +47,7 @@ export const NavItem: React.FC<NavItemProps> = ({
     }
   };
 
-  return (
+  const navItemContent = (
     <Button
       variant={isActive ? 'secondary' : 'ghost'}
       onClick={handleClick}
@@ -78,4 +84,19 @@ export const NavItem: React.FC<NavItemProps> = ({
       )}
     </Button>
   );
+
+  if (isCollapsed) {
+    return (
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>{navItemContent}</TooltipTrigger>
+          <TooltipContent side="right">
+            <p>{label}</p>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    );
+  }
+
+  return navItemContent;
 };

@@ -108,6 +108,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { icon: Megaphone, label: 'Announcements', path: '/admin/announcements' },
     { icon: Bell, label: 'Notifications', path: '/admin/notifications' },
     ...(profile?.role === 'clan_master' ? [{ icon: Activity, label: 'Activities', path: '/admin/activities' }] : []),
+    ...(profile?.role === 'clan_master' ? [{ icon: Settings, label: 'Configuration', path: '/admin/config' }] : []),
     { icon: Settings, label: 'Settings', path: '/settings' },
   ];
 
@@ -156,7 +157,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 className="w-8 h-8 rounded-full object-cover"
               />
               <div>
-                <p className="text-sm font-medium text-foreground">Ɲ・乂{profile?.ign}</p>
+                <p className="text-sm font-medium text-foreground">{profile?.status === 'beta' ? 'N.B.' : 'Ɲ・乂'}{profile?.ign}</p>
                 <p className="text-xs text-muted-foreground capitalize">{profile?.role}</p>
               </div>
             </div>

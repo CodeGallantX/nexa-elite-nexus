@@ -3,13 +3,14 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { usePlayerStats } from '@/hooks/usePlayerStats';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
-import { Trophy, Target, TrendingUp, Users } from 'lucide-react';
+import { Trophy, Target, TrendingUp, Users, AlertTriangle } from 'lucide-react';
 
 export const AdminStats: React.FC = () => {
-  const { data: playerStats, isLoading } = usePlayerStats();
+  const { data: playerStats, isLoading, isError, refetch } = usePlayerStats();
   const [sortBy, setSortBy] = useState('totalEventKills');
 
   const sortedStats = playerStats?.sort((a, b) => {
@@ -56,6 +57,19 @@ export const AdminStats: React.FC = () => {
     return (
       <div className="flex items-center justify-center min-h-96">
         <div className="text-white">Loading statistics...</div>
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-96 text-white">
+        <AlertTriangle className="w-12 h-12 text-red-500 mb-4" />
+        <h2 className="text-2xl font-bold mb-2">Error Fetching Statistics</h2>
+        <p className="text-gray-400 mb-6">There was a problem retrieving the player statistics. Please try again.</p>
+        <Button onClick={() => refetch()} className="bg-primary hover:bg-primary/90">
+          Retry
+        </Button>
       </div>
     );
   }
@@ -141,7 +155,7 @@ export const AdminStats: React.FC = () => {
 
         <Card className="bg-white/5 border-white/10 backdrop-blur-sm">
           <CardHeader>
-            <CardTitle className="text-white">Player Tier Distribution</CardTitle>
+.        <CardTitle className="text-white">Player Tier Distribution</CardTitle>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>

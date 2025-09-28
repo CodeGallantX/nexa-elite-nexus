@@ -197,7 +197,7 @@ export const AdminPlayers: React.FC = () => {
                         )}
                       </div>
                       <div>
-                        <div className="font-medium">Ɲ・乂{player.ign}</div>
+                        <div className="font-medium">{player.status === 'beta' ? 'N.B.' : 'Ɲ・乂'}{player.ign}</div>
                         <div className="text-sm text-gray-400">@{player.username}</div>
                         {player.is_banned && (
                           <Badge className="bg-red-100 text-red-800 text-xs mt-1">
@@ -253,7 +253,7 @@ export const AdminPlayers: React.FC = () => {
                                 </div>
                                 <div>
                                   <label className="text-gray-300 text-sm">IGN</label>
-                                  <p className="text-white">Ɲ・乂{selectedPlayer.ign}</p>
+                                  <p className="text-white">{player.status === 'beta' ? 'N.B.' : 'Ɲ・乂'}{selectedPlayer.ign}</p>
                                 </div>
                                 <div>
                                   <label className="text-gray-300 text-sm">Device</label>
@@ -429,6 +429,21 @@ export const AdminPlayers: React.FC = () => {
                   </Select>
                 </div>
                 <div>
+                  <label className="text-gray-300 text-sm">Status</label>
+                  <Select 
+                    value={editingPlayer.status || 'active'} 
+                    onValueChange={(value) => setEditingPlayer({...editingPlayer, status: value})}
+                  >
+                    <SelectTrigger className="bg-gray-800 border-gray-600 text-white">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="active">Active</SelectItem>
+                      <SelectItem value="beta">Beta</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
                   <label className="text-gray-300 text-sm">Total Kills</label>
                   <Input
                     type="number"
@@ -448,6 +463,7 @@ export const AdminPlayers: React.FC = () => {
                     role: editingPlayer.role,
                     grade: editingPlayer.grade,
                     tier: editingPlayer.tier,
+                    status: editingPlayer.status,
                     kills: editingPlayer.kills
                   })}
                   className="bg-[#FF1F44] hover:bg-red-600"

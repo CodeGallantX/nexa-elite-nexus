@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { NotificationBell } from '@/components/NotificationBell';
-import { FaTiktok } from "react-icons/fa6"
+import { FaTiktok, FaDiscord } from "react-icons/fa6"
 import { Menu } from 'lucide-react';
 
 interface HeaderProps {
@@ -45,6 +45,12 @@ export const Header: React.FC<HeaderProps> = ({ onSidebarToggle }) => {
         <a href="https://tiktok.com/@nexa_esport" target="_blank" rel="noopener noreferrer">
             <FaTiktok className="text-lg animate-bounce text-white hover:text-primary cursor-pointer"/>
         </a>
+
+        {/* Discord */}
+        <a href="https://discord.gg/KtjK5m994C" target="_blank" rel="noopener noreferrer">
+            <FaDiscord className="text-lg animate-bounce text-white hover:text-primary cursor-pointer"/>
+        </a>
+
         {/* Notification Bell */}
         <NotificationBell />
 
