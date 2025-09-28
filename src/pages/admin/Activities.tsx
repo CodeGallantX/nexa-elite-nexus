@@ -155,9 +155,9 @@ export default function Activities() {
   // Filter activities
   const filteredActivities = activities.filter(activity => {
     const matchesSearch = 
-      activity.action_description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      activity.performer?.ign?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      activity.target?.ign?.toLowerCase().includes(searchTerm.toLowerCase());
+      (activity.action_description && activity.action_description.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (activity.performer && activity.performer.ign && activity.performer.ign.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (activity.target && activity.target.ign && activity.target.ign.toLowerCase().includes(searchTerm.toLowerCase()));
     
     const matchesType = filterType === 'all' || activity.action_type === filterType;
     

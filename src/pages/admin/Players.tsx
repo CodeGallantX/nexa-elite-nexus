@@ -34,7 +34,7 @@ export const AdminPlayers: React.FC = () => {
   const filteredPlayers = players?.filter(player => {
     const matchesSearch = player.username?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          player.ign?.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesRole = filterRole === 'all' || player.role === filterRole;
+    const matchesRole = filterRole === 'all' || (filterRole === 'beta' ? player.status === 'beta' : player.role === filterRole);
     return matchesSearch && matchesRole;
   }).sort((a, b) => {
     if (sortOrder === 'asc') {
@@ -184,6 +184,7 @@ export const AdminPlayers: React.FC = () => {
                 <SelectItem value="moderator">Moderator</SelectItem>
                 <SelectItem value="admin">Admin</SelectItem>
                 <SelectItem value="clan_master">Clan Master</SelectItem>
+                <SelectItem value="beta">Beta Player</SelectItem>
               </SelectContent>
             </Select>
             <Select value={sortOrder} onValueChange={setSortOrder}>
