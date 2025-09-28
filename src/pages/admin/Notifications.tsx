@@ -19,28 +19,37 @@ import {
   Users,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 export const AdminNotifications: React.FC = () => {
   const { toast } = useToast();
-  const [notifications, setNotifications] = useState([]);
+  const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState("");
   const [filter, setFilter] = useState("all");
+  const [currentPage, setCurrentPage] = useState(0);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedPlayer, setSelectedPlayer] = useState<null | {
     name: string;
     id: string;
   }>(null);
 
-  useEffect(() => {
-    const fetchNotifications = async () => {
+  const { data: notifications = [], isLoading } = useQuery<any[]>({   
+    queryKey: ['notifications', currentPage, itemsPerPage], 
+    queryFn: async () => {
+      const from = currentPage * itemsPerPage;
+      const to = from + itemsPerPage - 1;
+
       // Fetch ALL notifications for admin view (not filtered by user_id)
       const { data, error } = await supabase
         .from("notifications")
         .select("*")
-        .order("created_at", { ascending: false });
+        .order("created_at", { ascending: false })
+        .range(from, to);
 
       if (error) {
         console.error("Error fetching notifications:", error.message);
+        return [];
       } else {
         const formatted = data.map((n) => ({
           id: n.id,
@@ -54,44 +63,10 @@ export const AdminNotifications: React.FC = () => {
           action: (n.action_data as any)?.action || "",
           userId: n.user_id,
         }));
-        setNotifications(formatted);
+        return formatted;
       }
-    };
-
-    fetchNotifications();
-
-    // Real-time subscription for admin notifications
-    const channel = supabase
-      .channel("admin-notifications-realtime")
-      .on(
-        "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "notifications",
-        },
-        (payload) => {
-          console.log("New notification received in admin:", payload);
-          fetchNotifications(); // Refetch all notifications
-        }
-      )
-      .on(
-        "postgres_changes",
-        {
-          event: "UPDATE",
-          schema: "public",
-          table: "notifications",
-        },
-        () => {
-          fetchNotifications(); // Refetch all notifications
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, []);
+    }
+  });
 
   const getNotificationIcon = (type: string) => {
     switch (type) {
@@ -124,12 +99,7 @@ export const AdminNotifications: React.FC = () => {
   const handleCopyCode = (code: string, notificationId: string) => {
     navigator.clipboard.writeText(code);
 
-    // Mark as responded in local state
-    setNotifications((prev) =>
-      prev.map((n) =>
-        n.id === notificationId ? { ...n, status: "responded" } : n
-      )
-    );
+    queryClient.invalidateQueries({ queryKey: ['notifications'] });
 
     // Update in database
     supabase
@@ -144,10 +114,7 @@ export const AdminNotifications: React.FC = () => {
   };
 
   const handleViewPlayer = (playerName: string, notificationId: string) => {
-    // Mark as read in local state
-    setNotifications((prev) =>
-      prev.map((n) => (n.id === notificationId ? { ...n, status: "read" } : n))
-    );
+    queryClient.invalidateQueries({ queryKey: ['notifications'] });
 
     setSelectedPlayer({ name: playerName, id: notificationId });
     setIsModalOpen(true);
@@ -169,9 +136,7 @@ export const AdminNotifications: React.FC = () => {
       return;
     }
 
-    setNotifications((prev) =>
-      prev.map((n) => (n.id === notificationId ? { ...n, status: "read" } : n))
-    );
+    queryClient.invalidateQueries({ queryKey: ['notifications'] });
   };
 
   const markAllAsRead = async () => {
@@ -185,7 +150,7 @@ export const AdminNotifications: React.FC = () => {
       return;
     }
 
-    setNotifications((prev) => prev.map((n) => ({ ...n, status: "read" })));
+    queryClient.invalidateQueries({ queryKey: ['notifications'] });
     toast({
       title: "All Marked as Read",
       description: "All notifications have been marked as read",
@@ -203,7 +168,7 @@ export const AdminNotifications: React.FC = () => {
       return;
     }
 
-    setNotifications([]);
+    queryClient.invalidateQueries({ queryKey: ['notifications'] });
     toast({
       title: "Notifications Cleared",
       description: "All notifications have been cleared",
@@ -516,6 +481,24 @@ export const AdminNotifications: React.FC = () => {
           </div>
         </CardContent>
       </Card>
+
+      {/* Pagination */}
+      <div className="flex justify-center items-center space-x-4">
+        <Button 
+          onClick={() => setCurrentPage(prev => Math.max(prev - 1, 0))}
+          disabled={currentPage === 0}
+        >
+          Previous
+        </Button>
+        <span className="text-white">Page {currentPage + 1}</span>
+        <Button 
+          onClick={() => setCurrentPage(prev => prev + 1)}
+          disabled={notifications.length < itemsPerPage}
+        >
+          Next
+        </Button>
+      </div>
+
       <PlayerProfileModal
         open={isModalOpen}
         onOpenChange={setIsModalOpen}

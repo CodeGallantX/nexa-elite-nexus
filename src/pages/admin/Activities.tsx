@@ -43,16 +43,21 @@ export default function Activities() {
   
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState('all');
+  const [currentPage, setCurrentPage] = useState(0);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
 
   // Fetch activities with simpler query to avoid relation issues
   const { data: activities = [], isLoading, refetch } = useQuery({
-    queryKey: ['activities'],
+    queryKey: ['activities', currentPage, itemsPerPage],
     queryFn: async () => {
+      const from = currentPage * itemsPerPage;
+      const to = from + itemsPerPage - 1;
+
       const { data, error } = await supabase
         .from('activities')
         .select('*')
         .order('created_at', { ascending: false })
-        .limit(100);
+        .range(from, to);
 
       if (error) throw error;
       
@@ -374,6 +379,23 @@ export default function Activities() {
             );
           })
         )}
+      </div>
+
+      {/* Pagination */}
+      <div className="flex justify-center items-center space-x-4">
+        <Button 
+          onClick={() => setCurrentPage(prev => Math.max(prev - 1, 0))}
+          disabled={currentPage === 0}
+        >
+          Previous
+        </Button>
+        <span className="text-white">Page {currentPage + 1}</span>
+        <Button 
+          onClick={() => setCurrentPage(prev => prev + 1)}
+          disabled={activities.length < itemsPerPage}
+        >
+          Next
+        </Button>
       </div>
     </div>
   );
