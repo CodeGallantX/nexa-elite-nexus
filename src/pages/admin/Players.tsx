@@ -349,10 +349,10 @@ export const AdminPlayers: React.FC = () => {
                       {(profile?.role === 'admin' || profile?.role === 'moderator') && (
                         <Button
                           size="sm"
-                          variant="ghost"
+                          variant="outline"
                           className={`${player.is_banned 
-                            ? 'text-green-400 hover:text-green-300' 
-                            : 'text-orange-400 hover:text-orange-300'
+                            ? 'border-green-500/50 text-green-400 hover:bg-green-500/10' 
+                            : 'border-orange-500/50 text-orange-400 hover:bg-orange-500/10'
                           }`}
                           onClick={() => player.is_banned ? handleUnbanPlayer(player) : handleBanPlayer(player)}
                         >
