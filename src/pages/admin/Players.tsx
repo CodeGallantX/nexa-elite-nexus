@@ -229,7 +229,7 @@ export const AdminPlayers: React.FC = () => {
                         )}
                       </div>
                       <div>
-                        <div className="font-medium">{player.status === 'beta' ? 'N.B.' : 'Ɲ・乂'}{player.ign}</div>
+                        <div className="font-medium">{player.status === 'beta' ? 'Ɲ・乃' : 'Ɲ・乂'}{player.ign}</div>
                         <div className="text-sm text-gray-400">@{player.username}</div>
                         {player.is_banned && (
                           <Badge className="bg-red-100 text-red-800 text-xs mt-1">
