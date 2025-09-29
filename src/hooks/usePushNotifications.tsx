@@ -97,7 +97,7 @@ export const usePushNotifications = () => {
       const pushSubscription = await registration.pushManager.subscribe({
         userVisibleOnly: true,
         applicationServerKey: urlBase64ToUint8Array(
-          'BEl62iUYgUivxIkv69yViEuiBIa40HI80NM9hmKiVLFiWPpjjgZZoRuixOdMQgLnIuaTu2wCKwpJthZU8F8ksXM' // VAPID public key
+          import.meta.env.VITE_VAPID_PUBLIC_KEY!
         )
       });
 

@@ -1,11 +1,16 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts"
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import webpush from 'https://deno.land/x/webpush@0.2.0/mod.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
+
+const VAPID_PUBLIC_KEY = Deno.env.get('VAPID_PUBLIC_KEY')!;
+const VAPID_PRIVATE_KEY = Deno.env.get('VAPID_PRIVATE_KEY')!;
+const VAPID_EMAIL = 'mailto:ajibodegbolahan275@gmail.com';
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -68,10 +73,19 @@ serve(async (req) => {
 
     console.log(`Sending push notifications to ${subscriptions.length} subscribers`)
 
-    // Send push notifications using simplified approach for demo
+    webpush.setVapidDetails(VAPID_EMAIL, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
+
     const results = await Promise.allSettled(
       subscriptions.map(async (sub) => {
         try {
+          const pushSubscription = {
+            endpoint: sub.endpoint,
+            keys: {
+              p256dh: sub.p256dh_key,
+              auth: sub.auth_key,
+            },
+          };
+
           const payload = JSON.stringify({
             title: notification.title,
             body: notification.message,
@@ -93,40 +107,32 @@ serve(async (req) => {
             ],
             requireInteraction: false,
             silent: false
-          })
+          });
 
-          // Simplified push notification - in production, use proper web-push encryption
-          const response = await fetch(sub.endpoint, {
-            method: 'POST',
-            headers: {
-              'TTL': '86400',
-              'Content-Type': 'application/json',
-            },
-            body: payload
-          })
+          await webpush.sendNotification(pushSubscription, payload);
 
-          console.log(`Push notification sent to user ${sub.user_id}: ${response.status}`)
-          return { success: response.ok, userId: sub.user_id, status: response.status }
+          console.log(`Push notification sent to user ${sub.user_id}`);
+          return { success: true, userId: sub.user_id };
         } catch (pushError) {
           console.error(`Failed to send push notification to user ${sub.user_id}:`, pushError)
-          return { success: false, userId: sub.user_id, error: pushError.message }
+          return { success: false, userId: sub.user_id, error: pushError.message };
         }
       })
-    )
+    );
 
     const successCount = results.filter(r => r.status === 'fulfilled' && r.value.success).length
     console.log(`Push notifications sent successfully to ${successCount} out of ${subscriptions.length} subscribers`)
 
     return new Response(
-      JSON.stringify({ 
+      JSON.stringify({
         message: `Push notifications processed for ${subscriptions.length} subscribers`,
         successCount,
         totalSubscriptions: subscriptions.length,
         results: results.map(r => r.status === 'fulfilled' ? r.value : { success: false })
       }),
-      { 
+      {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 200 
+        status: 200
       }
     )
 
@@ -134,9 +140,9 @@ serve(async (req) => {
     console.error('Push notification error:', error)
     return new Response(
       JSON.stringify({ error: error.message }),
-      { 
+      {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 500 
+        status: 500
       }
     )
   }
