@@ -25,6 +25,7 @@ import {
   Sword,
   Swords,
   Activity,
+  SlidersHorizontal,
 } from 'lucide-react';
 import { NavItem } from '@/components/NavItem';
 
@@ -106,7 +107,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { icon: Megaphone, label: 'Announcements', path: '/admin/announcements' },
     { icon: Bell, label: 'Notifications', path: '/admin/notifications' },
     ...(profile?.role === 'clan_master' ? [{ icon: Activity, label: 'Activities', path: '/admin/activities' }] : []),
-    ...(profile?.role === 'clan_master' ? [{ icon: Settings, label: 'Configuration', path: '/admin/config' }] : []),
+    ...(profile?.role === 'clan_master' ? [{ icon: SlidersHorizontal, label: 'Configuration', path: '/admin/config' }] : []),
     { icon: Settings, label: 'Settings', path: '/settings' },
   ];
 
