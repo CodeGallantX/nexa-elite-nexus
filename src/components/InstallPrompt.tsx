@@ -48,7 +48,7 @@ const InstallPrompt: React.FC = () => {
   if (installPrompt) {
     return (
       <div className="fixed bottom-4 right-4 z-50">
-        <Button onClick={handleInstallClick}>Install App</Button>
+        <Button onClick={handleInstallClick}>Install Nexa Elite Nexus</Button>
       </div>
     );
   }
