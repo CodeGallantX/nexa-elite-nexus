@@ -155,7 +155,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 className="w-8 h-8 rounded-full object-cover"
               />
               <div>
-                <p className="text-sm font-medium text-foreground">{profile?.status === 'beta' ? 'N.B.' : 'Ɲ・乂'}{profile?.ign}</p>
+                <p className="text-sm font-medium text-foreground">{profile?.status === 'beta' ? 'Ɲ・乃' : 'Ɲ・乂'}{profile?.ign}</p>
                 <p className="text-xs text-muted-foreground capitalize">{profile?.role}</p>
               </div>
             </div>
