@@ -45,6 +45,8 @@ import { AdminConfig } from '@/pages/admin/Config';
 import AdminDashboard from '@/pages/AdminDashboard';
 import Activities from '@/pages/admin/Activities';
 
+import InstallPrompt from '@/components/InstallPrompt';
+
 function App() {
   return (
     <ThemeProvider>
@@ -95,6 +97,7 @@ function App() {
             <Route path="*" element={<NotFound />} />
           </Routes>
           <Toaster />
+          <InstallPrompt />
         </Router>
       </AuthProvider>
     </ThemeProvider>
