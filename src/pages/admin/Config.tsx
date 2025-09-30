@@ -110,7 +110,7 @@ export const AdminConfig: React.FC = () => {
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</TAlertDialogCancel>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
                 <AlertDialogAction onClick={handleResetAttendance}>Continue</AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>
