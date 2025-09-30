@@ -1,11 +1,21 @@
-
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': 'http://localhost:8080',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-}
+const allowedOrigins = [
+  'http://localhost:8080',
+  'http://localhost:8081',
+  'https://nexa-esports.vercel.app',
+];
+
+const getCorsHeaders = (request: Request) => {
+  const origin = request.headers.get('Origin') || '';
+  const isAllowed = allowedOrigins.includes(origin);
+  
+  return {
+    'Access-Control-Allow-Origin': isAllowed ? origin : 'https://nexa-esports.vercel.app',
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  };
+};
 
 const supabase = createClient(
   process.env.SUPABASE_URL || '',
@@ -17,6 +27,8 @@ addEventListener('fetch', event => {
 });
 
 async function handleRequest(request: Request) {
+  const corsHeaders = getCorsHeaders(request);
+
   if (request.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }
