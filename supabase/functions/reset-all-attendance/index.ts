@@ -33,25 +33,17 @@ async function handleRequest(request: Request) {
       return new Response(JSON.stringify({ error: 'Forbidden' }), { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
-    // 2. Reset player kills
-    const { error: profilesError } = await supabase
-      .from('profiles')
-      .update({ kills: 0 });
-
-    if (profilesError) {
-      throw profilesError;
-    }
-
-    // 3. Reset event kills
+    // 2. Reset attendance
     const { error: attendanceError } = await supabase
       .from('attendance')
-      .update({ event_kills: 0 });
+      .delete()
+      .neq('id', 0); // Trick to delete all rows
 
     if (attendanceError) {
       throw attendanceError;
     }
 
-    return new Response(JSON.stringify({ message: 'All player kills have been reset.' }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    return new Response(JSON.stringify({ message: 'All player attendance has been reset.' }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 
   } catch (error) {
     return new Response(JSON.stringify({ error: error.message }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });

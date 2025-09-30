@@ -131,3 +131,17 @@ export const logRoleChange = async (playerId: string, playerIGN: string, oldRole
     new_value: { role: newRole },
   });
 };
+
+export const logKillReset = async () => {
+  await logActivity({
+    action_type: 'reset_all_kills',
+    action_description: 'Superadmin reset all player kills',
+  });
+};
+
+export const logAttendanceReset = async () => {
+  await logActivity({
+    action_type: 'reset_all_attendance',
+    action_description: 'Superadmin reset all player attendance',
+  });
+};
