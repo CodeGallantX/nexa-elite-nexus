@@ -17,7 +17,6 @@ import {
 } from "@/components/ui/alert-dialog"
 
 import { logKillReset, logAttendanceReset } from "@/lib/activityLogger";
-// Temporary comment to force rebuild
 
 export const AdminConfig: React.FC = () => {
   const { toast } = useToast();
