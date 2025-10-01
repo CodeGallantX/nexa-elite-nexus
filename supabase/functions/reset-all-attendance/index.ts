@@ -2,16 +2,16 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const allowedOrigins = [
   'http://localhost:8080',
-  'http://localhost:8081',
+  'http://localhost:8081', 
   'https://nexa-esports.vercel.app',
 ];
 
 const getCorsHeaders = (request: Request) => {
   const origin = request.headers.get('Origin') || '';
-  const isAllowed = allowedOrigins.includes(origin);
+  const isAllowed = allowedOrigins.includes(origin) || origin.includes('lovable.app');
   
   return {
-    'Access-Control-Allow-Origin': isAllowed ? origin : 'https://nexa-esports.vercel.app',
+    'Access-Control-Allow-Origin': isAllowed ? origin : '*',
     'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
     'Access-Control-Allow-Methods': 'POST, OPTIONS',
   };

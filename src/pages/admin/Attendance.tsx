@@ -61,11 +61,11 @@ export const AdminAttendance: React.FC = () => {
     }
   });
 
-  // Fetch attendance records
-  const { data: attendanceRecords = [], isLoading: attendanceLoading } = useQuery({
-    queryKey: ['attendance', attendanceMode, selectedLobby],
-    queryFn: async (): Promise<any[]> => {
-      const result = await supabase
+  // Fetch attendance records with profiles and events
+  const { data: rawAttendanceData, isLoading: attendanceLoading } = useQuery({
+    queryKey: ['attendance-raw', attendanceMode, selectedLobby],
+    queryFn: async () => {
+      const result = await (supabase as any)
         .from('attendance')
         .select('*')
         .eq('attendance_type', attendanceMode)
@@ -73,24 +73,42 @@ export const AdminAttendance: React.FC = () => {
         .order('created_at', { ascending: false});
       
       if (result.error) throw result.error;
-      if (!result.data) return [];
-      
-      // Fetch related data separately
-      const records = await Promise.all(result.data.map(async (record) => {
-        const [profileResult, eventResult] = await Promise.all([
-          supabase.from('profiles').select('username, ign').eq('id', record.player_id).maybeSingle(),
-          supabase.from('events').select('name').eq('id', record.event_id).maybeSingle()
-        ]);
-        
-        return {
-          ...record,
-          profiles: profileResult.data || {},
-          events: eventResult.data || {}
-        };
-      }));
-      
-      return records;
+      return result.data;
     }
+  });
+
+  // Fetch profiles and events separately to avoid type issues
+  const { data: profilesData } = useQuery({
+    queryKey: ['attendance-profiles'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, username, ign');
+      if (error) throw error;
+      return data;
+    }
+  });
+
+  const { data: eventsData } = useQuery({
+    queryKey: ['attendance-events'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('events')
+        .select('id, name');
+      if (error) throw error;
+      return data;
+    }
+  });
+
+  // Combine the data
+  const attendanceRecords: AttendanceRecord[] = (rawAttendanceData || []).map((record: any) => {
+    const profile = profilesData?.find(p => p.id === record.player_id);
+    const event = eventsData?.find(e => e.id === record.event_id);
+    return {
+      ...record,
+      profiles: profile ? { username: profile.username, ign: profile.ign } : null,
+      events: event ? { name: event.name } : null
+    };
   });
 
   // Mark attendance mutation
