@@ -385,7 +385,7 @@ export const AdminPlayers: React.FC = () => {
                   <label className="text-gray-300 text-sm">Role</label>
                   <Select 
                     value={editingPlayer.role} 
-                    onValueChange={(value) => setEditingPlayer({...editingPlayer, role: value})}
+                    onValueChange={(value: 'player' | 'moderator' | 'admin' | 'clan_master') => setEditingPlayer({...editingPlayer, role: value})}
                   >
                     <SelectTrigger className="bg-gray-800 border-gray-600 text-white">
                       <SelectValue />

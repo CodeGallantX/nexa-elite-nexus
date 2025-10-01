@@ -62,22 +62,34 @@ export const AdminAttendance: React.FC = () => {
   });
 
   // Fetch attendance records
-  const { data: attendanceRecords = [], isLoading: attendanceLoading } = useQuery<AttendanceRecord[]>({
+  const { data: attendanceRecords = [], isLoading: attendanceLoading } = useQuery({
     queryKey: ['attendance', attendanceMode, selectedLobby],
-    queryFn: async () => {
-      const { data, error } = await supabase
+    queryFn: async (): Promise<any[]> => {
+      const result = await supabase
         .from('attendance')
-        .select(`
-          *,
-          profiles!attendance_player_id_fkey(username, ign),
-          events(name)
-        `)
+        .select('*')
         .eq('attendance_type', attendanceMode)
-        .eq('lobby', selectedLobby) // Filter by lobby
-        .order('created_at', { ascending: false });
+        .eq('lobby', selectedLobby)
+        .order('created_at', { ascending: false});
       
-      if (error) throw error;
-      return data;
+      if (result.error) throw result.error;
+      if (!result.data) return [];
+      
+      // Fetch related data separately
+      const records = await Promise.all(result.data.map(async (record) => {
+        const [profileResult, eventResult] = await Promise.all([
+          supabase.from('profiles').select('username, ign').eq('id', record.player_id).maybeSingle(),
+          supabase.from('events').select('name').eq('id', record.event_id).maybeSingle()
+        ]);
+        
+        return {
+          ...record,
+          profiles: profileResult.data || {},
+          events: eventResult.data || {}
+        };
+      }));
+      
+      return records;
     }
   });
 

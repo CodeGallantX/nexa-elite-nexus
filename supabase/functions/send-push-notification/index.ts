@@ -1,7 +1,79 @@
-import "https://deno.land/x/xhr@0.1.0/mod.ts"
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-import webpush from 'https://deno.land/x/webpush@0.2.0/mod.ts';
+
+// Web Push implementation using Web Crypto API
+const generateVAPIDAuthHeader = async (
+  audience: string,
+  subject: string,
+  publicKey: string,
+  privateKey: string
+) => {
+  const encoder = new TextEncoder();
+  const header = { typ: 'JWT', alg: 'ES256' };
+  const payload = {
+    aud: audience,
+    exp: Math.floor(Date.now() / 1000) + 12 * 60 * 60,
+    sub: subject,
+  };
+
+  const headerB64 = btoa(JSON.stringify(header)).replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_');
+  const payloadB64 = btoa(JSON.stringify(payload)).replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_');
+  
+  const unsignedToken = `${headerB64}.${payloadB64}`;
+  
+  // Import private key
+  const privateKeyBuffer = Uint8Array.from(atob(privateKey.replace(/-/g, '+').replace(/_/g, '/')), c => c.charCodeAt(0));
+  const key = await crypto.subtle.importKey(
+    'pkcs8',
+    privateKeyBuffer,
+    { name: 'ECDSA', namedCurve: 'P-256' },
+    false,
+    ['sign']
+  );
+  
+  const signature = await crypto.subtle.sign(
+    { name: 'ECDSA', hash: 'SHA-256' },
+    key,
+    encoder.encode(unsignedToken)
+  );
+  
+  const signatureB64 = btoa(String.fromCharCode(...new Uint8Array(signature)))
+    .replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_');
+  
+  return `${unsignedToken}.${signatureB64}`;
+};
+
+const sendWebPushNotification = async (
+  subscription: { endpoint: string; keys: { p256dh: string; auth: string } },
+  payload: string,
+  vapidDetails: { subject: string; publicKey: string; privateKey: string }
+) => {
+  const url = new URL(subscription.endpoint);
+  const audience = `${url.protocol}//${url.host}`;
+  
+  const vapidHeader = await generateVAPIDAuthHeader(
+    audience,
+    vapidDetails.subject,
+    vapidDetails.publicKey,
+    vapidDetails.privateKey
+  );
+
+  const response = await fetch(subscription.endpoint, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/octet-stream',
+      'Content-Encoding': 'aes128gcm',
+      'Authorization': `vapid t=${vapidHeader}, k=${vapidDetails.publicKey}`,
+      'TTL': '86400',
+    },
+    body: payload,
+  });
+
+  if (!response.ok) {
+    throw new Error(`Push notification failed: ${response.status} ${response.statusText}`);
+  }
+
+  return response;
+};
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -10,9 +82,9 @@ const corsHeaders = {
 
 const VAPID_PUBLIC_KEY = Deno.env.get('VAPID_PUBLIC_KEY')!;
 const VAPID_PRIVATE_KEY = Deno.env.get('VAPID_PRIVATE_KEY')!;
-const VAPID_EMAIL = 'mailto:ajibodegbolahan275@gmail.com';
+const VAPID_EMAIL = Deno.env.get('VAPID_EMAIL') || 'mailto:admin@nexa-esports.com';
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
@@ -73,7 +145,11 @@ serve(async (req) => {
 
     console.log(`Sending push notifications to ${subscriptions.length} subscribers`)
 
-    webpush.setVapidDetails(VAPID_EMAIL, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
+    const vapidDetails = {
+      subject: VAPID_EMAIL,
+      publicKey: VAPID_PUBLIC_KEY,
+      privateKey: VAPID_PRIVATE_KEY,
+    };
 
     const results = await Promise.allSettled(
       subscriptions.map(async (sub) => {
@@ -109,7 +185,7 @@ serve(async (req) => {
             silent: false
           });
 
-          await webpush.sendNotification(pushSubscription, payload);
+          await sendWebPushNotification(pushSubscription, payload, vapidDetails);
 
           console.log(`Push notification sent to user ${sub.user_id}`);
           return { success: true, userId: sub.user_id };
