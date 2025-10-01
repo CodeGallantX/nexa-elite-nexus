@@ -28,10 +28,11 @@ import { Scrims } from '@/pages/Scrims';
 import { WeaponLoadouts } from '@/pages/WeaponLoadouts';
 import { Loadouts } from '@/pages/Loadouts';
 import { Announcements } from '@/pages/Announcements';
+import Statistics from '@/pages/Statistics';
 
 // Admin pages
 import { AdminPlayers } from '@/pages/admin/Players';
-import { AdminStats } from '@/pages/admin/Stats';
+
 import { AdminProfiles } from '@/pages/admin/Profiles';
 import { AdminLoadouts } from '@/pages/admin/Loadouts';
 import { AdminWeaponLayouts } from '@/pages/admin/WeaponLayouts';
@@ -44,6 +45,7 @@ import { AdminNotifications } from '@/pages/admin/Notifications';
 import { AdminConfig } from '@/pages/admin/Config';
 import AdminDashboard from '@/pages/AdminDashboard';
 import Activities from '@/pages/admin/Activities';
+
 
 import InstallPrompt from '@/components/InstallPrompt';
 
@@ -75,11 +77,12 @@ function App() {
             <Route path="/weapon-layouts" element={<Layout showSidebar><WeaponLoadouts /></Layout>} />
             <Route path="/loadouts" element={<Layout showSidebar><Loadouts /></Layout>} />
             <Route path="/announcements" element={<Layout showSidebar><Announcements /></Layout>} />
+            <Route path="/statistics" element={<Layout showSidebar><Statistics /></Layout>} />
 
             {/* Admin routes */}
             <Route path="/admin" element={<Layout showSidebar><AdminDashboard /></Layout>} />
             <Route path="/admin/players" element={<Layout showSidebar><AdminPlayers /></Layout>} />
-            <Route path="/admin/stats" element={<Layout showSidebar><AdminStats /></Layout>} />
+
             <Route path="/admin/profiles" element={<Layout showSidebar><AdminProfiles /></Layout>} />
             <Route path="/admin/loadouts" element={<Layout showSidebar><AdminLoadouts /></Layout>} />
             <Route path="/admin/weapon-layouts" element={<Layout showSidebar><AdminWeaponLayouts /></Layout>} />
@@ -92,6 +95,7 @@ function App() {
             <Route path="/admin/notifications" element={<Layout showSidebar><AdminNotifications /></Layout>} />
             <Route path="/admin/activities" element={<Layout showSidebar><Activities /></Layout>} />
             <Route path="/admin/config" element={<Layout showSidebar><AdminConfig /></Layout>} />
+
 
             {/* 404 */}
             <Route path="*" element={<NotFound />} />

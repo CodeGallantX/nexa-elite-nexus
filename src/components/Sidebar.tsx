@@ -76,6 +76,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { icon: Package, label: 'My Loadouts', path: '/loadouts' },
     { icon: Sword, label: 'Weapon Layouts', path: '/weapon-layouts' },
     { icon: Megaphone, label: 'Announcements', path: '/announcements' },
+    { icon: BarChart3, label: 'Statistics', path: '/statistics' },
     { icon: Settings, label: 'Settings', path: '/settings' },
   ];
 
@@ -87,6 +88,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { icon: Sword, label: 'Weapon Layouts', path: '/weapon-layouts' },
     { icon: Clock, label: 'Attendance', path: '/admin/attendance' },
     { icon: Megaphone, label: 'Announcements', path: '/announcements' },
+    { icon: BarChart3, label: 'Statistics', path: '/statistics' },
     { icon: Settings, label: 'Settings', path: '/settings' },
   ];
 
@@ -94,7 +96,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { icon: Shield, label: 'Admin Dashboard', path: '/admin' },
     { icon: Users, label: 'Players', path: '/admin/players' },
 
-    { icon: BarChart3, label: 'Statistics', path: '/admin/stats' },
+    { icon: BarChart3, label: 'Statistics', path: '/statistics' },
     { icon: UserCog, label: 'Profiles', path: '/admin/profiles' },
     { icon: Package, label: 'My Loadouts', path: '/loadouts' },
     { icon: Codesandbox, label: 'Loadouts', path: '/admin/loadouts' },
