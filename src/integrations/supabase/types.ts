@@ -46,32 +46,29 @@ export type Database = {
       }
       activities: {
         Row: {
-          action_description: string
           action_type: string
+          category: string | null
           created_at: string | null
+          details: Json | null
           id: string
-          new_value: Json | null
-          old_value: Json | null
           performed_by: string | null
           target_user_id: string | null
         }
         Insert: {
-          action_description: string
           action_type: string
+          category?: string | null
           created_at?: string | null
+          details?: Json | null
           id?: string
-          new_value?: Json | null
-          old_value?: Json | null
           performed_by?: string | null
           target_user_id?: string | null
         }
         Update: {
-          action_description?: string
           action_type?: string
+          category?: string | null
           created_at?: string | null
+          details?: Json | null
           id?: string
-          new_value?: Json | null
-          old_value?: Json | null
           performed_by?: string | null
           target_user_id?: string | null
         }
@@ -122,39 +119,52 @@ export type Database = {
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "announcements_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "weekly_leaderboard"
+            referencedColumns: ["id"]
+          },
         ]
       }
       attendance: {
         Row: {
           attendance_type: Database["public"]["Enums"]["event_type"]
+          br_kills: number | null
           created_at: string | null
           date: string
           event_id: string | null
           event_kills: number | null
           id: string
           marked_by: string | null
+          mp_kills: number | null
           player_id: string | null
           status: Database["public"]["Enums"]["attendance_status"]
         }
         Insert: {
           attendance_type: Database["public"]["Enums"]["event_type"]
+          br_kills?: number | null
           created_at?: string | null
           date?: string
           event_id?: string | null
           event_kills?: number | null
           id?: string
           marked_by?: string | null
+          mp_kills?: number | null
           player_id?: string | null
           status: Database["public"]["Enums"]["attendance_status"]
         }
         Update: {
           attendance_type?: Database["public"]["Enums"]["event_type"]
+          br_kills?: number | null
           created_at?: string | null
           date?: string
           event_id?: string | null
           event_kills?: number | null
           id?: string
           marked_by?: string | null
+          mp_kills?: number | null
           player_id?: string | null
           status?: Database["public"]["Enums"]["attendance_status"]
         }
@@ -174,10 +184,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "attendance_marked_by_fkey"
+            columns: ["marked_by"]
+            isOneToOne: false
+            referencedRelation: "weekly_leaderboard"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "attendance_player_id_fkey"
             columns: ["player_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "attendance_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "weekly_leaderboard"
             referencedColumns: ["id"]
           },
         ]
@@ -231,6 +255,13 @@ export type Database = {
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "chat_messages_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "weekly_leaderboard"
+            referencedColumns: ["id"]
+          },
         ]
       }
       event_groups: {
@@ -267,31 +298,37 @@ export type Database = {
       }
       event_participants: {
         Row: {
+          br_kills: number | null
           created_at: string | null
           event_id: string | null
           group_id: string | null
           id: string
           kills: number | null
+          mp_kills: number | null
           player_id: string | null
           role: string | null
           verified: boolean | null
         }
         Insert: {
+          br_kills?: number | null
           created_at?: string | null
           event_id?: string | null
           group_id?: string | null
           id?: string
           kills?: number | null
+          mp_kills?: number | null
           player_id?: string | null
           role?: string | null
           verified?: boolean | null
         }
         Update: {
+          br_kills?: number | null
           created_at?: string | null
           event_id?: string | null
           group_id?: string | null
           id?: string
           kills?: number | null
+          mp_kills?: number | null
           player_id?: string | null
           role?: string | null
           verified?: boolean | null
@@ -316,6 +353,13 @@ export type Database = {
             columns: ["player_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_participants_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "weekly_leaderboard"
             referencedColumns: ["id"]
           },
         ]
@@ -366,6 +410,13 @@ export type Database = {
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "events_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "weekly_leaderboard"
             referencedColumns: ["id"]
           },
         ]
@@ -421,6 +472,13 @@ export type Database = {
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "loadouts_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "weekly_leaderboard"
+            referencedColumns: ["id"]
+          },
         ]
       }
       notifications: {
@@ -468,6 +526,13 @@ export type Database = {
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "notifications_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "weekly_leaderboard"
+            referencedColumns: ["id"]
+          },
         ]
       }
       profiles: {
@@ -480,6 +545,7 @@ export type Database = {
           banned_by: string | null
           best_gun: string | null
           br_class: string | null
+          br_kills: number | null
           created_at: string | null
           date_joined: string | null
           device: string | null
@@ -489,10 +555,12 @@ export type Database = {
           is_banned: boolean | null
           kills: number | null
           mp_class: string | null
+          mp_kills: number | null
           player_uid: string | null
           preferred_mode: string | null
           role: Database["public"]["Enums"]["user_role"]
           social_links: Json | null
+          status: string
           tier: string | null
           tiktok_handle: string | null
           updated_at: string | null
@@ -507,6 +575,7 @@ export type Database = {
           banned_by?: string | null
           best_gun?: string | null
           br_class?: string | null
+          br_kills?: number | null
           created_at?: string | null
           date_joined?: string | null
           device?: string | null
@@ -516,10 +585,12 @@ export type Database = {
           is_banned?: boolean | null
           kills?: number | null
           mp_class?: string | null
+          mp_kills?: number | null
           player_uid?: string | null
           preferred_mode?: string | null
           role?: Database["public"]["Enums"]["user_role"]
           social_links?: Json | null
+          status?: string
           tier?: string | null
           tiktok_handle?: string | null
           updated_at?: string | null
@@ -534,6 +605,7 @@ export type Database = {
           banned_by?: string | null
           best_gun?: string | null
           br_class?: string | null
+          br_kills?: number | null
           created_at?: string | null
           date_joined?: string | null
           device?: string | null
@@ -543,10 +615,12 @@ export type Database = {
           is_banned?: boolean | null
           kills?: number | null
           mp_class?: string | null
+          mp_kills?: number | null
           player_uid?: string | null
           preferred_mode?: string | null
           role?: Database["public"]["Enums"]["user_role"]
           social_links?: Json | null
+          status?: string
           tier?: string | null
           tiktok_handle?: string | null
           updated_at?: string | null
@@ -635,6 +709,13 @@ export type Database = {
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "weapon_layouts_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "weekly_leaderboard"
+            referencedColumns: ["id"]
+          },
         ]
       }
     }
@@ -646,6 +727,23 @@ export type Database = {
           total_kills: number | null
           total_loadouts: number | null
           total_players: number | null
+        }
+        Relationships: []
+      }
+      weekly_leaderboard: {
+        Row: {
+          avatar_url: string | null
+          grade: string | null
+          id: string | null
+          ign: string | null
+          tier: string | null
+          total_br_kills: number | null
+          total_kills: number | null
+          total_mp_kills: number | null
+          username: string | null
+          weekly_br_kills: number | null
+          weekly_mp_kills: number | null
+          weekly_total_kills: number | null
         }
         Relationships: []
       }

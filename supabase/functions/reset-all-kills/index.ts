@@ -18,15 +18,11 @@ const getCorsHeaders = (request: Request) => {
 };
 
 const supabase = createClient(
-  process.env.SUPABASE_URL || '',
-  process.env.SUPABASE_ANON_KEY || '',
+  Deno.env.get('SUPABASE_URL') || '',
+  Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '',
 );
 
-addEventListener('fetch', event => {
-  event.respondWith(handleRequest(event.request));
-});
-
-async function handleRequest(request: Request) {
+Deno.serve(async (request: Request) => {
   const corsHeaders = getCorsHeaders(request);
 
   if (request.method === 'OPTIONS') {
@@ -34,10 +30,20 @@ async function handleRequest(request: Request) {
   }
 
   try {
-    // 1. Check for clan master role
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    const authHeader = request.headers.get('Authorization');
+    if (!authHeader) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), { 
+        status: 401, 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      });
+    }
+
+    const { data: { user }, error: authError } = await supabase.auth.getUser(authHeader.replace('Bearer ', ''));
+    if (authError || !user) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), { 
+        status: 401, 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      });
     }
 
     const { data: profile, error: profileError } = await supabase
@@ -47,30 +53,42 @@ async function handleRequest(request: Request) {
       .single();
 
     if (profileError || !profile || profile.role !== 'clan_master') {
-      return new Response(JSON.stringify({ error: 'Forbidden' }), { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      return new Response(JSON.stringify({ error: 'Forbidden' }), { 
+        status: 403, 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      });
     }
 
-    // 2. Reset player kills
+    // Reset player kills (BR, MP, and total)
     const { error: profilesError } = await supabase
       .from('profiles')
-      .update({ kills: 0 });
+      .update({ kills: 0, br_kills: 0, mp_kills: 0 })
+      .neq('id', '00000000-0000-0000-0000-000000000000');
 
     if (profilesError) {
       throw profilesError;
     }
 
-    // 3. Reset event kills
+    // Reset attendance kills
     const { error: attendanceError } = await supabase
       .from('attendance')
-      .update({ event_kills: 0 });
+      .update({ event_kills: 0, br_kills: 0, mp_kills: 0 })
+      .neq('id', '00000000-0000-0000-0000-000000000000');
 
     if (attendanceError) {
       throw attendanceError;
     }
 
-    return new Response(JSON.stringify({ message: 'All player kills have been reset.' }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    return new Response(
+      JSON.stringify({ message: 'All player kills have been reset.' }), 
+      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
 
   } catch (error) {
-    return new Response(JSON.stringify({ error: error.message }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    return new Response(
+      JSON.stringify({ error: errorMessage }), 
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
   }
-}
+});

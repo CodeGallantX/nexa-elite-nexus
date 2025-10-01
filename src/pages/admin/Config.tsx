@@ -25,14 +25,30 @@ export const AdminConfig: React.FC = () => {
   const handleResetKills = async () => {
     setIsResetting(true);
     try {
-      const { error } = await supabase.functions.invoke('reset-all-kills');
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        throw new Error('Not authenticated');
+      }
+
+      const { data, error } = await supabase.functions.invoke('reset-all-kills', {
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
+      });
+
       if (error) {
         throw error;
       }
+
+      if (data?.error) {
+        throw new Error(data.error);
+      }
+
       await logKillReset();
       toast({ title: 'Success', description: 'All player kills have been reset.' });
     } catch (error) {
-      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+      const errorMessage = error instanceof Error ? error.message : 'Failed to reset kills';
+      toast({ title: 'Error', description: errorMessage, variant: 'destructive' });
     } finally {
       setIsResetting(false);
     }
@@ -41,14 +57,30 @@ export const AdminConfig: React.FC = () => {
   const handleResetAttendance = async () => {
     setIsResetting(true);
     try {
-      const { error } = await supabase.functions.invoke('reset-all-attendance');
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        throw new Error('Not authenticated');
+      }
+
+      const { data, error } = await supabase.functions.invoke('reset-all-attendance', {
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
+      });
+
       if (error) {
         throw error;
       }
+
+      if (data?.error) {
+        throw new Error(data.error);
+      }
+
       await logAttendanceReset();
       toast({ title: 'Success', description: 'All player attendance has been reset.' });
     } catch (error) {
-      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+      const errorMessage = error instanceof Error ? error.message : 'Failed to reset attendance';
+      toast({ title: 'Error', description: errorMessage, variant: 'destructive' });
     } finally {
       setIsResetting(false);
     }

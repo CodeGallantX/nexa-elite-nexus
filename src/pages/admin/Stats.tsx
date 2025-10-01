@@ -5,12 +5,15 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { usePlayerStats } from '@/hooks/usePlayerStats';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
-import { Trophy, Target, TrendingUp, Users, AlertTriangle } from 'lucide-react';
+import { useWeeklyLeaderboard } from '@/hooks/useWeeklyLeaderboard';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
+import { Trophy, Target, TrendingUp, Users, AlertTriangle, Flame } from 'lucide-react';
 
 export const AdminStats: React.FC = () => {
   const { data: playerStats, isLoading, isError, refetch } = usePlayerStats();
+  const { data: weeklyLeaderboard, isLoading: isLoadingWeekly } = useWeeklyLeaderboard();
   const [sortBy, setSortBy] = useState('totalEventKills');
 
   const sortedStats = playerStats?.sort((a, b) => {
@@ -30,9 +33,9 @@ export const AdminStats: React.FC = () => {
 
   const chartData = sortedStats.slice(0, 10).map(player => ({
     name: player.ign,
-    kills: player.totalEventKills || 0,
-    avgKills: player.avgKillsPerEvent || 0,
-    events: player.eventsParticipated || 0
+    'BR Kills': player.br_kills || 0,
+    'MP Kills': player.mp_kills || 0,
+    'Total Kills': player.kills || 0,
   }));
 
   const tierDistribution = playerStats?.reduce((acc, player) => {
@@ -77,7 +80,7 @@ export const AdminStats: React.FC = () => {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold text-white">Player Statistics</h1>
+        <h1 className="text-3xl font-bold text-white">Player Statistics & Leaderboards</h1>
       </div>
 
       {/* Overview Cards */}
@@ -127,6 +130,47 @@ export const AdminStats: React.FC = () => {
         </Card>
       </div>
 
+      {/* Weekly Leaderboard */}
+      <Card className="bg-white/5 border-white/10 backdrop-blur-sm">
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <Flame className="h-5 w-5 text-orange-500" />
+            <CardTitle className="text-white">Weekly Leaderboard (Last 7 Days)</CardTitle>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow className="border-gray-700">
+                <TableHead className="text-gray-300">Rank</TableHead>
+                <TableHead className="text-gray-300">Player</TableHead>
+                <TableHead className="text-gray-300">BR Kills</TableHead>
+                <TableHead className="text-gray-300">MP Kills</TableHead>
+                <TableHead className="text-gray-300">Total Weekly</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {weeklyLeaderboard?.slice(0, 10).map((player, index) => (
+                <TableRow key={player.id} className="border-gray-700">
+                  <TableCell className="text-white font-bold">
+                    {index === 0 && '🥇'}
+                    {index === 1 && '🥈'}
+                    {index === 2 && '🥉'}
+                    {index > 2 && `#${index + 1}`}
+                  </TableCell>
+                  <TableCell className="text-white">
+                    <div className="font-medium">Ɲ・乂{player.ign}</div>
+                  </TableCell>
+                  <TableCell className="text-blue-400 font-medium">{player.weekly_br_kills}</TableCell>
+                  <TableCell className="text-green-400 font-medium">{player.weekly_mp_kills}</TableCell>
+                  <TableCell className="text-white font-bold">{player.weekly_total_kills}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+
       {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card className="bg-white/5 border-white/10 backdrop-blur-sm">
@@ -147,7 +191,9 @@ export const AdminStats: React.FC = () => {
                     color: '#fff'
                   }} 
                 />
-                <Bar dataKey="kills" fill="#FF1F44" />
+                <Legend />
+                <Bar dataKey="BR Kills" fill="#3B82F6" />
+                <Bar dataKey="MP Kills" fill="#10B981" />
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
@@ -213,8 +259,9 @@ export const AdminStats: React.FC = () => {
                 <TableHead className="text-gray-300">Rank</TableHead>
                 <TableHead className="text-gray-300">Player</TableHead>
                 <TableHead className="text-gray-300">Tier</TableHead>
+                <TableHead className="text-gray-300">BR Kills</TableHead>
+                <TableHead className="text-gray-300">MP Kills</TableHead>
                 <TableHead className="text-gray-300">Total Kills</TableHead>
-                <TableHead className="text-gray-300">Avg Kills/Event</TableHead>
                 <TableHead className="text-gray-300">Events</TableHead>
                 <TableHead className="text-gray-300">Attendance</TableHead>
                 <TableHead className="text-gray-300">Grade</TableHead>
@@ -242,8 +289,9 @@ export const AdminStats: React.FC = () => {
                       {player.tier || 'Rookie'}
                     </Badge>
                   </TableCell>
-                  <TableCell className="text-white font-medium">{player.totalEventKills || 0}</TableCell>
-                  <TableCell className="text-white">{player.avgKillsPerEvent || 0}</TableCell>
+                  <TableCell className="text-blue-400 font-medium">{player.br_kills || 0}</TableCell>
+                  <TableCell className="text-green-400 font-medium">{player.mp_kills || 0}</TableCell>
+                  <TableCell className="text-white font-bold">{player.kills || 0}</TableCell>
                   <TableCell className="text-white">{player.eventsParticipated || 0}</TableCell>
                   <TableCell className="text-white">{player.attendance || 0}%</TableCell>
                   <TableCell>
