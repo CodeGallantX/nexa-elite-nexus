@@ -126,7 +126,9 @@ export const AdminAttendance: React.FC = () => {
         attendance_type: attendanceMode,
         date: selectedDate,
         event_kills: kills || 0,
-        lobby: lobby, // Add lobby to the insert object
+        br_kills: attendanceMode === 'BR' ? (kills || 0) : 0,
+        mp_kills: attendanceMode === 'MP' ? (kills || 0) : 0,
+        lobby: lobby,
       });
 
     if (error) throw error;
@@ -136,6 +138,7 @@ export const AdminAttendance: React.FC = () => {
   },
   onSuccess: () => {
   queryClient.invalidateQueries({ queryKey: ['attendance'] });
+  queryClient.invalidateQueries({ queryKey: ['attendance-raw'] });
   queryClient.invalidateQueries({ queryKey: ['players'] }); // refresh kills
 }
 

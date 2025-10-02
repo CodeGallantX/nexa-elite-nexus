@@ -210,7 +210,8 @@ export const AdminPlayers: React.FC = () => {
                 <TableHead className="text-gray-300">Role</TableHead>
                 <TableHead className="text-gray-300">Grade</TableHead>
                 <TableHead className="text-gray-300">Tier</TableHead>
-                <TableHead className="text-gray-300">Kills</TableHead>
+                <TableHead className="text-gray-300">Total Kills</TableHead>
+                <TableHead className="text-gray-300">BR/MP</TableHead>
                 <TableHead className="text-gray-300">Attendance</TableHead>
                 <TableHead className="text-gray-300">Joined</TableHead>
                 <TableHead className="text-gray-300">Actions</TableHead>
@@ -254,7 +255,13 @@ export const AdminPlayers: React.FC = () => {
                       {player.tier || '4'}
                     </Badge>
                   </TableCell>
-                  <TableCell className="text-white">{player.kills || 0}</TableCell>
+                  <TableCell className="text-white font-bold">{player.kills || 0}</TableCell>
+                  <TableCell className="text-white">
+                    <div className="text-xs">
+                      <div className="text-blue-400">BR: {player.br_kills || 0}</div>
+                      <div className="text-green-400">MP: {player.mp_kills || 0}</div>
+                    </div>
+                  </TableCell>
                   <TableCell className="text-white">{player.attendance || 0}%</TableCell>
                   <TableCell className="text-white">
                     {player.date_joined ? new Date(player.date_joined).toLocaleDateString() : 'N/A'}
