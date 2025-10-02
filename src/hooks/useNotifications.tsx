@@ -180,15 +180,6 @@ export const useNotifications = () => {
         new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
     );
 
-  console.log("useNotifications - All notifications:", notifications);
-  console.log("useNotifications - User role:", profile?.role);
-  console.log("useNotifications - Announcements:", announcements);
-  console.log("useNotifications - Event notifications:", eventNotifications);
-  console.log("useNotifications - Admin notifications:", adminNotifications);
-  console.log(
-    "useNotifications - User-specific notifications:",
-    userSpecificNotifications
-  );
 
   // Mark notification as read
   const markAsReadMutation = useMutation({

@@ -137,6 +137,7 @@ export type Database = {
           event_id: string | null
           event_kills: number | null
           id: string
+          lobby: number | null
           marked_by: string | null
           mp_kills: number | null
           player_id: string | null
@@ -150,6 +151,7 @@ export type Database = {
           event_id?: string | null
           event_kills?: number | null
           id?: string
+          lobby?: number | null
           marked_by?: string | null
           mp_kills?: number | null
           player_id?: string | null
@@ -163,6 +165,7 @@ export type Database = {
           event_id?: string | null
           event_kills?: number | null
           id?: string
+          lobby?: number | null
           marked_by?: string | null
           mp_kills?: number | null
           player_id?: string | null
