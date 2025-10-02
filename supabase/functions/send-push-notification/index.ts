@@ -191,7 +191,8 @@ Deno.serve(async (req) => {
           return { success: true, userId: sub.user_id };
         } catch (pushError) {
           console.error(`Failed to send push notification to user ${sub.user_id}:`, pushError)
-          return { success: false, userId: sub.user_id, error: pushError.message };
+          const errorMessage = pushError instanceof Error ? pushError.message : 'Unknown error';
+          return { success: false, userId: sub.user_id, error: errorMessage };
         }
       })
     );
@@ -214,8 +215,9 @@ Deno.serve(async (req) => {
 
   } catch (error) {
     console.error('Push notification error:', error)
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: errorMessage }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 500

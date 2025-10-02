@@ -208,7 +208,7 @@ export const AdminAttendance: React.FC = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-foreground font-orbitron mb-2">Attendance Management {profile?.role === 'beta_player' && <Badge className="ml-2">Beta</Badge>}</h1>
+          <h1 className="text-3xl font-bold text-foreground font-orbitron mb-2">Attendance Management</h1>
           <p className="text-muted-foreground font-rajdhani">Track and manage player attendance</p>
         </div>
       </div>

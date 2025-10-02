@@ -1,14 +1,284 @@
-import { FC } from "react";
+import { FC, useState, useEffect, useRef } from "react";
 import { useAuth } from '@/contexts/AuthContext';
-import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useWeeklyLeaderboard } from '@/hooks/useWeeklyLeaderboard';
+import { supabase } from '@/integrations/supabase/client';
+import { Award, Trophy, Target, Share2, Link2, Download } from 'lucide-react';
+import { toast } from 'sonner';
+import html2canvas from 'html2canvas';
 
 const Statistics: FC = () => {
-  const { profile } = useAuth();
+  const { user } = useAuth();
+  const [filter, setFilter] = useState<'overall' | 'br' | 'mp'>('overall');
+  const [limit] = useState(10);
+  const { data: leaderboardData, isLoading, refetch } = useWeeklyLeaderboard();
+  const leaderboardRef = useRef<HTMLDivElement>(null);
+
+  // Real-time updates for attendance changes
+  useEffect(() => {
+    const channel = supabase
+      .channel('attendance-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'attendance'
+        },
+        () => {
+          console.log('Attendance updated, refreshing leaderboard');
+          refetch();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [refetch]);
+
+  if (!user) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <Card className="bg-card/50 backdrop-blur border-primary/20">
+          <CardContent className="pt-6">
+            <p className="text-center text-muted-foreground">Please log in to view statistics.</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  const getFilteredData = () => {
+    if (!leaderboardData) return [];
+    
+    let sortedData = [...leaderboardData];
+    
+    switch (filter) {
+      case 'br':
+        sortedData.sort((a, b) => (b.weekly_br_kills || 0) - (a.weekly_br_kills || 0));
+        break;
+      case 'mp':
+        sortedData.sort((a, b) => (b.weekly_mp_kills || 0) - (a.weekly_mp_kills || 0));
+        break;
+      default:
+        sortedData.sort((a, b) => (b.weekly_total_kills || 0) - (a.weekly_total_kills || 0));
+    }
+    
+    return sortedData.slice(0, limit);
+  };
+
+  const handleCopyLink = async () => {
+    try {
+      const url = window.location.href;
+      await navigator.clipboard.writeText(url);
+      toast.success('Link copied to clipboard!');
+    } catch (error) {
+      toast.error('Failed to copy link');
+    }
+  };
+
+  const handleExportImage = async () => {
+    if (!leaderboardRef.current) return;
+    
+    try {
+      toast.info('Generating image...');
+      const canvas = await html2canvas(leaderboardRef.current, {
+        backgroundColor: '#0a0a0f',
+        scale: 2,
+      });
+      
+      canvas.toBlob((blob) => {
+        if (!blob) return;
+        
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `nexa-leaderboard-${filter}-${new Date().toISOString().split('T')[0]}.png`;
+        link.click();
+        URL.revokeObjectURL(url);
+        toast.success('Leaderboard image downloaded!');
+      });
+    } catch (error) {
+      toast.error('Failed to export image');
+      console.error('Export error:', error);
+    }
+  };
+
+  const handleShare = async () => {
+    if (!leaderboardRef.current) return;
+    
+    try {
+      const canvas = await html2canvas(leaderboardRef.current, {
+        backgroundColor: '#0a0a0f',
+        scale: 2,
+      });
+      
+      canvas.toBlob(async (blob) => {
+        if (!blob) return;
+        
+        const file = new File([blob], `nexa-leaderboard-${filter}.png`, { type: 'image/png' });
+        
+        if (navigator.share && navigator.canShare({ files: [file] })) {
+          await navigator.share({
+            title: 'NeXa Esports Leaderboard',
+            text: `Check out the top ${limit} players in ${filter === 'overall' ? 'overall' : filter.toUpperCase()} kills!`,
+            files: [file]
+          });
+          toast.success('Shared successfully!');
+        } else {
+          // Fallback to download
+          handleExportImage();
+        }
+      });
+    } catch (error) {
+      toast.error('Failed to share');
+      console.error('Share error:', error);
+    }
+  };
+
+  const getMedalIcon = (position: number) => {
+    switch (position) {
+      case 1:
+        return <Trophy className="w-6 h-6 text-yellow-400" />;
+      case 2:
+        return <Award className="w-6 h-6 text-gray-400" />;
+      case 3:
+        return <Award className="w-6 h-6 text-amber-600" />;
+      default:
+        return <span className="text-lg font-bold text-muted-foreground">#{position}</span>;
+    }
+  };
+
+  const getKillsForFilter = (player: any) => {
+    switch (filter) {
+      case 'br':
+        return player.weekly_br_kills || 0;
+      case 'mp':
+        return player.weekly_mp_kills || 0;
+      default:
+        return player.weekly_total_kills || 0;
+    }
+  };
+
+  const filteredData = getFilteredData();
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold mb-4">Player Statistics {profile?.role === 'beta_player' && <Badge className="ml-2">Beta</Badge>}</h1>
-      <p>This page is under construction. Check back later for exciting new features!</p>
+      <div className="mb-8">
+        <h1 className="text-4xl font-bold text-foreground font-orbitron mb-2">
+          Player Statistics & Leaderboard
+        </h1>
+        <p className="text-muted-foreground font-rajdhani">
+          Weekly performance rankings - Updated in real-time
+        </p>
+      </div>
+
+      <div className="flex justify-end gap-2 mb-6">
+        <Button variant="outline" size="sm" onClick={handleCopyLink}>
+          <Link2 className="w-4 h-4 mr-2" />
+          Copy Link
+        </Button>
+        <Button variant="outline" size="sm" onClick={handleExportImage}>
+          <Download className="w-4 h-4 mr-2" />
+          Download
+        </Button>
+        <Button variant="default" size="sm" onClick={handleShare}>
+          <Share2 className="w-4 h-4 mr-2" />
+          Share
+        </Button>
+      </div>
+
+      <Tabs value={filter} onValueChange={(v) => setFilter(v as any)} className="w-full">
+        <TabsList className="grid w-full grid-cols-3 mb-6">
+          <TabsTrigger value="overall" className="flex items-center gap-2">
+            <Trophy className="w-4 h-4" />
+            Overall
+          </TabsTrigger>
+          <TabsTrigger value="br" className="flex items-center gap-2">
+            <Target className="w-4 h-4" />
+            Battle Royale
+          </TabsTrigger>
+          <TabsTrigger value="mp" className="flex items-center gap-2">
+            <Award className="w-4 h-4" />
+            Multiplayer
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value={filter}>
+          <Card ref={leaderboardRef} className="bg-card/50 backdrop-blur border-primary/20">
+            <CardHeader className="pb-4">
+              <CardTitle className="font-orbitron flex items-center gap-2">
+                <Trophy className="w-5 h-5 text-primary" />
+                Top {limit} - {filter === 'overall' ? 'Overall' : filter.toUpperCase()} Weekly Kills
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {isLoading ? (
+                <div className="text-center py-8">
+                  <p className="text-muted-foreground">Loading leaderboard...</p>
+                </div>
+              ) : filteredData.length === 0 ? (
+                <div className="text-center py-8">
+                  <p className="text-muted-foreground">No data available yet.</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {filteredData.map((player, index) => {
+                    const kills = getKillsForFilter(player);
+                    const position = index + 1;
+                    
+                    return (
+                      <div
+                        key={player.id}
+                        className={`
+                          flex items-center gap-4 p-4 rounded-lg transition-all
+                          ${position === 1 ? 'bg-gradient-to-r from-yellow-500/10 to-transparent border border-yellow-500/30' :
+                            position === 2 ? 'bg-gradient-to-r from-gray-400/10 to-transparent border border-gray-400/30' :
+                            position === 3 ? 'bg-gradient-to-r from-amber-600/10 to-transparent border border-amber-600/30' :
+                            'bg-secondary/30 border border-border/50'}
+                        `}
+                      >
+                        <div className="flex items-center justify-center w-12">
+                          {getMedalIcon(position)}
+                        </div>
+                        
+                        <div className="flex items-center gap-3 flex-1">
+                          {player.avatar_url ? (
+                            <img 
+                              src={player.avatar_url} 
+                              alt={player.ign}
+                              className="w-10 h-10 rounded-full object-cover border-2 border-primary/30"
+                            />
+                          ) : (
+                            <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
+                              <span className="text-primary font-bold">{player.ign?.[0] || '?'}</span>
+                            </div>
+                          )}
+                          
+                          <div className="flex-1">
+                            <p className="font-semibold text-foreground">{player.ign}</p>
+                            <p className="text-sm text-muted-foreground">
+                              {player.tier} • {player.grade}
+                            </p>
+                          </div>
+                        </div>
+                        
+                        <div className="text-right">
+                          <p className="text-2xl font-bold text-primary">{kills}</p>
+                          <p className="text-xs text-muted-foreground">kills</p>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };

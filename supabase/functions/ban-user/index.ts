@@ -34,8 +34,8 @@ Deno.serve(async (req) => {
     const { userId, reason } = await req.json();
     const { data: { user }, error: userError } = await supabase.auth.admin.getUserById(userId);
 
-    if (userError) {
-      throw userError;
+    if (userError || !user) {
+      throw new Error('User not found');
     }
 
     const { error: profileError } = await supabase
@@ -52,7 +52,8 @@ Deno.serve(async (req) => {
       status: 200,
     });
   } catch (error) {
-    return new Response(JSON.stringify({ error: error.message }), {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    return new Response(JSON.stringify({ error: errorMessage }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 400,
     });
