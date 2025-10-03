@@ -137,10 +137,14 @@ export const AdminAttendance: React.FC = () => {
     return data;
   },
   onSuccess: () => {
-  queryClient.invalidateQueries({ queryKey: ['attendance'] });
-  queryClient.invalidateQueries({ queryKey: ['attendance-raw'] });
-  queryClient.invalidateQueries({ queryKey: ['players'] }); // refresh kills
-}
+    queryClient.invalidateQueries({ queryKey: ['attendance'] });
+    queryClient.invalidateQueries({ queryKey: ['attendance-raw'] });
+    queryClient.invalidateQueries({ queryKey: ['players'] });
+    queryClient.invalidateQueries({ queryKey: ['admin-players'] });
+    queryClient.invalidateQueries({ queryKey: ['profile'] });
+    queryClient.invalidateQueries({ queryKey: ['player-stats'] });
+    queryClient.invalidateQueries({ queryKey: ['weekly-leaderboard'] });
+  }
 
 });
 

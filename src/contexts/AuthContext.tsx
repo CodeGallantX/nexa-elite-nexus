@@ -14,6 +14,8 @@ interface UserProfile {
   preferred_mode?: string;
   device?: string;
   kills: number;
+  br_kills?: number;
+  mp_kills?: number;
   attendance: number;
   tier: string;
   grade: string;

@@ -166,17 +166,17 @@ const Statistics: FC = () => {
   const filteredData = getFilteredData();
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="mb-8">
-        <h1 className="text-4xl font-bold text-foreground font-orbitron mb-2">
+    <div className="container mx-auto px-2 py-4 sm:px-4 sm:py-6">
+      <div className="mb-4">
+        <h1 className="text-3xl sm:text-4xl font-bold text-foreground font-orbitron mb-1">
           Player Statistics & Leaderboard
         </h1>
-        <p className="text-muted-foreground font-rajdhani">
+        <p className="text-muted-foreground font-rajdhani text-sm">
           Weekly performance rankings - Updated in real-time
         </p>
       </div>
 
-      <div className="flex justify-end gap-2 mb-6">
+      <div className="flex justify-end gap-2 mb-4">
         <Button variant="outline" size="sm" onClick={handleCopyLink}>
           <Link2 className="w-4 h-4 mr-2" />
           Copy Link
@@ -192,7 +192,7 @@ const Statistics: FC = () => {
       </div>
 
       <Tabs value={filter} onValueChange={(v) => setFilter(v as any)} className="w-full">
-        <TabsList className="grid w-full grid-cols-3 mb-6">
+        <TabsList className="grid w-full grid-cols-3 mb-4">
           <TabsTrigger value="overall" className="flex items-center gap-2">
             <Trophy className="w-4 h-4" />
             Overall
@@ -209,23 +209,23 @@ const Statistics: FC = () => {
 
         <TabsContent value={filter}>
           <Card ref={leaderboardRef} className="bg-card/50 backdrop-blur border-primary/20">
-            <CardHeader className="pb-4">
-              <CardTitle className="font-orbitron flex items-center gap-2">
+            <CardHeader className="pb-2 pt-4">
+              <CardTitle className="font-orbitron flex items-center gap-2 text-base sm:text-lg">
                 <Trophy className="w-5 h-5 text-primary" />
                 Top {limit} - {filter === 'overall' ? 'Overall' : filter.toUpperCase()} Weekly Kills
               </CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="pt-2">
               {isLoading ? (
-                <div className="text-center py-8">
+                <div className="text-center py-6">
                   <p className="text-muted-foreground">Loading leaderboard...</p>
                 </div>
               ) : filteredData.length === 0 ? (
-                <div className="text-center py-8">
+                <div className="text-center py-6">
                   <p className="text-muted-foreground">No data available yet.</p>
                 </div>
               ) : (
-                <div className="space-y-3">
+                <div className="space-y-2">
                   {filteredData.map((player, index) => {
                     const kills = getKillsForFilter(player);
                     const position = index + 1;
@@ -234,7 +234,7 @@ const Statistics: FC = () => {
                       <div
                         key={player.id}
                         className={`
-                          flex items-center gap-4 p-4 rounded-lg transition-all
+                          flex items-center gap-3 p-3 rounded-lg transition-all
                           ${position === 1 ? 'bg-gradient-to-r from-yellow-500/10 to-transparent border border-yellow-500/30' :
                             position === 2 ? 'bg-gradient-to-r from-gray-400/10 to-transparent border border-gray-400/30' :
                             position === 3 ? 'bg-gradient-to-r from-amber-600/10 to-transparent border border-amber-600/30' :
