@@ -259,7 +259,9 @@ const Statistics: FC = () => {
                           )}
                           
                           <div className="flex-1">
-                            <p className="font-semibold text-foreground">{player.ign}</p>
+                            <p className="font-semibold text-foreground">
+                              {(player as any).player_type === 'beta' ? 'Ɲβ・' : 'Ɲ・'}乂{player.ign}
+                            </p>
                             <p className="text-sm text-muted-foreground">
                               {player.tier} • {player.grade}
                             </p>

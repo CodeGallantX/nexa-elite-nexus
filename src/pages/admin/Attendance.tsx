@@ -406,7 +406,9 @@ export const AdminAttendance: React.FC = () => {
                             <Users className="w-4 h-4 text-primary" />
                           </div>
                           <div>
-                            <div className="font-medium text-foreground font-rajdhani">Ɲ・乂{player.ign}</div>
+                            <div className="font-medium text-foreground font-rajdhani">
+                              {(player as any).player_type === 'beta' ? 'Ɲβ・' : 'Ɲ・'}乂{player.ign}
+                            </div>
                             <div className="text-sm text-muted-foreground font-rajdhani">
                               {player.attendance || 0}% attendance
                             </div>
