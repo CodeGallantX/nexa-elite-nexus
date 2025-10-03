@@ -501,7 +501,7 @@ export const AdminAttendance: React.FC = () => {
                       className="font-medium text-foreground font-rajdhani cursor-pointer hover:text-primary"
                       onClick={() => scrollToPlayer(record.profiles?.ign || '')}
                     >
-                      {record.profiles?.ign || 'Unknown Player'}
+                      {record.profiles ? `${(record.profiles as any).player_type === 'beta' ? 'Ɲβ・' : 'Ɲ・'}乂${record.profiles.ign}` : 'Unknown Player'}
                     </TableCell>
                     <TableCell className="text-muted-foreground font-rajdhani">
                       {record.events?.name || `${attendanceMode} Session`}

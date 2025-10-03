@@ -166,9 +166,9 @@ const Statistics: FC = () => {
   const filteredData = getFilteredData();
 
   return (
-    <div className="container mx-auto px-2 py-4 sm:px-4 sm:py-6">
-      <div className="mb-4">
-        <h1 className="text-3xl sm:text-4xl font-bold text-foreground font-orbitron mb-1">
+    <div className="container mx-auto px-2 py-2 sm:px-4 sm:py-4">
+      <div className="mb-3">
+        <h1 className="text-2xl sm:text-3xl font-bold text-foreground font-orbitron mb-1">
           Player Statistics & Leaderboard
         </h1>
         <p className="text-muted-foreground font-rajdhani text-sm">
@@ -176,7 +176,7 @@ const Statistics: FC = () => {
         </p>
       </div>
 
-      <div className="flex justify-end gap-2 mb-4">
+      <div className="flex flex-col sm:flex-row justify-end gap-2 mb-3">
         <Button variant="outline" size="sm" onClick={handleCopyLink}>
           <Link2 className="w-4 h-4 mr-2" />
           Copy Link
@@ -192,7 +192,7 @@ const Statistics: FC = () => {
       </div>
 
       <Tabs value={filter} onValueChange={(v) => setFilter(v as any)} className="w-full">
-        <TabsList className="grid w-full grid-cols-3 mb-4">
+        <TabsList className="grid w-full grid-cols-3 mb-3">
           <TabsTrigger value="overall" className="flex items-center gap-2">
             <Trophy className="w-4 h-4" />
             Overall
@@ -209,13 +209,13 @@ const Statistics: FC = () => {
 
         <TabsContent value={filter}>
           <Card ref={leaderboardRef} className="bg-card/50 backdrop-blur border-primary/20">
-            <CardHeader className="pb-2 pt-4">
+            <CardHeader className="pb-2 pt-3">
               <CardTitle className="font-orbitron flex items-center gap-2 text-base sm:text-lg">
-                <Trophy className="w-5 h-5 text-primary" />
+                <Trophy className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
                 Top {limit} - {filter === 'overall' ? 'Overall' : filter.toUpperCase()} Weekly Kills
               </CardTitle>
             </CardHeader>
-            <CardContent className="pt-2">
+            <CardContent className="pt-1 pb-3">
               {isLoading ? (
                 <div className="text-center py-6">
                   <p className="text-muted-foreground">Loading leaderboard...</p>
@@ -225,7 +225,7 @@ const Statistics: FC = () => {
                   <p className="text-muted-foreground">No data available yet.</p>
                 </div>
               ) : (
-                <div className="space-y-2">
+                <div className="space-y-1.5">
                   {filteredData.map((player, index) => {
                     const kills = getKillsForFilter(player);
                     const position = index + 1;
@@ -234,42 +234,42 @@ const Statistics: FC = () => {
                       <div
                         key={player.id}
                         className={`
-                          flex items-center gap-3 p-3 rounded-lg transition-all
+                          flex items-center gap-2 p-2 sm:p-2.5 rounded-lg transition-all
                           ${position === 1 ? 'bg-gradient-to-r from-yellow-500/10 to-transparent border border-yellow-500/30' :
                             position === 2 ? 'bg-gradient-to-r from-gray-400/10 to-transparent border border-gray-400/30' :
                             position === 3 ? 'bg-gradient-to-r from-amber-600/10 to-transparent border border-amber-600/30' :
                             'bg-secondary/30 border border-border/50'}
                         `}
                       >
-                        <div className="flex items-center justify-center w-12">
+                        <div className="flex items-center justify-center w-8 sm:w-10">
                           {getMedalIcon(position)}
                         </div>
                         
-                        <div className="flex items-center gap-3 flex-1">
+                        <div className="flex items-center gap-2 flex-1 min-w-0">
                           {player.avatar_url ? (
                             <img 
                               src={player.avatar_url} 
                               alt={player.ign}
-                              className="w-10 h-10 rounded-full object-cover border-2 border-primary/30"
+                              className="w-8 h-8 sm:w-9 sm:h-9 rounded-full object-cover border-2 border-primary/30 flex-shrink-0"
                             />
                           ) : (
-                            <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
-                              <span className="text-primary font-bold">{player.ign?.[0] || '?'}</span>
+                            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
+                              <span className="text-primary font-bold text-sm">{player.ign?.[0] || '?'}</span>
                             </div>
                           )}
                           
-                          <div className="flex-1">
-                            <p className="font-semibold text-foreground">
+                          <div className="flex-1 min-w-0">
+                            <p className="font-semibold text-foreground text-sm sm:text-base truncate">
                               {(player as any).player_type === 'beta' ? 'Ɲβ・' : 'Ɲ・'}乂{player.ign}
                             </p>
-                            <p className="text-sm text-muted-foreground">
+                            <p className="text-xs sm:text-sm text-muted-foreground truncate">
                               {player.tier} • {player.grade}
                             </p>
                           </div>
                         </div>
                         
-                        <div className="text-right">
-                          <p className="text-2xl font-bold text-primary">{kills}</p>
+                        <div className="text-right flex-shrink-0">
+                          <p className="text-xl sm:text-2xl font-bold text-primary">{kills}</p>
                           <p className="text-xs text-muted-foreground">kills</p>
                         </div>
                       </div>
