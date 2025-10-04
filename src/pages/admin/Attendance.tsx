@@ -84,9 +84,9 @@ export const AdminAttendance: React.FC = () => {
   const { data: profilesData } = useQuery({
     queryKey: ['attendance-profiles'],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('profiles')
-        .select('id, username, ign');
+        .select('id, username, ign, player_type');
       if (error) throw error;
       return data;
     }
