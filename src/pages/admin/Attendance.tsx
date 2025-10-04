@@ -29,6 +29,7 @@ type AttendanceRecord = Database['public']['Tables']['attendance']['Row'] & {
   profiles: {
     username: string;
     ign: string;
+    player_type?: 'main' | 'beta';
   } | null;
   events: {
     name: string;
