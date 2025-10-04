@@ -105,11 +105,11 @@ export const AdminAttendance: React.FC = () => {
 
   // Combine the data
   const attendanceRecords: AttendanceRecord[] = (rawAttendanceData || []).map((record: any) => {
-    const profile = profilesData?.find(p => p.id === record.player_id);
+    const profile = profilesData?.find(p => p.id === record.player_id) as any;
     const event = eventsData?.find(e => e.id === record.event_id);
     return {
       ...record,
-      profiles: profile ? { username: profile.username, ign: profile.ign } : null,
+      profiles: profile ? { username: profile.username, ign: profile.ign, player_type: profile.player_type } : null,
       events: event ? { name: event.name } : null
     };
   });
