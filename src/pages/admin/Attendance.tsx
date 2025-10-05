@@ -130,12 +130,13 @@ export const AdminAttendance: React.FC = () => {
         br_kills: attendanceMode === 'BR' ? (kills || 0) : 0,
         mp_kills: attendanceMode === 'MP' ? (kills || 0) : 0,
         lobby: lobby,
-      });
+      })
+      .select();
 
     if (error) throw error;
 
     // Kills are now automatically calculated via trigger
-    return data;
+    return data?.[0];
   },
   onSuccess: () => {
     queryClient.invalidateQueries({ queryKey: ['attendance'] });
@@ -149,6 +150,26 @@ export const AdminAttendance: React.FC = () => {
 
 });
 
+const undoAttendanceMutation = useMutation({
+  mutationFn: async (attendanceId: string) => {
+    const { error } = await supabase
+      .from('attendance')
+      .delete()
+      .eq('id', attendanceId);
+
+    if (error) throw error;
+  },
+  onSuccess: () => {
+    queryClient.invalidateQueries({ queryKey: ['attendance'] });
+    queryClient.invalidateQueries({ queryKey: ['attendance-raw'] });
+    queryClient.invalidateQueries({ queryKey: ['players'] });
+    queryClient.invalidateQueries({ queryKey: ['admin-players'] });
+    queryClient.invalidateQueries({ queryKey: ['profile'] });
+    queryClient.invalidateQueries({ queryKey: ['player-stats'] });
+    queryClient.invalidateQueries({ queryKey: ['weekly-leaderboard'] });
+  }
+});
+
   const handleMarkAttendance = async (
   playerId: string,
   playerIgn: string,
@@ -156,11 +177,27 @@ export const AdminAttendance: React.FC = () => {
   kills?: number
 ) => {
   try {
-    await markAttendanceMutation.mutateAsync({ playerId, status, kills, lobby: selectedLobby });
-    toast({
-      title: "Attendance Marked",
-      description: `${playerIgn} marked as ${status} (${kills || 0} kills) for ${attendanceMode} - Lobby ${selectedLobby} on ${new Date(selectedDate).toLocaleDateString()}`,
-    });
+    const newAttendance = await markAttendanceMutation.mutateAsync({ playerId, status, kills, lobby: selectedLobby });
+    
+    if (newAttendance) {
+      const { dismiss } = toast({
+        title: "Attendance Marked",
+        description: `${playerIgn} marked as ${status} (${kills || 0} kills) for ${attendanceMode} - Lobby ${selectedLobby} on ${new Date(selectedDate).toLocaleDateString()}`,
+        duration: 60000, // 1 minute
+        action: (
+          <Button
+            variant="outline"
+            onClick={() => {
+              undoAttendanceMutation.mutate(newAttendance.id);
+              dismiss();
+            }}
+          >
+            Undo
+          </Button>
+        ),
+      });
+    }
+
   } catch (error) {
     console.error('Error marking attendance:', error);
     toast({
