@@ -260,7 +260,7 @@ const Statistics: FC = () => {
                           
                           <div className="flex-1 min-w-0">
                             <p className="font-semibold text-foreground text-sm sm:text-base truncate">
-                              {(player as any).player_type === 'beta' ? 'Ɲβ・' : 'Ɲ・'}乂{player.ign}
+                              {(player as any).status === 'beta' ? 'Ɲ・乃' : 'Ɲ・乂'}{player.ign}
                             </p>
                             <p className="text-xs sm:text-sm text-muted-foreground truncate">
                               {player.tier} • {player.grade}
