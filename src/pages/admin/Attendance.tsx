@@ -29,7 +29,7 @@ type AttendanceRecord = Database['public']['Tables']['attendance']['Row'] & {
   profiles: {
     username: string;
     ign: string;
-    player_type?: 'main' | 'beta';
+    status: string;
   } | null;
   events: {
     name: string;
@@ -87,7 +87,7 @@ export const AdminAttendance: React.FC = () => {
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from('profiles')
-        .select('id, username, ign, player_type');
+        .select('id, username, ign, status');
       if (error) throw error;
       return data;
     }
@@ -110,7 +110,7 @@ export const AdminAttendance: React.FC = () => {
     const event = eventsData?.find(e => e.id === record.event_id);
     return {
       ...record,
-      profiles: profile ? { username: profile.username, ign: profile.ign, player_type: profile.player_type } : null,
+      profiles: profile ? { username: profile.username, ign: profile.ign, status: profile.status } : null,
       events: event ? { name: event.name } : null
     };
   });
@@ -408,7 +408,7 @@ export const AdminAttendance: React.FC = () => {
                           </div>
                           <div>
                             <div className="font-medium text-foreground font-rajdhani">
-                              {(player as any).player_type === 'beta' ? 'Ɲβ・' : 'Ɲ・'}乂{player.ign}
+                              {(player as any).status === 'beta' ? 'Ɲ・乃' : 'Ɲ・乂'}{player.ign}
                             </div>
                             <div className="text-sm text-muted-foreground font-rajdhani">
                               {player.attendance || 0}% attendance
@@ -502,7 +502,7 @@ export const AdminAttendance: React.FC = () => {
                       className="font-medium text-foreground font-rajdhani cursor-pointer hover:text-primary"
                       onClick={() => scrollToPlayer(record.profiles?.ign || '')}
                     >
-                      {record.profiles ? `${(record.profiles as any).player_type === 'beta' ? 'Ɲβ・' : 'Ɲ・'}乂${record.profiles.ign}` : 'Unknown Player'}
+                      {record.profiles ? `${(record.profiles as any).status === 'beta' ? 'Ɲ・乃' : 'Ɲ・乂'}${record.profiles.ign}` : 'Unknown Player'}
                     </TableCell>
                     <TableCell className="text-muted-foreground font-rajdhani">
                       {record.events?.name || `${attendanceMode} Session`}
