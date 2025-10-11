@@ -18,7 +18,7 @@ const Statistics: FC = () => {
 
   // Real-time updates for attendance changes
   useEffect(() => {
-    const channel = supabase
+    const attendanceChannel = supabase
       .channel('attendance-changes')
       .on(
         'postgres_changes',
@@ -34,8 +34,25 @@ const Statistics: FC = () => {
       )
       .subscribe();
 
+    const profilesChannel = supabase
+      .channel('profiles-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'profiles'
+        },
+        () => {
+          console.log('Profiles updated, refreshing leaderboard');
+          refetch();
+        }
+      )
+      .subscribe();
+
     return () => {
-      supabase.removeChannel(channel);
+      supabase.removeChannel(attendanceChannel);
+      supabase.removeChannel(profilesChannel);
     };
   }, [refetch]);
 
@@ -193,17 +210,17 @@ const Statistics: FC = () => {
 
       <Tabs value={filter} onValueChange={(v) => setFilter(v as any)} className="w-full">
         <TabsList className="grid w-full grid-cols-3 mb-3">
-          <TabsTrigger value="overall" className="flex items-center gap-2">
-            <Trophy className="w-4 h-4" />
-            Overall
+          <TabsTrigger value="mp" className="flex items-center gap-2">
+            <Award className="w-4 h-4" />
+            Multiplayer
           </TabsTrigger>
           <TabsTrigger value="br" className="flex items-center gap-2">
             <Target className="w-4 h-4" />
             Battle Royale
           </TabsTrigger>
-          <TabsTrigger value="mp" className="flex items-center gap-2">
-            <Award className="w-4 h-4" />
-            Multiplayer
+          <TabsTrigger value="overall" className="flex items-center gap-2">
+            <Trophy className="w-4 h-4" />
+            Overall
           </TabsTrigger>
         </TabsList>
 

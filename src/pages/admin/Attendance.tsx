@@ -119,35 +119,46 @@ export const AdminAttendance: React.FC = () => {
   // TODO: Add a 'lobby' column (integer) to the 'attendance' table in the database.
   const markAttendanceMutation = useMutation({
   mutationFn: async ({ playerId, status, kills, lobby }: { playerId: string; status: 'present' | 'absent'; kills?: number; lobby: number }) => {
-    const { data, error } = await supabase
-      .from('attendance')
-      .insert({
-        player_id: playerId,
-        status,
-        attendance_type: attendanceMode,
-        date: selectedDate,
-        event_kills: kills || 0,
-        br_kills: attendanceMode === 'BR' ? (kills || 0) : 0,
-        mp_kills: attendanceMode === 'MP' ? (kills || 0) : 0,
-        lobby: lobby,
-      })
-      .select();
+    try {
+      const { data, error } = await supabase
+        .from('attendance')
+        .insert({
+          player_id: playerId,
+          status,
+          attendance_type: attendanceMode,
+          date: selectedDate,
+          event_kills: kills || 0,
+          br_kills: attendanceMode === 'BR' ? (kills || 0) : 0,
+          mp_kills: attendanceMode === 'MP' ? (kills || 0) : 0,
+          lobby: lobby,
+        })
+        .select();
 
-    if (error) throw error;
-
-    // Kills are now automatically calculated via trigger
-    return data?.[0];
+      if (error) throw error;
+      return data?.[0];
+    } catch (error: any) {
+      if (error.code === '23505') {
+        toast({
+          title: "Attendance Already Marked",
+          description: "Attendance has already been marked for this lobby today.",
+          variant: "destructive",
+        });
+        return null;
+      }
+      throw error;
+    }
   },
-  onSuccess: () => {
-    queryClient.invalidateQueries({ queryKey: ['attendance'] });
-    queryClient.invalidateQueries({ queryKey: ['attendance-raw'] });
-    queryClient.invalidateQueries({ queryKey: ['players'] });
-    queryClient.invalidateQueries({ queryKey: ['admin-players'] });
-    queryClient.invalidateQueries({ queryKey: ['profile'] });
-    queryClient.invalidateQueries({ queryKey: ['player-stats'] });
-    queryClient.invalidateQueries({ queryKey: ['weekly-leaderboard'] });
+  onSuccess: (data) => {
+    if (data) { // Only invalidate queries if the mutation was successful
+      queryClient.invalidateQueries({ queryKey: ['attendance'] });
+      queryClient.invalidateQueries({ queryKey: ['attendance-raw'] });
+      queryClient.invalidateQueries({ queryKey: ['players'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-players'] });
+      queryClient.invalidateQueries({ queryKey: ['profile'] });
+      queryClient.invalidateQueries({ queryKey: ['player-stats'] });
+      queryClient.invalidateQueries({ queryKey: ['weekly-leaderboard'] });
+    }
   }
-
 });
 
 const undoAttendanceMutation = useMutation({

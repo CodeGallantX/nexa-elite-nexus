@@ -401,7 +401,7 @@ export const EventAssignment: React.FC = () => {
                 >
                   <div className="flex-1">
                     <div className="font-medium text-white">
-                      Ɲ・乂{player.ign}
+                      {(player as any).status === 'beta' ? 'Ɲ・乃' : 'Ɲ・乂'}{player.ign}
                     </div>
                     <div className="text-sm text-muted-foreground">
                       @{player.username}
@@ -515,7 +515,7 @@ export const EventAssignment: React.FC = () => {
                       >
                         <div>
                           <div className="font-medium text-white">
-                            Ɲ・乂{participant.profiles.ign}
+                            {(participant.profiles as any).status === 'beta' ? 'Ɲ・乃' : 'Ɲ・乂'}{participant.profiles.ign}
                           </div>
                           <div className="text-sm text-muted-foreground">
                             @{participant.profiles.username}

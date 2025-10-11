@@ -353,8 +353,8 @@ export const Scrims: React.FC = () => {
                     
                     <div className="flex items-center justify-between pt-2">
                       <span className="text-xs text-gray-500">
-                        Created by {event.profiles?.ign || 'Admin'}
-                      </span>
+  Created by {event.profiles?.status === 'beta' ? 'Ɲ・乃' : 'Ɲ・乂'}{event.profiles?.ign || 'Admin'}
+</span>
                       {status === 'upcoming' && !isParticipating && (
                         <Button size="sm" variant="outline" className="border-[#FF1F44] text-[#FF1F44] hover:bg-[#FF1F44] hover:text-white">
                           Request to Join
