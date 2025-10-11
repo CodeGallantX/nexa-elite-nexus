@@ -977,14 +977,18 @@ export const Settings: React.FC = () => {
                 </h4>
 
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <div className="text-center p-4 bg-gradient-to-br from-[#FF1F44]/20 to-red-600/10 rounded-lg border border-[#FF1F44]/30">
-                    <div className="text-2xl font-bold text-[#FF1F44] mb-1">
-                      {profile?.kills || 0}
+                  <div className="text-center p-4 bg-gradient-to-br from-blue-400/20 to-blue-600/10 rounded-lg border border-blue-400/30">
+                    <div className="text-2xl font-bold text-blue-400 mb-1">
+                      {profile?.mp_kills || 0}
                     </div>
-                    <div className="text-xs text-gray-400">Total Kills</div>
-                    <div className="text-xs text-gray-500 mt-1">
-                      Tournament Record
+                    <div className="text-xs text-gray-400">MP Kills</div>
+                  </div>
+
+                  <div className="text-center p-4 bg-gradient-to-br from-red-400/20 to-red-600/10 rounded-lg border border-red-400/30">
+                    <div className="text-2xl font-bold text-red-400 mb-1">
+                      {profile?.br_kills || 0}
                     </div>
+                    <div className="text-xs text-gray-400">BR Kills</div>
                   </div>
 
                   <div className="text-center p-4 bg-gradient-to-br from-green-400/20 to-green-600/10 rounded-lg border border-green-400/30">
@@ -992,9 +996,6 @@ export const Settings: React.FC = () => {
                       {profile?.attendance || 0}%
                     </div>
                     <div className="text-xs text-gray-400">Attendance</div>
-                    <div className="text-xs text-gray-500 mt-1">
-                      Event Participation
-                    </div>
                   </div>
 
                   <div className="text-center p-4 bg-gradient-to-br from-yellow-400/20 to-yellow-600/10 rounded-lg border border-yellow-400/30">
@@ -1002,19 +1003,6 @@ export const Settings: React.FC = () => {
                       {profile?.grade || "Rookie"}
                     </div>
                     <div className="text-xs text-gray-400">Current Grade</div>
-                    <div className="text-xs text-gray-500 mt-1">
-                      Performance Rating
-                    </div>
-                  </div>
-
-                  <div className="text-center p-4 bg-gradient-to-br from-blue-400/20 to-blue-600/10 rounded-lg border border-blue-400/30">
-                    <div className="text-2xl font-bold text-blue-400 mb-1">
-                      {profile?.tier || "4"}
-                    </div>
-                    <div className="text-xs text-gray-400">Tier Level</div>
-                    <div className="text-xs text-gray-500 mt-1">
-                      Skill Ranking
-                    </div>
                   </div>
                 </div>
               </div>
