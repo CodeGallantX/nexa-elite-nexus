@@ -1,3 +1,5 @@
+DROP VIEW IF EXISTS public.admin_dashboard_stats;
+
 CREATE OR REPLACE VIEW public.admin_dashboard_stats AS
 SELECT 
   (SELECT COUNT(*) FROM public.profiles WHERE role = 'player') as total_players,

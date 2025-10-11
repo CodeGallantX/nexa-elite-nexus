@@ -249,7 +249,7 @@ const undoAttendanceMutation = useMutation({
 
   const filteredPlayers = players.filter(player => {
     const matchesSearch = player.ign.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesRole = roleFilter === 'all' || (roleFilter === 'active' ? player.role === 'player' : player.role === 'admin');
+    const matchesRole = roleFilter === 'all' || player.role === roleFilter;
     return matchesSearch && matchesRole;
   });
 
@@ -380,9 +380,11 @@ const undoAttendanceMutation = useMutation({
                 <SelectValue placeholder="Filter by role" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Players</SelectItem>
-                <SelectItem value="active">Active</SelectItem>
-                <SelectItem value="inactive">Inactive</SelectItem>
+                <SelectItem value="all">All Roles</SelectItem>
+                <SelectItem value="player">Player</SelectItem>
+                <SelectItem value="admin">Admin</SelectItem>
+                <SelectItem value="moderator">Moderator</SelectItem>
+                <SelectItem value="clan_master">Clan Master</SelectItem>
               </SelectContent>
             </Select>
 
