@@ -27,7 +27,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 
-export const AdminAnnouncementsManagement: React.FC = () => {
+export const AdminAnnouncementsManagement = () => {
   const { toast } = useToast();
   const location = useLocation();
   const [announcements, setAnnouncements] = useState([]);
@@ -35,10 +35,10 @@ export const AdminAnnouncementsManagement: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-  const [editingAnnouncement, setEditingAnnouncement] = useState<any>(null);
+  const [editingAnnouncement, setEditingAnnouncement] = useState(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [users, setUsers] = useState<any[]>([]);
-  const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
+  const [users, setUsers] = useState([]);
+  const [selectedUsers, setSelectedUsers] = useState([]);
   const [newAnnouncement, setNewAnnouncement] = useState({
     title: '',
     content: '',
@@ -48,7 +48,7 @@ export const AdminAnnouncementsManagement: React.FC = () => {
     is_published: true
   });
 
-useEffect(() => {
+  useEffect(() => {
     const targetUser = location.state?.targetUser;
     if (targetUser) {
       setIsCreateDialogOpen(true);
@@ -61,6 +61,7 @@ useEffect(() => {
       const { data, error } = await supabase.from('profiles').select('id, ign');
       if (error) {
         console.error("Error fetching users:", error.message);
+        setUsers([]);
       } else {
         setUsers(data || []);
       }
@@ -89,6 +90,7 @@ useEffect(() => {
           description: "Failed to fetch announcements",
           variant: "destructive",
         });
+        setAnnouncements([]);
       } else {
         setAnnouncements(data || []);
       }
@@ -96,15 +98,15 @@ useEffect(() => {
     };
 
     fetchAnnouncements();
-  }, []);
+  }, [toast]);
 
-  const getStatusColor = (announcement: any) => {
+  const getStatusColor = (announcement) => {
     if (!announcement.is_published) return 'bg-gray-500/20 text-gray-400 border-gray-500/50';
     if (announcement.is_pinned) return 'bg-yellow-500/20 text-yellow-400 border-yellow-500/50';
     return 'bg-green-500/20 text-green-400 border-green-500/50';
   };
 
-  const getStatusText = (announcement: any) => {
+  const getStatusText = (announcement) => {
     if (!announcement.is_published) return 'Hidden';
     if (announcement.is_pinned) return 'Pinned';
     return 'Active';
@@ -206,7 +208,7 @@ useEffect(() => {
     }
   };
 
-  const handleDeleteAnnouncement = async (announcementId: string) => {
+  const handleDeleteAnnouncement = async (announcementId) => {
     const { error } = await supabase
       .from("announcements")
       .delete()
@@ -228,7 +230,7 @@ useEffect(() => {
     }
   };
 
-  const handleEditAnnouncement = (announcement: any) => {
+  const handleEditAnnouncement = (announcement) => {
     setEditingAnnouncement({
       ...announcement,
       content: announcement.content || '',
@@ -274,7 +276,7 @@ useEffect(() => {
     }
   };
 
-  const toggleVisibility = async (announcementId: string) => {
+  const toggleVisibility = async (announcementId) => {
     const target = announcements.find(a => a.id === announcementId);
     if (!target) return;
 
@@ -307,13 +309,13 @@ useEffect(() => {
     }
   };
 
-  const togglePin = async (announcementId: string) => {
+  const togglePin = async (announcementId) => {
     const target = announcements.find(a => a.id === announcementId);
     if (!target) return;
 
     const { data, error } = await supabase
       .from("announcements")
-      .update({ is_pinned: !(target as any).is_pinned } as any)
+      .update({ is_pinned: !target.is_pinned })
       .eq("id", announcementId)
       .select(`
         *,
@@ -335,12 +337,12 @@ useEffect(() => {
       );
       toast({
         title: "Pin Status Updated",
-        description: `Announcement is now ${(data[0] as any).is_pinned ? 'pinned' : 'unpinned'}.`,
+        description: `Announcement is now ${data[0].is_pinned ? 'pinned' : 'unpinned'}.`,
       });
     }
   };
 
-  const formatTimeAgo = (timestamp: string) => {
+  const formatTimeAgo = (timestamp) => {
     const now = new Date();
     const time = new Date(timestamp);
     const diffInMinutes = Math.floor((now.getTime() - time.getTime()) / (1000 * 60));
@@ -432,6 +434,8 @@ useEffect(() => {
         <CardContent>
           {loading ? (
             <div className="text-center text-muted-foreground">Loading...</div>
+          ) : filteredAnnouncements.length === 0 ? (
+            <div className="text-center text-muted-foreground py-8">No announcements found</div>
           ) : (
             <Table>
               <TableHeader>
@@ -547,7 +551,7 @@ useEffect(() => {
                   >
                     {selectedUsers.length > 0
                       ? `${selectedUsers.length} user(s) selected`
-                      : "Select users..."}
+                      : "Select users (leave empty for all)"}
                     <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                   </Button>
                 </PopoverTrigger>
@@ -573,7 +577,7 @@ useEffect(() => {
                         />
                         All Users
                       </CommandItem>
-                      {(users || []).map((user) => (
+                      {users.map((user) => (
                         <CommandItem
                           key={user.id}
                           onSelect={() => {
@@ -732,3 +736,5 @@ useEffect(() => {
     </div>
   );
 };
+
+export default AdminAnnouncementsManagement;
