@@ -140,7 +140,7 @@ export const AdminAttendance: React.FC = () => {
       if (error.code === '23505') {
         toast({
           title: "Attendance Already Marked",
-          description: "Attendance has already been marked for this lobby today.",
+          description: `Attendance has already been marked for this lobby and mode on this day.`,
           variant: "destructive",
         });
         return null;
