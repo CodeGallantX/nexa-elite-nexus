@@ -11,17 +11,21 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useNotifications } from "@/hooks/useNotifications";
 
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+
 export const NotificationBell: React.FC = () => {
   const { notifications, unreadCount, markAsRead, markAllAsRead } =
     useNotifications();
   const [isOpen, setIsOpen] = useState(false);
+  const [selectedNotification, setSelectedNotification] = useState<any>(null);
 
   // Debug logging
   console.log("NotificationBell - notifications:", notifications);
   console.log("NotificationBell - unreadCount:", unreadCount);
 
-  const handleNotificationClick = (notificationId: string) => {
-    markAsRead(notificationId);
+  const handleNotificationClick = (notification: any) => {
+    markAsRead(notification.id);
+    setSelectedNotification(notification);
   };
 
   const handleMarkAllRead = () => {
@@ -30,6 +34,7 @@ export const NotificationBell: React.FC = () => {
   };
 
   return (
+    <>
     <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" size="sm" className="relative">
@@ -78,7 +83,7 @@ export const NotificationBell: React.FC = () => {
             <DropdownMenuItem
               key={notification.id}
               className="p-3 cursor-pointer hover:bg-muted/50 flex-col items-start"
-              onClick={() => handleNotificationClick(notification.id)}
+              onClick={() => handleNotificationClick(notification)}
             >
               <div className="flex items-start space-x-3 w-full">
                 <div
@@ -122,5 +127,18 @@ export const NotificationBell: React.FC = () => {
         )}
       </DropdownMenuContent>
     </DropdownMenu>
+    <Dialog open={!!selectedNotification} onOpenChange={() => setSelectedNotification(null)}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>{selectedNotification?.title}</DialogTitle>
+        </DialogHeader>
+        <div>
+          <p><span className="font-semibold">Message:</span> {selectedNotification?.message}</p>
+          <p><span className="font-semibold">Sender:</span> {selectedNotification?.type === 'announcement' ? 'System' : 'Direct Message'}</p>
+          <p><span className="font-semibold">Type:</span> {selectedNotification?.type}</p>
+        </div>
+      </DialogContent>
+    </Dialog>
+    </>
   );
 };

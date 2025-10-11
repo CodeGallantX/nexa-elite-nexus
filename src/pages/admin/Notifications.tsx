@@ -40,10 +40,9 @@ export const AdminNotifications: React.FC = () => {
       const from = currentPage * itemsPerPage;
       const to = from + itemsPerPage - 1;
 
-      // Fetch ALL notifications for admin view (not filtered by user_id)
       const { data, error } = await supabase
         .from("notifications")
-        .select("*")
+        .select("*, user:profiles(ign, status)")
         .order("created_at", { ascending: false })
         .range(from, to);
 
@@ -56,7 +55,8 @@ export const AdminNotifications: React.FC = () => {
           type: n.type,
           message: n.message,
           title: n.title,
-          playerName: (n.data as any)?.playerName || "Unknown",
+          playerName: (n.user as any)?.ign || "Unknown",
+          playerStatus: (n.user as any)?.status || "",
           accessCode: (n.data as any)?.accessCode || "",
           timestamp: n.created_at,
           status: n.read ? "read" : "unread",
@@ -376,7 +376,8 @@ export const AdminNotifications: React.FC = () => {
               filteredNotifications.map((notification) => (
                 <div
                   key={notification.id}
-                  className={`p-4 rounded-lg border transition-all duration-200 ${
+                  onClick={() => markAsRead(notification.id)}
+                  className={`p-4 rounded-lg border transition-all duration-200 cursor-pointer ${
                     notification.status === "unread"
                       ? "bg-primary/5 border-primary/30"
                       : "bg-background/30 border-border/30"
@@ -408,7 +409,7 @@ export const AdminNotifications: React.FC = () => {
                             <>
                               <span>•</span>
                               <span className="font-rajdhani">
-                                User: {notification.userId.slice(0, 8)}...
+                                User: {notification.playerStatus === 'beta' ? 'Ɲ・乃' : 'Ɲ・乂'}{notification.playerName}
                               </span>
                             </>
                           )}
