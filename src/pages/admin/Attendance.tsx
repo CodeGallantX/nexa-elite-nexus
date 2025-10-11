@@ -19,7 +19,8 @@ import {
   CheckCircle,
   XCircle,
   Download,
-  CalendarDays
+  CalendarDays,
+  Trash2
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Database } from '@/integrations/supabase/types';
@@ -178,7 +179,15 @@ const undoAttendanceMutation = useMutation({
     queryClient.invalidateQueries({ queryKey: ['profile'] });
     queryClient.invalidateQueries({ queryKey: ['player-stats'] });
     queryClient.invalidateQueries({ queryKey: ['weekly-leaderboard'] });
-  }
+  },
+  onError: (error: any) => {
+    console.error('Error resetting attendance:', error);
+    toast({
+      title: "Error",
+      description: error.message || "Failed to reset attendance.",
+      variant: "destructive",
+    });
+  },
 });
 
   const handleMarkAttendance = async (
@@ -530,18 +539,19 @@ const undoAttendanceMutation = useMutation({
                 <TableHead className="text-muted-foreground font-rajdhani">Event</TableHead>
                 <TableHead className="text-muted-foreground font-rajdhani">Date</TableHead>
                 <TableHead className="text-muted-foreground font-rajdhani">Status</TableHead>
+                <TableHead className="text-muted-foreground font-rajdhani">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {attendanceLoading ? (
                 <TableRow>
-                  <TableCell colSpan={4} className="text-center py-8">
+                  <TableCell colSpan={5} className="text-center py-8">
                     <div className="text-muted-foreground">Loading attendance records...</div>
                   </TableCell>
                 </TableRow>
               ) : filteredRecords.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={4} className="text-center py-8">
+                  <TableCell colSpan={5} className="text-center py-8">
                     <div className="text-muted-foreground">No attendance records found</div>
                   </TableCell>
                 </TableRow>
@@ -577,6 +587,17 @@ const undoAttendanceMutation = useMutation({
                           </>
                         )}
                       </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => undoAttendanceMutation.mutate(record.id)}
+                        className="border-red-500/50 text-red-400 hover:bg-red-500/10 font-rajdhani"
+                      >
+                        <Trash2 className="w-4 h-4 mr-1" />
+                        Reset
+                      </Button>
                     </TableCell>
                   </TableRow>
                 ))
