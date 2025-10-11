@@ -144,8 +144,7 @@ export const Dashboard: React.FC = () => {
               {profile?.kills?.toLocaleString() || 0}
             </div>
             <p className="text-xs text-gray-400">
-              <TrendingUp className="inline w-3 h-3 mr-1" />
-              System managed
+              <span className="text-blue-400">BR: {profile?.br_kills || 0}</span> • <span className="text-green-400">MP: {profile?.mp_kills || 0}</span>
             </p>
           </CardContent>
         </Card>

@@ -210,7 +210,9 @@ export const Profile: React.FC = () => {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
                 <div className="p-3 bg-white/5 rounded-lg">
                   <div className="text-2xl font-bold text-[#FF1F44]">{profile.kills?.toLocaleString()}</div>
-                  <div className="text-sm text-gray-400">Total Kills</div>
+                  <div className="text-xs text-gray-400 mt-1">
+                    <span className="text-blue-400">BR: {profile.br_kills || 0}</span> • <span className="text-green-400">MP: {profile.mp_kills || 0}</span>
+                  </div>
                 </div>
                 <div className="p-3 bg-white/5 rounded-lg">
                   <div className="text-2xl font-bold text-[#FF1F44]">{profile.attendance}%</div>
@@ -273,9 +275,6 @@ export const Profile: React.FC = () => {
               <div>
                 <Label className="text-gray-300">Total Kills</Label>
                 <div className="text-white font-medium mt-1">{profile.kills?.toLocaleString() || 0}</div>
-                <div className="text-xs text-gray-400 mt-1">
-                  <span className="text-blue-400">BR: {profile.br_kills || 0}</span> • <span className="text-green-400">MP: {profile.mp_kills || 0}</span>
-                </div>
               </div>
               <div>
                 <Label className="text-gray-300">Player UID</Label>

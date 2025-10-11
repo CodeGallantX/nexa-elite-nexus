@@ -83,7 +83,13 @@ export default function AdminDashboard() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold text-white">{stat.value}</div>
-                <p className="text-xs text-gray-400">{stat.description}</p>
+                {stat.title === 'Total Kills' ? (
+                  <p className="text-xs text-gray-400">
+                    <span className="text-blue-400">BR: {stats?.total_br_kills || 0}</span> • <span className="text-green-400">MP: {stats?.total_mp_kills || 0}</span>
+                  </p>
+                ) : (
+                  <p className="text-xs text-gray-400">{stat.description}</p>
+                )}
               </CardContent>
             </Card>
           );
