@@ -20,10 +20,16 @@ import {
   EyeOff,
   Search
 } from 'lucide-react';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from '@/components/ui/command';
+import { Check, ChevronsUpDown } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useLocation } from 'react-router-dom';
+import { cn } from '@/lib/utils';
 
 export const AdminAnnouncementsManagement: React.FC = () => {
   const { toast } = useToast();
+  const location = useLocation();
   const [announcements, setAnnouncements] = useState([]);
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -31,6 +37,8 @@ export const AdminAnnouncementsManagement: React.FC = () => {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [editingAnnouncement, setEditingAnnouncement] = useState<any>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [users, setUsers] = useState<any[]>([]);
+  const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
   const [newAnnouncement, setNewAnnouncement] = useState({
     title: '',
     content: '',
@@ -39,6 +47,27 @@ export const AdminAnnouncementsManagement: React.FC = () => {
     is_pinned: false,
     is_published: true
   });
+
+useEffect(() => {
+    const targetUser = location.state?.targetUser;
+    if (targetUser) {
+      setIsCreateDialogOpen(true);
+      setSelectedUsers([targetUser.id]);
+    }
+  }, [location.state]);
+
+  useEffect(() => {
+    const fetchUsers = async () => {
+      const { data, error } = await supabase.from('profiles').select('id, ign');
+      if (error) {
+        console.error("Error fetching users:", error.message);
+      } else {
+        setUsers(data || []);
+      }
+    };
+
+    fetchUsers();
+  }, []);
 
   useEffect(() => {
     const fetchAnnouncements = async () => {
@@ -61,7 +90,7 @@ export const AdminAnnouncementsManagement: React.FC = () => {
           variant: "destructive",
         });
       } else {
-        setAnnouncements(data);
+        setAnnouncements(data || []);
       }
       setLoading(false);
     };
@@ -81,7 +110,7 @@ export const AdminAnnouncementsManagement: React.FC = () => {
     return 'Active';
   };
 
-  const filteredAnnouncements = announcements.filter(announcement => {
+  const filteredAnnouncements = (announcements || []).filter(announcement => {
     const title = announcement?.title || '';
     const content = announcement?.content || '';
     const is_published = announcement?.is_published;
@@ -126,6 +155,7 @@ export const AdminAnnouncementsManagement: React.FC = () => {
           is_published: newAnnouncement.is_published,
           is_pinned: newAnnouncement.is_pinned,
           created_by: user.id,
+          target_users: selectedUsers.length > 0 ? selectedUsers : null,
         },
       ])
       .select(`
@@ -143,7 +173,8 @@ export const AdminAnnouncementsManagement: React.FC = () => {
         variant: "destructive",
       });
     } else {
-      setAnnouncements((prev) => [data[0], ...prev]);
+      const newAnn = data[0];
+      setAnnouncements((prev) => [newAnn, ...prev]);
       setNewAnnouncement({
         title: '',
         content: '',
@@ -152,11 +183,26 @@ export const AdminAnnouncementsManagement: React.FC = () => {
         is_pinned: false,
         is_published: true
       });
+      setSelectedUsers([]);
       setIsCreateDialogOpen(false);
       toast({
         title: "Announcement Created",
         description: "Your announcement has been published successfully.",
       });
+
+      // Create notifications
+      const targets = selectedUsers.length > 0 ? selectedUsers : users.map(u => u.id);
+      const notifications = targets.map(targetId => ({
+        user_id: targetId,
+        title: newAnn.title,
+        message: newAnn.content,
+        type: 'announcement',
+      }));
+
+      const { error: notificationError } = await supabase.from('notifications').insert(notifications);
+      if (notificationError) {
+        console.error("Error creating notifications:", notificationError.message);
+      }
     }
   };
 
@@ -488,6 +534,69 @@ export const AdminAnnouncementsManagement: React.FC = () => {
                 className="bg-background/50 border-border/50 font-rajdhani min-h-24"
                 placeholder="Write your announcement content..."
               />
+            </div>
+
+            <div>
+              <Label htmlFor="target" className="font-rajdhani">Target Audience</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    className="w-full justify-between"
+                  >
+                    {selectedUsers.length > 0
+                      ? `${selectedUsers.length} user(s) selected`
+                      : "Select users..."}
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-full p-0">
+                  <Command>
+                    <CommandInput placeholder="Search users..." />
+                    <CommandEmpty>No users found.</CommandEmpty>
+                    <CommandGroup>
+                      <CommandItem
+                        onSelect={() => {
+                          if (selectedUsers.length === users.length) {
+                            setSelectedUsers([]);
+                          } else {
+                            setSelectedUsers(users.map(user => user.id));
+                          }
+                        }}
+                      >
+                        <Check
+                          className={cn(
+                            "mr-2 h-4 w-4",
+                            selectedUsers.length === users.length ? "opacity-100" : "opacity-0"
+                          )}
+                        />
+                        All Users
+                      </CommandItem>
+                      {(users || []).map((user) => (
+                        <CommandItem
+                          key={user.id}
+                          onSelect={() => {
+                            setSelectedUsers(prev => 
+                              prev.includes(user.id)
+                                ? prev.filter(id => id !== user.id)
+                                : [...prev, user.id]
+                            );
+                          }}
+                        >
+                          <Check
+                            className={cn(
+                              "mr-2 h-4 w-4",
+                              selectedUsers.includes(user.id) ? "opacity-100" : "opacity-0"
+                            )}
+                          />
+                          {user.ign}
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  </Command>
+                </PopoverContent>
+              </Popover>
             </div>
             
             <div className="grid grid-cols-2 gap-4">

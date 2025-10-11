@@ -4,6 +4,8 @@ import { Navigate } from "react-router-dom";
 import { Sidebar } from "@/components/Sidebar";
 import { Header } from "@/components/Header";
 
+import { ReportBugButton } from "@/components/ReportBugButton";
+
 interface LayoutProps {
   children: React.ReactNode;
   showSidebar?: boolean;
@@ -76,6 +78,7 @@ export const Layout: React.FC<LayoutProps> = ({
       `}>
         <Header onSidebarToggle={handleSidebarToggle} />
         <main className="p-6 overflow-auto">{children}</main>
+        <ReportBugButton />
       </div>
     </div>
   );

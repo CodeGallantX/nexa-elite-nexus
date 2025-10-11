@@ -19,6 +19,7 @@ import {
   Clock,
   Megaphone,
   Bell,
+  Bug, // Add this import
   ChevronLeft,
   ChevronRight,
   LogOut,
@@ -108,6 +109,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { icon: Clock, label: 'Attendance', path: '/admin/attendance' },
     { icon: Megaphone, label: 'Announcements', path: '/admin/announcements' },
     { icon: Bell, label: 'Notifications', path: '/admin/notifications' },
+    { icon: Bug, label: 'Feedback', path: '/admin/feedback' },
     ...(profile?.role === 'clan_master' ? [{ icon: Activity, label: 'Activities', path: '/admin/activities' }] : []),
     ...(profile?.role === 'clan_master' ? [{ icon: SlidersHorizontal, label: 'Configuration', path: '/admin/config' }] : []),
     { icon: Settings, label: 'Settings', path: '/settings' },

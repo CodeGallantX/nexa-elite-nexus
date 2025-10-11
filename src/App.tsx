@@ -44,6 +44,7 @@ import { AdminAnnouncementsManagement } from '@/pages/admin/AnnouncementsManagem
 import { AdminNotifications } from '@/pages/admin/Notifications';
 import { AdminConfig } from '@/pages/admin/Config';
 import AdminDashboard from '@/pages/AdminDashboard';
+import { Feedback } from '@/pages/admin/Feedback';
 import Activities from '@/pages/admin/Activities';
 
 
@@ -95,6 +96,7 @@ function App() {
             <Route path="/admin/notifications" element={<Layout showSidebar><AdminNotifications /></Layout>} />
             <Route path="/admin/activities" element={<Layout showSidebar><Activities /></Layout>} />
             <Route path="/admin/config" element={<Layout showSidebar><AdminConfig /></Layout>} />
+            <Route path="/admin/feedback" element={<Layout showSidebar><Feedback /></Layout>} />
 
 
             {/* 404 */}
