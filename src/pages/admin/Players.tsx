@@ -456,13 +456,23 @@ export const AdminPlayers: React.FC = () => {
                   </Select>
                 </div>
                 <div>
-                  <label className="text-gray-300 text-sm">Total Kills</label>
+                  <label className="text-gray-300 text-sm">MP Kills</label>
                   <Input
                     type="number"
-                    value={editingPlayer.kills || 0}
-                    onChange={(e) => setEditingPlayer({...editingPlayer, kills: parseInt(e.target.value) || 0})}
+                    value={editingPlayer.mp_kills || 0}
+                    onChange={(e) => setEditingPlayer({...editingPlayer, mp_kills: parseInt(e.target.value) || 0})}
                     className="bg-gray-800 border-gray-600 text-white"
-                    placeholder="Enter total kills"
+                    placeholder="Enter MP kills"
+                  />
+                </div>
+                <div>
+                  <label className="text-gray-300 text-sm">BR Kills</label>
+                  <Input
+                    type="number"
+                    value={editingPlayer.br_kills || 0}
+                    onChange={(e) => setEditingPlayer({...editingPlayer, br_kills: parseInt(e.target.value) || 0})}
+                    className="bg-gray-800 border-gray-600 text-white"
+                    placeholder="Enter BR kills"
                   />
                 </div>
               </div>
@@ -476,7 +486,8 @@ export const AdminPlayers: React.FC = () => {
                     grade: editingPlayer.grade,
                     tier: editingPlayer.tier,
                     status: editingPlayer.status,
-                    kills: editingPlayer.kills
+                    mp_kills: editingPlayer.mp_kills,
+                    br_kills: editingPlayer.br_kills
                   })}
                   className="bg-[#FF1F44] hover:bg-red-600"
                 >
