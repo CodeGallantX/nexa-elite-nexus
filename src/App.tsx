@@ -49,6 +49,7 @@ import Activities from '@/pages/admin/Activities';
 
 
 import InstallPrompt from '@/components/InstallPrompt';
+import { UpdatePrompt } from '@/components/UpdatePrompt';
 
 function App() {
   return (
@@ -104,6 +105,7 @@ function App() {
           </Routes>
           <Toaster />
           <InstallPrompt />
+          <UpdatePrompt />
         </Router>
       </AuthProvider>
     </ThemeProvider>
