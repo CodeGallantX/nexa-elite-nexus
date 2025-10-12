@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { Bug, X, Camera } from 'lucide-react';
+import { AlertCircle, X, Camera } from 'lucide-react';
 import html2canvas from 'html2canvas';
 
 const bugReportSchema = z.object({
@@ -105,7 +105,7 @@ export const BugReportModal: React.FC = () => {
       <DialogTrigger asChild>
         <div className="fixed bottom-4 right-4 z-50">
           <Button className="rounded-full w-16 h-16 shadow-lg">
-            <Bug className="w-6 h-6" />
+            <AlertCircle className="w-6 h-6" />
           </Button>
           <Button
             variant="ghost"
@@ -122,7 +122,7 @@ export const BugReportModal: React.FC = () => {
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Report a Bug</DialogTitle>
+          <DialogTitle>Report an Issue</DialogTitle>
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">

@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useNavigate } from 'react-router-dom';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Bug, MessageSquare, Mail, Share, Search } from 'lucide-react';
+import { AlertCircle, MessageSquare, Mail, Share, Search } from 'lucide-react';
 
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { FaWhatsapp } from 'react-icons/fa';
@@ -70,8 +70,8 @@ export const Feedback: React.FC = () => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-white mb-2">Feedback Center</h1>
-          <p className="text-gray-400">Manage bug reports and feedback from clan members.</p>
+          <h1 className="text-3xl font-bold text-white mb-2">Issue Reports</h1>
+          <p className="text-gray-400">Manage user-submitted issues and feedback.</p>
         </div>
       </div>
 
@@ -118,8 +118,8 @@ export const Feedback: React.FC = () => {
       <Card className="bg-white/5 border-white/10 backdrop-blur-sm">
         <CardHeader>
           <CardTitle className="text-white flex items-center">
-            <Bug className="w-5 h-5 mr-2 text-[#FF1F44]" />
-            Bug Reports
+            <AlertCircle className="w-5 h-5 mr-2 text-[#FF1F44]" />
+            Submitted Issues
           </CardTitle>
         </CardHeader>
         <CardContent className="overflow-x-auto">
