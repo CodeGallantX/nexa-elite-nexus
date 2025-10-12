@@ -1,7 +1,31 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { useEffect } from 'react';
 
 export const useActivities = () => {
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    const channel = supabase
+      .channel('activities-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'activities',
+        },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ['unread-activities-count'] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [queryClient]);
+
   return useQuery({
     queryKey: ['unread-activities-count'],
     queryFn: async () => {
@@ -20,6 +44,5 @@ export const useActivities = () => {
       }
       return data?.length || 0;
     },
-    refetchInterval: 30000, // Refetch every 30 seconds
   });
 };
