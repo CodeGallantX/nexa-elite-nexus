@@ -105,7 +105,7 @@ export const BugReportModal: React.FC = () => {
       <DialogTrigger asChild>
         <div className="fixed bottom-4 right-4 z-50">
           <Button className="rounded-full w-16 h-16 shadow-lg">
-            <AlertCircle className="w-6 h-6" />
+            <AlertCircle className="w-4 h-4 text-xl" />
           </Button>
           <Button
             variant="ghost"
