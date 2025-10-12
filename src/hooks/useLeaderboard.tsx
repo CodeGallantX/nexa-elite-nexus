@@ -1,12 +1,12 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 
-export const useWeeklyLeaderboard = () => {
+export const useLeaderboard = () => {
   return useQuery({
-    queryKey: ['weekly-leaderboard'],
+    queryKey: ['leaderboard'],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('weekly_leaderboard')
+        .from('leaderboard')
         .select('*');
 
       if (error) throw error;

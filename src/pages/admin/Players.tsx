@@ -292,7 +292,7 @@ export const AdminPlayers: React.FC = () => {
                                 </div>
                                 <div>
                                   <label className="text-gray-300 text-sm">IGN</label>
-                                  <p className="text-white">{player.status === 'beta' ? 'Ɲ・乃' : 'Ɲ・乂'}{selectedPlayer.ign}</p>
+                                  <p className="text-white">{selectedPlayer.status === 'beta' ? 'Ɲ・乃' : 'Ɲ・乂'}{selectedPlayer.ign}</p>
                                 </div>
                                 <div>
                                   <label className="text-gray-300 text-sm">Device</label>

@@ -32,9 +32,16 @@ export const useUpdatePlayer = () => {
         .eq('id', id)
         .single();
 
+      const newUpdates = { ...updates };
+      if (newUpdates.br_kills !== undefined || newUpdates.mp_kills !== undefined) {
+        const br_kills = newUpdates.br_kills !== undefined ? newUpdates.br_kills : currentPlayer.br_kills;
+        const mp_kills = newUpdates.mp_kills !== undefined ? newUpdates.mp_kills : currentPlayer.mp_kills;
+        newUpdates.kills = (br_kills || 0) + (mp_kills || 0);
+      }
+
       const { data, error } = await supabase
         .from('profiles')
-        .update(updates)
+        .update(newUpdates)
         .eq('id', id)
         .select();
 

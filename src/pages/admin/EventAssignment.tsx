@@ -23,6 +23,7 @@ interface Player {
   username: string;
   ign: string;
   role: Database["public"]["Enums"]["user_role"] | "clan_master";
+  status: string;
 }
 
 interface EventGroup {
@@ -93,7 +94,7 @@ export const EventAssignment: React.FC = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("profiles")
-        .select("id, username, ign, role")
+        .select("id, username, ign, role, status")
         .in("role", ["player", "admin", "moderator", "clan_master"]);
 
       if (error) {
@@ -126,7 +127,8 @@ export const EventAssignment: React.FC = () => {
               id,
               username,
               ign,
-              role
+              role,
+              status
             )
           )
         `

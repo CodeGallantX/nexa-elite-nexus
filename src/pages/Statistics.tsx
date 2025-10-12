@@ -1,9 +1,9 @@
-import { FC, useState, useEffect, useRef } from "react";
+import { FC, useState, useEffect, useRef, useMemo } from "react";
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useWeeklyLeaderboard } from '@/hooks/useWeeklyLeaderboard';
+import { useLeaderboard } from '@/hooks/useLeaderboard';
 import { supabase } from '@/integrations/supabase/client';
 import { Award, Trophy, Target, Share2, Link2, Download } from 'lucide-react';
 import { toast } from 'sonner';
@@ -13,27 +13,11 @@ const Statistics: FC = () => {
   const { user } = useAuth();
   const [filter, setFilter] = useState<'overall' | 'br' | 'mp'>('overall');
   const [limit] = useState(10);
-  const { data: leaderboardData, isLoading, refetch } = useWeeklyLeaderboard();
+  const { data: leaderboardData, isLoading, refetch } = useLeaderboard();
   const leaderboardRef = useRef<HTMLDivElement>(null);
 
   // Real-time updates for attendance changes
   useEffect(() => {
-    const attendanceChannel = supabase
-      .channel('attendance-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'attendance'
-        },
-        () => {
-          console.log('Attendance updated, refreshing leaderboard');
-          refetch();
-        }
-      )
-      .subscribe();
-
     const profilesChannel = supabase
       .channel('profiles-changes')
       .on(
@@ -51,10 +35,28 @@ const Statistics: FC = () => {
       .subscribe();
 
     return () => {
-      supabase.removeChannel(attendanceChannel);
       supabase.removeChannel(profilesChannel);
     };
   }, [refetch]);
+
+  const filteredData = useMemo(() => {
+    if (!leaderboardData) return [];
+    
+    let sortedData = [...leaderboardData];
+    
+    switch (filter) {
+      case 'br':
+        sortedData.sort((a, b) => (b.br_kills || 0) - (a.br_kills || 0));
+        break;
+      case 'mp':
+        sortedData.sort((a, b) => (b.mp_kills || 0) - (a.mp_kills || 0));
+        break;
+      default:
+        sortedData.sort((a, b) => (b.total_kills || 0) - (a.total_kills || 0));
+    }
+    
+    return sortedData.slice(0, limit);
+  }, [leaderboardData, filter, limit]);
 
   if (!user) {
     return (
@@ -67,25 +69,6 @@ const Statistics: FC = () => {
       </div>
     );
   }
-
-  const getFilteredData = () => {
-    if (!leaderboardData) return [];
-    
-    let sortedData = [...leaderboardData];
-    
-    switch (filter) {
-      case 'br':
-        sortedData.sort((a, b) => (b.weekly_br_kills || 0) - (a.weekly_br_kills || 0));
-        break;
-      case 'mp':
-        sortedData.sort((a, b) => (b.weekly_mp_kills || 0) - (a.weekly_mp_kills || 0));
-        break;
-      default:
-        sortedData.sort((a, b) => (b.weekly_total_kills || 0) - (a.weekly_total_kills || 0));
-    }
-    
-    return sortedData.slice(0, limit);
-  };
 
   const handleCopyLink = async () => {
     try {
@@ -172,15 +155,13 @@ const Statistics: FC = () => {
   const getKillsForFilter = (player: any) => {
     switch (filter) {
       case 'br':
-        return player.weekly_br_kills || 0;
+        return player.br_kills || 0;
       case 'mp':
-        return player.weekly_mp_kills || 0;
+        return player.mp_kills || 0;
       default:
-        return player.weekly_total_kills || 0;
+        return player.total_kills || 0;
     }
   };
-
-  const filteredData = getFilteredData();
 
   return (
     <div className="container mx-auto px-2 py-2 sm:px-4 sm:py-4">
@@ -189,7 +170,7 @@ const Statistics: FC = () => {
           Player Statistics & Leaderboard
         </h1>
         <p className="text-muted-foreground font-rajdhani text-sm">
-          Weekly performance rankings - Updated in real-time
+          Performance rankings - Updated in real-time
         </p>
       </div>
 
@@ -229,7 +210,7 @@ const Statistics: FC = () => {
             <CardHeader className="pb-2 pt-3">
               <CardTitle className="font-orbitron flex items-center gap-2 text-base sm:text-lg">
                 <Trophy className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
-                Top {limit} - {filter === 'overall' ? 'Overall' : filter.toUpperCase()} Weekly Kills
+                Top {limit} - {filter === 'overall' ? 'Overall' : filter.toUpperCase()} Kills
               </CardTitle>
             </CardHeader>
             <CardContent className="pt-1 pb-3">

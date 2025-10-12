@@ -50,6 +50,7 @@ interface Loadout {
     id: string;
     username: string;
     ign: string;
+    status: string;
   };
 }
 
@@ -98,7 +99,8 @@ export const Loadouts: React.FC = () => {
           profiles (
             id,
             username,
-            ign
+            ign,
+            status
           )
         `
         )
@@ -574,7 +576,7 @@ export const Loadouts: React.FC = () => {
                               {loadout.weapon_name}
                             </CardTitle>
                             <p className="text-sm text-muted-foreground font-rajdhani">
-                              by {loadout.profiles.ign}
+                              by {loadout.profiles.status === 'beta' ? 'Ɲ・乃' : 'Ɲ・乂'}{loadout.profiles.ign}
                             </p>
                             <div className="flex gap-2 mt-2">
                               <Badge className={getModeColor(loadout.mode)}>
@@ -635,7 +637,7 @@ export const Loadouts: React.FC = () => {
               {selectedLoadout?.weapon_name}
               {selectedLoadout?.player_id !== profile?.id && (
                 <span className="text-sm font-normal text-muted-foreground ml-2">
-                  by {selectedLoadout?.profiles.ign}
+                  by {selectedLoadout?.profiles.status === 'beta' ? 'Ɲ・乃' : 'Ɲ・乂'}{selectedLoadout?.profiles.ign}
                 </span>
               )}
             </DialogTitle>
