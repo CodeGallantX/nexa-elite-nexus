@@ -50,7 +50,7 @@ interface SignupData {
   role?: "admin" | "player" | "moderator" | "clan_master";
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+export const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const useAuth = () => {
   const context = useContext(AuthContext);

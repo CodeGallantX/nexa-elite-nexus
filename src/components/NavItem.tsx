@@ -1,4 +1,5 @@
-import React from 'react';
+
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Tooltip,
@@ -6,10 +7,11 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { LucideIcon } from 'lucide-react';
+import { LucideIcon, ChevronDown } from 'lucide-react';
 import { useNotifications } from '@/hooks/useNotifications';
 import { useActivities } from '@/hooks/useActivities';
 import { useAuth } from '@/contexts/AuthContext';
+import { Link } from 'react-router-dom';
 
 interface NavItemProps {
   icon: LucideIcon;
@@ -18,6 +20,7 @@ interface NavItemProps {
   isActive: boolean;
   isCollapsed: boolean;
   onClick: () => void;
+  subItems?: { label: string; path: string; }[];
 }
 
 export const NavItem: React.FC<NavItemProps> = ({
@@ -26,27 +29,38 @@ export const NavItem: React.FC<NavItemProps> = ({
   path,
   isActive,
   isCollapsed,
-  onClick
+  onClick,
+  subItems,
 }) => {
   const { unreadCount } = useNotifications();
   const { data: activitiesCount = 0 } = useActivities();
   const { profile } = useAuth();
-  
+  const [isSubMenuOpen, setIsSubMenuOpen] = useState(false);
+
   const isNotificationsItem = path === '/admin/notifications';
   const isActivitiesItem = path === '/admin/activities';
+
+  const handleItemClick = () => {
+    if (subItems) {
+      setIsSubMenuOpen(!isSubMenuOpen);
+    } else {
+      onClick();
+    }
+  };
 
   const navItemContent = (
     <Button
       variant={isActive ? 'secondary' : 'ghost'}
-      onClick={onClick}
+      onClick={handleItemClick}
       className={`w-full justify-start text-left relative ${
         isCollapsed ? 'px-2 justify-center' : 'px-3'
       } ${isActive ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:text-foreground'}`}
     >
       <Icon className={`w-4 h-4 ${isCollapsed ? '' : 'mr-2'}`} />
       {!isCollapsed && <span>{label}</span>}
-      
-      {/* Notifications badge */}
+      {subItems && !isCollapsed && (
+        <ChevronDown className={`w-4 h-4 ml-auto transition-transform ${isSubMenuOpen ? 'rotate-180' : ''}`} />
+      )}
       {isNotificationsItem && unreadCount > 0 && (
         <div className={`absolute bg-destructive text-white text-xs rounded-full min-w-[16px] h-4 flex items-center justify-center ${
           isCollapsed ? 'top-0 right-0 text-[10px]' : 'top-1 right-1'
@@ -54,8 +68,6 @@ export const NavItem: React.FC<NavItemProps> = ({
           {unreadCount > 99 ? '99+' : unreadCount}
         </div>
       )}
-
-      {/* Activities badge */}
       {isActivitiesItem && activitiesCount > 0 && (
         <div className={`absolute bg-orange-500 text-white text-xs rounded-full min-w-[16px] h-4 flex items-center justify-center ${
           isCollapsed ? 'top-0 right-0 text-[10px]' : 'top-1 right-1'
@@ -79,5 +91,20 @@ export const NavItem: React.FC<NavItemProps> = ({
     );
   }
 
-  return navItemContent;
+  return (
+    <>
+      {navItemContent}
+      {subItems && isSubMenuOpen && !isCollapsed && (
+        <div className="pl-8 space-y-1">
+          {subItems.map((item) => (
+            <Link to={item.path} key={item.path}>
+              <Button variant={location.pathname === item.path ? 'secondary' : 'ghost'} className="w-full justify-start">
+                {item.label}
+              </Button>
+            </Link>
+          ))}
+        </div>
+      )}
+    </>
+  );
 };
