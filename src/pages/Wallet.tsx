@@ -44,7 +44,7 @@ const renderTransactionIcon = (type: string) => {
 
 const Wallet: React.FC = () => {
   const { profile } = useAuth();
-  const [walletBalance, setWalletBalance] = useState(1250);
+  const [walletBalance, setWalletBalance] = useState(350000);
   const [isFundWalletDialogOpen, setIsFundWalletDialogOpen] = useState(false);
   const [fundingAmount, setFundingAmount] = useState(0);
   const transactions = [
