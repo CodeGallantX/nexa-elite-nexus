@@ -27,6 +27,8 @@ import {
   Swords,
   Activity,
   SlidersHorizontal,
+  Wallet,
+  Gift,
 } from 'lucide-react';
 import { NavItem } from '@/components/NavItem';
 
@@ -47,6 +49,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   setIsCollapsed, 
   isMobile 
 }) => {
+
   const { profile, logout } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
@@ -78,6 +81,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { icon: Sword, label: 'Weapon Layouts', path: '/weapon-layouts' },
     { icon: Megaphone, label: 'Announcements', path: '/announcements' },
     { icon: BarChart3, label: 'Statistics', path: '/statistics' },
+    { icon: Gift, label: 'Giveaway', path: '/giveaway' },
+    { icon: Wallet, label: 'Wallet', path: '/wallet' },
     { icon: Settings, label: 'Settings', path: '/settings' },
   ];
 
@@ -90,6 +95,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { icon: Clock, label: 'Attendance', path: '/admin/attendance' },
     { icon: Megaphone, label: 'Announcements', path: '/announcements' },
     { icon: BarChart3, label: 'Statistics', path: '/statistics' },
+    { icon: Gift, label: 'Giveaway', path: '/giveaway' },
+    { icon: Wallet, label: 'Wallet', path: '/wallet' },
     { icon: Settings, label: 'Settings', path: '/settings' },
   ];
 
@@ -105,13 +112,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { icon: Swords, label: 'Weapon Layouts', path: '/admin/weapon-layouts' },
     { icon: Crosshair, label: 'Scrims', path: '/admin/scrims' },
     { icon: Calendar, label: 'Events', path: '/admin/events' },
-    { icon: UserPlus, label: 'Assignments', path: '/admin/event-assignment' },
+
     { icon: Clock, label: 'Attendance', path: '/admin/attendance' },
     { icon: Megaphone, label: 'Announcements', path: '/admin/announcements' },
     { icon: Bell, label: 'Notifications', path: '/admin/notifications' },
     { icon: AlertCircle, label: 'Issues', path: '/admin/feedback' },
     ...(profile?.role === 'clan_master' ? [{ icon: Activity, label: 'Activities', path: '/admin/activities' }] : []),
     ...(profile?.role === 'clan_master' ? [{ icon: SlidersHorizontal, label: 'Configuration', path: '/admin/config' }] : []),
+
+    { icon: Gift, label: 'Giveaway', path: '/giveaway' },
+    { icon: Wallet, label: 'Wallet', path: '/wallet' },
     { icon: Settings, label: 'Settings', path: '/settings' },
   ];
 
@@ -246,9 +256,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   icon={item.icon}
                   label={item.label}
                   path={item.path}
-                  isActive={location.pathname === item.path}
+                  isActive={location.pathname.startsWith(item.path)}
                   isCollapsed={isCollapsed || isMediumScreen}
                   onClick={() => navigate(item.path)}
+                  subItems={item.subItems}
                 />
               ))}
             </>
