@@ -1,6 +1,4 @@
-
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -8,9 +6,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { Shield, Coins, ArrowDown, ArrowUp, Gift, Award } from 'lucide-react';
-
-
+import { Shield, Coins, ArrowDown, ArrowUp, Gift, Award, ArrowUpDown, Copy, Check, ChevronsUpDown } from 'lucide-react';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useToast } from '@/components/ui/use-toast';
+import { Textarea } from '@/components/ui/textarea';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from '@/components/ui/command';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { useAdminPlayers } from '@/hooks/useAdminPlayers';
 
 const TransactionItem = ({ transaction }) => (
   <div className="flex items-center justify-between p-4 bg-background/80 backdrop-blur-sm rounded-lg mb-2">
@@ -42,11 +45,439 @@ const renderTransactionIcon = (type: string) => {
   }
 };
 
+const GiveawayDialog = ({ setWalletBalance }) => {
+    const { profile } = useAuth();
+    const { toast } = useToast();
+    const isClanMaster = profile?.role === 'clan_master';
+  
+    const [amount, setAmount] = useState('');
+    const [quantity, setQuantity] = useState('');
+    const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
+    const [isCodesDialogOpen, setIsCodesDialogOpen] = useState(false);
+    const [generatedCodes, setGeneratedCodes] = useState<string[]>([]);
+    const [redeemCode, setRedeemCode] = useState('');
+
+    const [activeGiveaways, setActiveGiveaways] = useState([]);
+
+    const handleRedeem = () => {
+        // Add logic to redeem the code
+        toast({
+            title: "Code Redeemed!",
+            description: `You have successfully redeemed code: ${redeemCode}`,
+        });
+        setRedeemCode('');
+    }
+
+    const handleCreateGiveaway = () => {
+        const totalCost = Number(amount) * Number(quantity);
+        setWalletBalance(prev => prev - totalCost);
+        const codes = Array.from({ length: Number(quantity) }, () => Math.floor(100000 + Math.random() * 900000).toString());
+        setGeneratedCodes(codes);
+        setIsConfirmDialogOpen(false);
+        setIsCodesDialogOpen(true);
+
+        const newGiveaway = {
+            id: activeGiveaways.length + 1,
+            type: 'Cash',
+            amount: Number(amount),
+            quantity: Number(quantity),
+            createdBy: profile?.ign || 'Unknown',
+        };
+        setActiveGiveaways([...activeGiveaways, newGiveaway]);
+    }
+  
+    return (
+        <Dialog>
+            <DialogTrigger asChild>
+                <Button variant="outline" className="w-full h-24 flex flex-col items-center justify-center">
+                    <Gift className="h-8 w-8 mb-2" />
+                    Giveaway
+                </Button>
+            </DialogTrigger>
+            <DialogContent>
+                {isClanMaster ? (
+                    <Tabs defaultValue="create-giveaway">
+                        <TabsList>
+                            <TabsTrigger value="active-giveaways">Active Giveaways</TabsTrigger>
+                            <TabsTrigger value="create-giveaway">Create Giveaway</TabsTrigger>
+                        </TabsList>
+                        <TabsContent value="active-giveaways">
+                            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                                {activeGiveaways.map((giveaway) => (
+                                <Card key={giveaway.id}>
+                                    <CardHeader>
+                                    <CardTitle>Cash Giveaway</CardTitle>
+                                    </CardHeader>
+                                    <CardContent>
+                                    <p>Amount: {giveaway.amount}</p>
+                                    <p>Quantity: {giveaway.quantity}</p>
+                                    <p>Created by: {giveaway.createdBy}</p>
+                                    </CardContent>
+                                </Card>
+                                ))}
+                            </div>
+                        </TabsContent>
+                        <TabsContent value="create-giveaway">
+                            <Card className="max-w-md mx-auto">
+                                <CardHeader>
+                                    <CardTitle>Create a New Giveaway</CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="grid gap-4">
+                                        <div className="grid gap-2">
+                                            <Label htmlFor="amount">Amount per person</Label>
+                                            <Input
+                                                id="amount"
+                                                type="number"
+                                                value={amount}
+                                                onChange={(e) => setAmount(e.target.value)}
+                                                placeholder="Enter amount"
+                                            />
+                                        </div>
+                                        <div className="grid gap-2">
+                                            <Label htmlFor="quantity">Quantity</Label>
+                                            <Input
+                                                id="quantity"
+                                                type="number"
+                                                value={quantity}
+                                                onChange={(e) => setQuantity(e.target.value)}
+                                                placeholder="Enter quantity"
+                                            />
+                                        </div>
+                                        <Button disabled={!amount || !quantity} onClick={() => setIsConfirmDialogOpen(true)}>Create Giveaway</Button>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        </TabsContent>
+                    </Tabs>
+                ) : (
+                    <div>
+                        <DialogHeader>
+                            <DialogTitle>Redeem Code</DialogTitle>
+                        </DialogHeader>
+                        <div className="py-4">
+                            <Input 
+                                placeholder="Enter your code"
+                                value={redeemCode}
+                                onChange={(e) => setRedeemCode(e.target.value)}
+                            />
+                        </div>
+                        <DialogFooter>
+                            <Button onClick={handleRedeem}>Redeem</Button>
+                        </DialogFooter>
+                    </div>
+                )}
+
+                <Dialog open={isConfirmDialogOpen} onOpenChange={setIsConfirmDialogOpen}>
+                    <DialogContent>
+                        <DialogHeader>
+                            <DialogTitle>Confirm Giveaway Purchase</DialogTitle>
+                        </DialogHeader>
+                        <div className="py-4">
+                            <p>You are about to create a giveaway with the following details:</p>
+                            <ul>
+                                <li>Type: Cash</li>
+                                <li>Amount: ₦{amount}</li>
+                                <li>Quantity: {quantity}</li>
+                            </ul>
+                            <p className="font-bold mt-4">Total Cost: ₦{Number(amount) * Number(quantity)}</p>
+                        </div>
+                        <DialogFooter>
+                            <Button variant="outline" onClick={() => setIsConfirmDialogOpen(false)}>Cancel</Button>
+                            <Button onClick={handleCreateGiveaway}>Confirm Purchase</Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
+
+                <Dialog open={isCodesDialogOpen} onOpenChange={setIsCodesDialogOpen}>
+                    <DialogContent>
+                        <DialogHeader>
+                            <DialogTitle>Generated Giveaway Codes</DialogTitle>
+                        </DialogHeader>
+                        <div className="py-4">
+                            <p>Share these codes with the players. The first ones to redeem them will get the prize.</p>
+                            <div className="grid gap-2 mt-4">
+                                {generatedCodes.map((code, index) => (
+                                    <div key={index} className="p-2 bg-muted rounded-md">
+                                    {code}
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                        <DialogFooter>
+                            <Button variant="outline" onClick={() => setIsCodesDialogOpen(false)}>Close</Button>
+                            <Button onClick={() => {
+                                toast({
+                                    title: "Giveaway Published!",
+                                    description: "The giveaway codes have been sent to all players.",
+                                });
+                                setIsCodesDialogOpen(false);
+                            }}>Publish</Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
+            </DialogContent>
+        </Dialog>
+    )
+}
+
+const WithdrawDialog = ({ setWalletBalance }) => {
+    const { profile } = useAuth();
+    const [amount, setAmount] = useState(0);
+    const [accountNumber, setAccountNumber] = useState('');
+    const [accountName, setAccountName] = useState('');
+    const [bankName, setBankName] = useState('');
+    const [notes, setNotes] = useState('');
+    const { toast } = useToast();
+
+    useEffect(() => {
+        if (profile) {
+            setAccountName(profile.account_name || '');
+            setAccountNumber(profile.account_number || '');
+        }
+    }, [profile]);
+
+    const banks = [
+        { name: 'Access Bank', domain: 'accessbankplc.com' },
+        { name: 'UBA', domain: 'ubagroup.com' },
+        { name: 'First Bank', domain: 'firstbanknigeria.com' },
+        { name: 'Zenith Bank', domain: 'zenithbank.com' },
+        { name: 'Moniepoint', domain: 'moniepoint.com' },
+        { name: 'OPay', domain: 'opayweb.com' },
+        { name: 'PalmPay', domain: 'palmpay.com' },
+        { name: 'Kuda', domain: 'kuda.com' },
+    ];
+
+    const handleWithdraw = () => {
+        if (amount < 100) {
+            toast({
+                title: "Invalid Amount",
+                description: "Minimum withdrawal amount is ₦100",
+                variant: "destructive",
+            });
+            return;
+        }
+        if (!bankName) {
+            toast({
+                title: "Bank not selected",
+                description: "Please select a bank",
+                variant: "destructive",
+            });
+            return;
+        }
+        if (!/^[0-9]{10}$/.test(accountNumber)) {
+            toast({
+                title: "Invalid Account Number",
+                description: "Please enter a valid 10-digit account number",
+                variant: "destructive",
+            });
+            return;
+        }
+
+        setWalletBalance(prev => prev - amount);
+        toast({
+            title: "Withdrawal Successful",
+            description: `Your request to withdraw ₦${amount} has been submitted.`,
+        });
+    }
+
+    return (
+        <Dialog>
+            <DialogTrigger asChild>
+                <Button variant="outline" className="w-full h-24 flex flex-col items-center justify-center">
+                    <ArrowDown className="h-8 w-8 mb-2" />
+                    Withdraw
+                </Button>
+            </DialogTrigger>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Withdraw</DialogTitle>
+                </DialogHeader>
+                <div className="py-4 grid gap-4">
+                    <Select onValueChange={setBankName}>
+                        <SelectTrigger>
+                            <SelectValue placeholder="Select Bank" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {banks.map(bank => (
+                                <SelectItem key={bank.name} value={bank.name}>
+                                    <div className="flex items-center gap-2">
+                                        <img src={`https://logo.clearbit.com/${bank.domain}`} alt={bank.name} className="h-6 w-6" />
+                                        {bank.name}
+                                    </div>
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                    <Input 
+                        placeholder="Account Number"
+                        value={accountNumber}
+                        onChange={(e) => setAccountNumber(e.target.value)}
+                    />
+                    <Input 
+                        placeholder="Account Name"
+                        value={accountName}
+                        readOnly
+                    />
+                    <Input 
+                        type="number"
+                        placeholder="₦0.00"
+                        value={amount}
+                        onChange={(e) => setAmount(Number(e.target.value))}
+                    />
+                    <Textarea 
+                        placeholder="Transaction Notes"
+                        value={notes}
+                        onChange={(e) => setNotes(e.target.value)}
+                    />
+                </div>
+                <DialogFooter>
+                    <Button onClick={handleWithdraw}>Submit Withdrawal</Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    )
+}
+
+const TransferDialog = ({ setWalletBalance }) => {
+    const [amount, setAmount] = useState(0);
+    const [recipient, setRecipient] = useState('');
+    const [open, setOpen] = useState(false);
+    const { toast } = useToast();
+    const { data: players, isLoading } = useAdminPlayers();
+
+    const handleTransfer = () => {
+        setWalletBalance(prev => prev - amount);
+        toast({
+            title: "Transfer Successful",
+            description: `You have transferred ₦${amount} to ${recipient}`,
+        });
+    }
+
+    return (
+        <Dialog>
+            <DialogTrigger asChild>
+                <Button variant="outline" className="w-full h-24 flex flex-col items-center justify-center">
+                    <ArrowUpDown className="h-8 w-8 mb-2" />
+                    Transfer
+                </Button>
+            </DialogTrigger>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Transfer</DialogTitle>
+                </DialogHeader>
+                <div className="py-4 grid gap-4">
+                    <Popover open={open} onOpenChange={setOpen}>
+                        <PopoverTrigger asChild>
+                            <Button
+                                variant="outline"
+                                role="combobox"
+                                aria-expanded={open}
+                                className="w-full justify-between"
+                            >
+                                {recipient
+                                    ? `${players.find((player) => player.ign === recipient)?.status === 'beta' ? 'Ɲ・乃' : 'Ɲ・乂'}${recipient}`
+                                    : "Select a player..."}
+                                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                            </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                            <Command>
+                                <CommandInput placeholder="Search player..." />
+                                <CommandEmpty>No player found.</CommandEmpty>
+                                <CommandGroup>
+                                    {players && players.map((player) => (
+                                        <CommandItem
+                                            key={player.id}
+                                            value={player.ign}
+                                            onSelect={(currentValue) => {
+                                                setRecipient(currentValue === recipient ? "" : currentValue)
+                                                setOpen(false)
+                                            }}
+                                        >
+                                            <Check
+                                                className={`mr-2 h-4 w-4 ${recipient === player.ign ? "opacity-100" : "opacity-0"}`}
+                                            />
+                                            {player.status === 'beta' ? 'Ɲ・乃' : 'Ɲ・乂'}{player.ign}
+                                        </CommandItem>
+                                    ))}
+                                </CommandGroup>
+                            </Command>
+                        </PopoverContent>
+                    </Popover>
+                    <Input 
+                        type="number"
+                        placeholder="₦0.00"
+                        value={amount}
+                        onChange={(e) => setAmount(Number(e.target.value))}
+                    />
+                </div>
+                <DialogFooter>
+                    <Button onClick={handleTransfer}>Transfer</Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    )
+}
+
+const FundWalletDialog = () => {
+    const accountNumber = "1234567890";
+    const accountName = "Nexa Elite Nexus";
+    const bankName = "Wema Bank";
+    const { toast } = useToast();
+
+    const handleCopy = () => {
+        navigator.clipboard.writeText(accountNumber);
+        toast({
+            title: "Copied!",
+            description: "Account number copied to clipboard.",
+        });
+    }
+
+    return (
+        <Dialog>
+            <DialogTrigger asChild>
+                <Button variant="outline" className="w-full h-24 flex flex-col items-center justify-center">
+                    <Coins className="h-8 w-8 mb-2" />
+                    Fund Wallet
+                </Button>
+            </DialogTrigger>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Fund Your Wallet</DialogTitle>
+                </DialogHeader>
+                <div className="py-4">
+                    <p className="text-sm text-muted-foreground mb-4">Send money to this account to topup your Nexa wallet.</p>
+                    <Card className="p-4 bg-muted">
+                        <div className="grid gap-4">
+                            <div>
+                                <Label>Bank Name</Label>
+                                <p className="font-semibold text-lg">{bankName}</p>
+                            </div>
+                            <div>
+                                <Label>Account Name</Label>
+                                <p className="font-semibold text-lg">{accountName}</p>
+                            </div>
+                            <div>
+                                <Label>Account Number</Label>
+                                <div className="flex items-center gap-2">
+                                    <p className="font-semibold text-2xl">{accountNumber}</p>
+                                    <Button variant="ghost" size="icon" onClick={handleCopy}>
+                                        <Copy className="h-5 w-5" />
+                                    </Button>
+                                </div>
+                            </div>
+                        </div>
+                    </Card>
+                </div>
+            </DialogContent>
+        </Dialog>
+    )
+}
+
 const Wallet: React.FC = () => {
   const { profile } = useAuth();
   const [walletBalance, setWalletBalance] = useState(350000);
-  const [isFundWalletDialogOpen, setIsFundWalletDialogOpen] = useState(false);
-  const [fundingAmount, setFundingAmount] = useState(0);
   const transactions = [
     { id: 1, type: 'Earnings', description: 'Scrim victory bonus', amount: 50, date: '2025-10-19' },
     { id: 2, type: 'Withdrawals', description: 'Withdrawal to bank', amount: -200, date: '2025-10-18' },
@@ -76,37 +507,10 @@ const Wallet: React.FC = () => {
       </Card>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-        {profile?.role === 'clan_master' && (
-          <Button
-            variant="outline"
-            className="w-full h-24 flex flex-col items-center justify-center"
-            onClick={() => setIsFundWalletDialogOpen(true)}
-          >
-            <Coins className="h-8 w-8 mb-2" />
-            Fund Wallet
-          </Button>
-        )}
-        {profile?.role !== 'clan_master' && (
-          <Link to="/wallet/redeem-code">
-            <Button variant="outline" className="w-full h-24 flex flex-col items-center justify-center">
-              <Gift className="h-8 w-8 mb-2" />
-              Redeem Code
-            </Button>
-          </Link>
-        )}
-        <Link to="/wallet/withdraw">
-          <Button variant="outline" className="w-full h-24 flex flex-col items-center justify-center">
-            <ArrowDown className="h-8 w-8 mb-2" />
-            Withdraw
-          </Button>
-        </Link>
-        <Link to="/wallet/send-cash">
-          <Button variant="outline" className="w-full h-24 flex flex-col items-center justify-center">
-            <ArrowUp className="h-8 w-8 mb-2" />
-            Send Cash
-          </Button>
-        </Link>
-
+        {profile?.role === 'clan_master' && <FundWalletDialog />}
+        <WithdrawDialog setWalletBalance={setWalletBalance} />
+        <TransferDialog setWalletBalance={setWalletBalance} />
+        <GiveawayDialog setWalletBalance={setWalletBalance} />
       </div>
 
       <Card className="bg-transparent shadow-none">
@@ -138,29 +542,6 @@ const Wallet: React.FC = () => {
           </Tabs>
         </CardContent>
       </Card>
-
-      <Dialog open={isFundWalletDialogOpen} onOpenChange={setIsFundWalletDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Fund Wallet</DialogTitle>
-          </DialogHeader>
-          <div className="py-4">
-            <Input
-              type="number"
-              placeholder="Enter amount"
-              value={fundingAmount}
-              onChange={(e) => setFundingAmount(Number(e.target.value))}
-            />
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsFundWalletDialogOpen(false)}>Cancel</Button>
-            <Button onClick={() => {
-              setWalletBalance(walletBalance + fundingAmount);
-              setIsFundWalletDialogOpen(false);
-            }}>Confirm</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 };

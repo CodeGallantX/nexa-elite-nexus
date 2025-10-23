@@ -81,7 +81,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { icon: Sword, label: 'Weapon Layouts', path: '/weapon-layouts' },
     { icon: Megaphone, label: 'Announcements', path: '/announcements' },
     { icon: BarChart3, label: 'Statistics', path: '/statistics' },
-    { icon: Gift, label: 'Giveaway', path: '/giveaway' },
     { icon: Wallet, label: 'Wallet', path: '/wallet' },
     { icon: Settings, label: 'Settings', path: '/settings' },
   ];
@@ -95,7 +94,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { icon: Clock, label: 'Attendance', path: '/admin/attendance' },
     { icon: Megaphone, label: 'Announcements', path: '/announcements' },
     { icon: BarChart3, label: 'Statistics', path: '/statistics' },
-    { icon: Gift, label: 'Giveaway', path: '/giveaway' },
     { icon: Wallet, label: 'Wallet', path: '/wallet' },
     { icon: Settings, label: 'Settings', path: '/settings' },
   ];
@@ -120,7 +118,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
     ...(profile?.role === 'clan_master' ? [{ icon: Activity, label: 'Activities', path: '/admin/activities' }] : []),
     ...(profile?.role === 'clan_master' ? [{ icon: SlidersHorizontal, label: 'Configuration', path: '/admin/config' }] : []),
 
-    { icon: Gift, label: 'Giveaway', path: '/giveaway' },
     { icon: Wallet, label: 'Wallet', path: '/wallet' },
     { icon: Settings, label: 'Settings', path: '/settings' },
   ];

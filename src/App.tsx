@@ -48,9 +48,8 @@ import { Feedback } from '@/pages/admin/Feedback';
 import Activities from '@/pages/admin/Activities';
 import Wallet from '@/pages/Wallet';
 import PurchaseAirtime from '@/pages/wallet/PurchaseAirtime';
-import SendCash from '@/pages/wallet/SendCash';
-import RedeemCode from '@/pages/wallet/RedeemCode';
-import Giveaway from '@/pages/Giveaway';
+
+
 
 import InstallPrompt from '@/components/InstallPrompt';
 import { UpdatePrompt } from '@/components/UpdatePrompt';
@@ -85,7 +84,7 @@ function App() {
             <Route path="/loadouts" element={<Layout showSidebar><Loadouts /></Layout>} />
             <Route path="/announcements" element={<Layout showSidebar><Announcements /></Layout>} />
             <Route path="/statistics" element={<Layout showSidebar><Statistics /></Layout>} />
-            <Route path="/giveaway" element={<Layout showSidebar><Giveaway /></Layout>} />
+            
 
             {/* Wallet route with feature flag and role-based access */}
                 <Route
@@ -97,22 +96,7 @@ function App() {
                   }
                 />
 
-                <Route
-                  path="/wallet/send-cash"
-                  element={
-                    <Layout showSidebar>
-                      <SendCash />
-                    </Layout>
-                  }
-                />
-                <Route
-                  path="/wallet/redeem-code"
-                  element={
-                    <Layout showSidebar>
-                      <RedeemCode />
-                    </Layout>
-                  }
-                />
+                
 
             {/* Admin routes */}
             <Route path="/admin" element={<Layout showSidebar><AdminDashboard /></Layout>} />
