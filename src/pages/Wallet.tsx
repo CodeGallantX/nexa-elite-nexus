@@ -11,9 +11,10 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/components/ui/use-toast';
 import { Textarea } from '@/components/ui/textarea';
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from '@/components/ui/command';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useAdminPlayers } from '@/hooks/useAdminPlayers';
+import { sendBroadcastPushNotification } from '@/lib/pushNotifications';
 
 const TransactionItem = ({ transaction }) => (
   <div className="flex items-center justify-between p-4 bg-background/80 backdrop-blur-sm rounded-lg mb-2">
@@ -206,7 +207,11 @@ const GiveawayDialog = ({ setWalletBalance }) => {
                         </div>
                         <DialogFooter>
                             <Button variant="outline" onClick={() => setIsCodesDialogOpen(false)}>Close</Button>
-                            <Button onClick={() => {
+                            <Button onClick={async () => {
+                                await sendBroadcastPushNotification({
+                                    title: "New Giveaway!",
+                                    message: `A new giveaway of ₦${amount} has been created for ${quantity} players. First come, first served!`,
+                                });
                                 toast({
                                     title: "Giveaway Published!",
                                     description: "The giveaway codes have been sent to all players.",
@@ -231,9 +236,10 @@ const WithdrawDialog = ({ setWalletBalance }) => {
     const { toast } = useToast();
 
     useEffect(() => {
-        if (profile) {
-            setAccountName(profile.account_name || '');
-            setAccountNumber(profile.account_number || '');
+        if (profile?.banking_info) {
+            setAccountName(profile.banking_info.account_name || '');
+            setAccountNumber(profile.banking_info.account_number || '');
+            setBankName(profile.banking_info.bank_name || '');
         }
     }, [profile]);
 
@@ -294,42 +300,49 @@ const WithdrawDialog = ({ setWalletBalance }) => {
                     <DialogTitle>Withdraw</DialogTitle>
                 </DialogHeader>
                 <div className="py-4 grid gap-4">
-                    <Select onValueChange={setBankName}>
-                        <SelectTrigger>
-                            <SelectValue placeholder="Select Bank" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {banks.map(bank => (
-                                <SelectItem key={bank.name} value={bank.name}>
-                                    <div className="flex items-center gap-2">
-                                        <img src={`https://logo.clearbit.com/${bank.domain}`} alt={bank.name} className="h-6 w-6" />
-                                        {bank.name}
-                                    </div>
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                    <Input 
-                        placeholder="Account Number"
-                        value={accountNumber}
-                        onChange={(e) => setAccountNumber(e.target.value)}
-                    />
-                    <Input 
-                        placeholder="Account Name"
-                        value={accountName}
-                        readOnly
-                    />
-                    <Input 
-                        type="number"
-                        placeholder="₦0.00"
-                        value={amount}
-                        onChange={(e) => setAmount(Number(e.target.value))}
-                    />
-                    <Textarea 
-                        placeholder="Transaction Notes"
-                        value={notes}
-                        onChange={(e) => setNotes(e.target.value)}
-                    />
+                    {bankName && (
+                        <div className="flex items-center gap-2 p-2 rounded-md bg-muted">
+                            <img src={`https://logo.clearbit.com/${banks.find(b => b.name === bankName)?.domain}`} alt={bankName} className="h-6 w-6" />
+                            <span>{bankName}</span>
+                        </div>
+                    )}
+                    <div className="grid gap-2">
+                        <Label htmlFor="accountNumber">Account Number</Label>
+                        <Input 
+                            id="accountNumber"
+                            placeholder="Account Number"
+                            value={accountNumber}
+                            onChange={(e) => setAccountNumber(e.target.value)}
+                        />
+                    </div>
+                    <div className="grid gap-2">
+                        <Label htmlFor="accountName">Account Name</Label>
+                        <Input 
+                            id="accountName"
+                            placeholder="Account Name"
+                            value={accountName}
+                            readOnly
+                        />
+                    </div>
+                    <div className="grid gap-2">
+                        <Label htmlFor="amount">Amount</Label>
+                        <Input 
+                            id="amount"
+                            type="number"
+                            placeholder="₦0.00"
+                            value={amount}
+                            onChange={(e) => setAmount(Number(e.target.value))}
+                        />
+                    </div>
+                    <div className="grid gap-2">
+                        <Label htmlFor="notes">Transaction Notes</Label>
+                        <Textarea 
+                            id="notes"
+                            placeholder="Transaction Notes"
+                            value={notes}
+                            onChange={(e) => setNotes(e.target.value)}
+                        />
+                    </div>
                 </div>
                 <DialogFooter>
                     <Button onClick={handleWithdraw}>Submit Withdrawal</Button>
@@ -367,50 +380,58 @@ const TransferDialog = ({ setWalletBalance }) => {
                     <DialogTitle>Transfer</DialogTitle>
                 </DialogHeader>
                 <div className="py-4 grid gap-4">
-                    <Popover open={open} onOpenChange={setOpen}>
-                        <PopoverTrigger asChild>
-                            <Button
-                                variant="outline"
-                                role="combobox"
-                                aria-expanded={open}
-                                className="w-full justify-between"
-                            >
-                                {recipient
-                                    ? `${players.find((player) => player.ign === recipient)?.status === 'beta' ? 'Ɲ・乃' : 'Ɲ・乂'}${recipient}`
-                                    : "Select a player..."}
-                                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                            </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-                            <Command>
-                                <CommandInput placeholder="Search player..." />
-                                <CommandEmpty>No player found.</CommandEmpty>
-                                <CommandGroup>
-                                    {players && players.map((player) => (
-                                        <CommandItem
-                                            key={player.id}
-                                            value={player.ign}
-                                            onSelect={(currentValue) => {
-                                                setRecipient(currentValue === recipient ? "" : currentValue)
-                                                setOpen(false)
-                                            }}
-                                        >
-                                            <Check
-                                                className={`mr-2 h-4 w-4 ${recipient === player.ign ? "opacity-100" : "opacity-0"}`}
-                                            />
-                                            {player.status === 'beta' ? 'Ɲ・乃' : 'Ɲ・乂'}{player.ign}
-                                        </CommandItem>
-                                    ))}
-                                </CommandGroup>
-                            </Command>
-                        </PopoverContent>
-                    </Popover>
-                    <Input 
-                        type="number"
-                        placeholder="₦0.00"
-                        value={amount}
-                        onChange={(e) => setAmount(Number(e.target.value))}
-                    />
+                    <div className="grid gap-2">
+                        <Label>Recipient</Label>
+                        <Popover open={open} onOpenChange={setOpen}>
+                            <PopoverTrigger asChild>
+                                <Button
+                                    variant="outline"
+                                    role="combobox"
+                                    aria-expanded={open}
+                                    className="w-full justify-between"
+                                >
+                                    {recipient
+                                        ? `${players.find((player) => player.ign === recipient)?.status === 'beta' ? 'Ɲ・乃' : 'Ɲ・乂'}${recipient}`
+                                        : "Select a player..."}
+                                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                                <Command>
+                                    <CommandInput placeholder="Search player..." />
+                                    <CommandEmpty>No player found.</CommandEmpty>
+                                                                                                    <CommandList className="max-h-52">
+                                                                                                        <CommandGroup>
+                                                                                                            {players && players.map((player) => (
+                                                                                                                <CommandItem
+                                                                                                                    key={player.id}
+                                                                                                                    value={player.ign}
+                                                                                                                    onSelect={(currentValue) => {
+                                                                                                                        setRecipient(currentValue === recipient ? "" : currentValue)
+                                                                                                                        setOpen(false)
+                                                                                                                    }}
+                                                                                                                >
+                                                                                                                    <Check
+                                                                                                                        className={`mr-2 h-4 w-4 ${recipient === player.ign ? "opacity-100" : "opacity-0"}`}
+                                                                                                                    />
+                                                                                                                    {player.status === 'beta' ? 'Ɲ・乃' : 'Ɲ・乂'}{player.ign}
+                                                                                                                </CommandItem>
+                                                                                                            ))}
+                                                                                                        </CommandGroup>
+                                                                                                    </CommandList>                                </Command>
+                            </PopoverContent>
+                        </Popover>
+                    </div>
+                    <div className="grid gap-2">
+                        <Label htmlFor="amount">Amount</Label>
+                        <Input 
+                            id="amount"
+                            type="number"
+                            placeholder="₦0.00"
+                            value={amount}
+                            onChange={(e) => setAmount(Number(e.target.value))}
+                        />
+                    </div>
                 </div>
                 <DialogFooter>
                     <Button onClick={handleTransfer}>Transfer</Button>
