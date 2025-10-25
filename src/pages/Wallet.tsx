@@ -256,7 +256,11 @@ const WithdrawDialog = ({ setWalletBalance, walletBalance, banks }) => {
     }, [profile]);
 
     const handleWithdraw = async () => {
+        console.log("Withdrawal process started.");
+        console.log("State:", { amount, walletBalance, bankCode, accountNumber, accountName });
+
         if (amount > walletBalance) {
+            console.error("Validation failed: Insufficient funds.");
             toast({
                 title: "Insufficient funds",
                 description: "You do not have enough funds in your wallet to complete this transaction.",
@@ -265,6 +269,7 @@ const WithdrawDialog = ({ setWalletBalance, walletBalance, banks }) => {
             return;
         }
         if (amount < 100) {
+            console.error("Validation failed: Amount less than 100.");
             toast({
                 title: "Invalid Amount",
                 description: "Minimum withdrawal amount is ₦100",
@@ -273,6 +278,7 @@ const WithdrawDialog = ({ setWalletBalance, walletBalance, banks }) => {
             return;
         }
         if (!bankCode) {
+            console.error("Validation failed: Bank not selected.");
             toast({
                 title: "Bank not selected",
                 description: "Please select a bank",
@@ -281,6 +287,7 @@ const WithdrawDialog = ({ setWalletBalance, walletBalance, banks }) => {
             return;
         }
         if (!/^[0-9]{10}$/.test(accountNumber)) {
+            console.error("Validation failed: Invalid account number.");
             toast({
                 title: "Invalid Account Number",
                 description: "Please enter a valid 10-digit account number",
@@ -289,46 +296,59 @@ const WithdrawDialog = ({ setWalletBalance, walletBalance, banks }) => {
             return;
         }
 
+        console.log("Validation passed. Creating transfer recipient...");
+        const recipientPayload = {
+            endpoint: 'create-transfer-recipient',
+            name: accountName,
+            account_number: accountNumber,
+            bank_code: bankCode,
+        };
+        console.log("Recipient payload:", recipientPayload);
+
         const { data: recipientData, error: recipientError } = await supabase.functions.invoke('paystack-transfer', {
-            body: {
-                endpoint: 'create-transfer-recipient',
-                name: accountName,
-                account_number: accountNumber,
-                bank_code: bankCode,
-            },
+            body: recipientPayload,
         });
 
         if (recipientError || !recipientData.status) {
+            console.error("Error creating transfer recipient:", recipientError || recipientData);
             toast({
                 title: "Error creating transfer recipient",
-                description: recipientData.message || "An error occurred",
+                description: recipientData?.message || recipientError?.message || "An error occurred",
                 variant: "destructive",
             });
             return;
         }
 
+        console.log("Transfer recipient created successfully:", recipientData);
+        console.log("Initiating transfer...");
+        const transferPayload = {
+            endpoint: 'initiate-transfer',
+            amount,
+            recipient_code: recipientData.data.recipient_code,
+        };
+        console.log("Transfer payload:", transferPayload);
+
         const { data: transferData, error: transferError } = await supabase.functions.invoke('paystack-transfer', {
-            body: {
-                endpoint: 'initiate-transfer',
-                amount,
-                recipient_code: recipientData.data.recipient_code,
-            },
+            body: transferPayload,
         });
 
         if (transferError || !transferData.status) {
+            console.error("Error initiating transfer:", transferError || transferData);
             toast({
                 title: "Error initiating transfer",
-                description: transferData.message || "An error occurred",
+                description: transferData?.message || transferError?.message || "An error occurred",
                 variant: "destructive",
             });
             return;
         }
 
+        console.log("Transfer initiated successfully:", transferData);
         setWalletBalance(prev => prev - amount);
         toast({
             title: "Withdrawal Successful",
             description: `Your request to withdraw ₦${amount} has been submitted.`,
         });
+        console.log("Withdrawal process finished.");
     }
 
     return (
@@ -344,18 +364,21 @@ const WithdrawDialog = ({ setWalletBalance, walletBalance, banks }) => {
                     <DialogTitle>Withdraw</DialogTitle>
                 </DialogHeader>
                 <div className="py-4 grid gap-4">
-                    <Select onValueChange={setBankCode} value={bankCode}>
-                        <SelectTrigger>
-                            <SelectValue placeholder="Select Bank" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {banks.map(bank => (
-                                <SelectItem key={bank.code} value={bank.code}>
-                                    {bank.name}
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
+                    <div className="grid gap-2">
+                        <Label htmlFor="bank">Bank</Label>
+                        <Select onValueChange={setBankCode} value={bankCode}>
+                            <SelectTrigger>
+                                <SelectValue placeholder="Select Bank" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {banks.map(bank => (
+                                    <SelectItem key={bank.id} value={bank.code}>
+                                        {bank.name}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
                     <div className="grid gap-2">
                         <Label htmlFor="accountNumber">Account Number</Label>
                         <TooltipProvider>
@@ -427,20 +450,49 @@ const TransferDialog = ({ setWalletBalance, walletBalance }) => {
     const { toast } = useToast();
     const { data: players, isLoading } = useAdminPlayers();
 
-    const handleTransfer = () => {
-        if (amount > walletBalance) {
-            toast({
-                title: "Insufficient funds",
-                description: "You do not have enough funds in your wallet to complete this transaction.",
-                variant: "destructive",
-            });
+    const [isTransferring, setIsTransferring] = useState(false);
+
+    const handleTransfer = async () => {
+        if (amount <= 0) {
+            toast({ title: "Invalid Amount", description: "Transfer amount must be positive.", variant: "destructive" });
             return;
         }
-        setWalletBalance(prev => prev - amount);
-        toast({
-            title: "Transfer Successful",
-            description: `You have transferred ₦${amount} to ${recipient}`,
-        });
+        if (!recipient) {
+            toast({ title: "No Recipient", description: "Please select a player to transfer to.", variant: "destructive" });
+            return;
+        }
+        if (amount > walletBalance) {
+            toast({ title: "Insufficient funds", description: "You do not have enough funds to complete this transaction.", variant: "destructive" });
+            return;
+        }
+
+        setIsTransferring(true);
+        try {
+            const { error } = await supabase.functions.invoke('transfer-funds', {
+                body: {
+                    recipient_ign: recipient,
+                    amount,
+                },
+            });
+
+            if (error) {
+                throw new Error(error.message);
+            }
+
+            setWalletBalance(prev => prev - amount);
+            toast({
+                title: "Transfer Successful",
+                description: `You have transferred ₦${amount} to ${recipient}`,
+            });
+        } catch (err) {
+            toast({
+                title: "Transfer Failed",
+                description: err.message || "An unexpected error occurred.",
+                variant: "destructive",
+            });
+        } finally {
+            setIsTransferring(false);
+        }
     }
 
     return (
@@ -510,7 +562,10 @@ const TransferDialog = ({ setWalletBalance, walletBalance }) => {
                     </div>
                 </div>
                 <DialogFooter>
-                    <Button onClick={handleTransfer}>Transfer</Button>
+                    <Button onClick={handleTransfer} disabled={isTransferring}>
+                        {isTransferring && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        Transfer
+                    </Button>
                 </DialogFooter>
             </DialogContent>
         </Dialog>

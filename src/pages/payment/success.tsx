@@ -25,14 +25,12 @@ const PaymentSuccess: React.FC = () => {
         }
     }, [location]);
 
-    const verifyPayment = async (reference: string) => {
-        const { data, error } = await supabase.functions.invoke('paystack', {
-            body: {
-                endpoint: 'verify-transaction',
-                reference,
-            },
+      const verifyPayment = async (reference: string) => {
+        const { data, error } = await supabase.functions.invoke('verify-payment', {
+          body: {
+            reference,
+          },
         });
-
         if (error) {
             setStatus('error');
             setMessage('Error verifying payment.');
