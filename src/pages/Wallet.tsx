@@ -15,6 +15,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useAdminPlayers } from '@/hooks/useAdminPlayers';
 import { sendBroadcastPushNotification } from '@/lib/pushNotifications';
+import { usePaystackPayment } from 'react-paystack';
 
 const TransactionItem = ({ transaction }) => (
   <div className="flex items-center justify-between p-4 bg-background/80 backdrop-blur-sm rounded-lg mb-2">
@@ -442,16 +443,31 @@ const TransferDialog = ({ setWalletBalance }) => {
 }
 
 const FundWalletDialog = () => {
-    const accountNumber = "1234567890";
-    const accountName = "Nexa Elite Nexus";
-    const bankName = "Wema Bank";
+    const { user, profile } = useAuth();
+    const [amount, setAmount] = useState(0);
     const { toast } = useToast();
 
-    const handleCopy = () => {
-        navigator.clipboard.writeText(accountNumber);
+    const config = {
+        reference: (new Date()).getTime().toString(),
+        email: user?.email!,
+        amount: amount * 100,
+        publicKey: import.meta.env.VITE_PAYSTACK_PUBLIC_KEY,
+        metadata: {
+          userId: profile?.id,
+        },
+    };
+
+    const initializePayment = usePaystackPayment(config);
+
+    const onSuccess = () => {
+      window.location.href = `${window.location.origin}/payment-success?reference=${config.reference}`;
+    };
+
+    const onClose = () => {
         toast({
-            title: "Copied!",
-            description: "Account number copied to clipboard.",
+            title: "Payment Closed",
+            description: "You closed the payment window. Your transaction was not completed.",
+            variant: "destructive",
         });
     }
 
@@ -467,30 +483,21 @@ const FundWalletDialog = () => {
                 <DialogHeader>
                     <DialogTitle>Fund Your Wallet</DialogTitle>
                 </DialogHeader>
-                <div className="py-4">
-                    <p className="text-sm text-muted-foreground mb-4">Send money to this account to topup your Nexa wallet.</p>
-                    <Card className="p-4 bg-muted">
-                        <div className="grid gap-4">
-                            <div>
-                                <Label>Bank Name</Label>
-                                <p className="font-semibold text-lg">{bankName}</p>
-                            </div>
-                            <div>
-                                <Label>Account Name</Label>
-                                <p className="font-semibold text-lg">{accountName}</p>
-                            </div>
-                            <div>
-                                <Label>Account Number</Label>
-                                <div className="flex items-center gap-2">
-                                    <p className="font-semibold text-2xl">{accountNumber}</p>
-                                    <Button variant="ghost" size="icon" onClick={handleCopy}>
-                                        <Copy className="h-5 w-5" />
-                                    </Button>
-                                </div>
-                            </div>
-                        </div>
-                    </Card>
+                <div className="py-4 grid gap-4">
+                    <div className="grid gap-2">
+                        <Label htmlFor="amount">Amount</Label>
+                        <Input 
+                            id="amount"
+                            type="number"
+                            placeholder="₦0.00"
+                            value={amount}
+                            onChange={(e) => setAmount(Number(e.target.value))}
+                        />
+                    </div>
                 </div>
+                <DialogFooter>
+                    <Button onClick={() => initializePayment(onSuccess, onClose)}>Fund with Paystack</Button>
+                </DialogFooter>
             </DialogContent>
         </Dialog>
     )
@@ -498,14 +505,15 @@ const FundWalletDialog = () => {
 
 const Wallet: React.FC = () => {
   const { profile } = useAuth();
-  const [walletBalance, setWalletBalance] = useState(350000);
-  const transactions = [
-    { id: 1, type: 'Earnings', description: 'Scrim victory bonus', amount: 50, date: '2025-10-19' },
-    { id: 2, type: 'Withdrawals', description: 'Withdrawal to bank', amount: -200, date: '2025-10-18' },
-    { id: 3, type: 'Redeems', description: 'Redeemed gift card', amount: 25, date: '2025-10-17' },
-    { id: 4, type: 'Earnings', description: 'Tournament prize', amount: 500, date: '2025-10-15' },
-    { id: 5, type: 'Send Reward', description: 'Reward to player "Ninja"', amount: -50, date: '2025-10-14' },
-  ];
+  const [walletBalance, setWalletBalance] = useState(0);
+  const [transactions, setTransactions] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (profile) {
+      setWalletBalance(profile.wallet_balance || 0);
+      // TODO: Fetch transactions from the database
+    }
+  }, [profile]);
 
   return (
     <div className="container mx-auto p-4 md:p-6 lg:p-8">
@@ -547,9 +555,13 @@ const Wallet: React.FC = () => {
               <TabsTrigger value="redeems">Redeems</TabsTrigger>
             </TabsList>
             <TabsContent value="all">
-              {transactions.map((tx) => (
-                <TransactionItem key={tx.id} transaction={tx} />
-              ))}
+              {transactions.length > 0 ? (
+                transactions.map((tx) => (
+                  <TransactionItem key={tx.id} transaction={tx} />
+                ))
+              ) : (
+                <p className="text-center text-muted-foreground py-8">No transactions yet.</p>
+              )}
             </TabsContent>
             {['earnings', 'withdrawals', 'redeems'].map((tab) => (
               <TabsContent key={tab} value={tab}>
