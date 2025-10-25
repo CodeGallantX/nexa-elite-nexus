@@ -65,6 +65,7 @@ export const AdminPlayers: React.FC = () => {
     }
   };
 
+
   const handleBanPlayer = (player: Player) => {
     setBanningPlayer(player);
   };
@@ -325,34 +326,37 @@ export const AdminPlayers: React.FC = () => {
                         <Edit className="w-4 h-4" />
                       </Button>
                       
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button 
-                            size="sm" 
-                            variant="ghost" 
-                            className="text-gray-400 hover:text-red-400"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>Delete Player</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              Are you sure you want to delete {player.username}? This action cannot be undone.
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction
-                              onClick={() => handleDeletePlayer(player.id)}
-                              className="bg-red-600 hover:bg-red-700"
+                      {profile?.role === 'clan_master' && (
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button 
+                              size="sm" 
+                              variant="ghost" 
+                              className="text-gray-400 hover:text-red-400"
                             >
-                              Delete
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Delete Player</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Are you sure you want to delete {player.username}? This action cannot be undone.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction
+                                onClick={() => handleDeletePlayer(player.id)}
+                                className="bg-red-600 hover:bg-red-700"
+                              >
+                                Delete
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      )}
+                      
 
                       {(profile?.role === 'admin' || profile?.role === 'moderator') && (
                         <Button
