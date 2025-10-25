@@ -10,6 +10,7 @@ import { Shield, Coins, ArrowDown, ArrowUp, Gift, Award, ArrowUpDown, Copy, Chec
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/components/ui/use-toast';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Textarea } from '@/components/ui/textarea';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -47,7 +48,7 @@ const renderTransactionIcon = (type: string) => {
   }
 };
 
-const GiveawayDialog = ({ setWalletBalance }) => {
+const GiveawayDialog = ({ setWalletBalance, walletBalance }) => {
     const { profile } = useAuth();
     const { toast } = useToast();
     const isClanMaster = profile?.role === 'clan_master';
@@ -72,6 +73,14 @@ const GiveawayDialog = ({ setWalletBalance }) => {
 
     const handleCreateGiveaway = () => {
         const totalCost = Number(amount) * Number(quantity);
+        if (totalCost > walletBalance) {
+            toast({
+                title: "Insufficient funds",
+                description: "You do not have enough funds in your wallet to create this giveaway.",
+                variant: "destructive",
+            });
+            return;
+        }
         setWalletBalance(prev => prev - totalCost);
         const codes = Array.from({ length: Number(quantity) }, () => Math.floor(100000 + Math.random() * 900000).toString());
         setGeneratedCodes(codes);
@@ -227,7 +236,7 @@ const GiveawayDialog = ({ setWalletBalance }) => {
     )
 }
 
-const WithdrawDialog = ({ setWalletBalance }) => {
+const WithdrawDialog = ({ setWalletBalance, walletBalance }) => {
     const { profile } = useAuth();
     const [amount, setAmount] = useState(0);
     const [accountNumber, setAccountNumber] = useState('');
@@ -256,6 +265,14 @@ const WithdrawDialog = ({ setWalletBalance }) => {
     ];
 
     const handleWithdraw = () => {
+        if (amount > walletBalance) {
+            toast({
+                title: "Insufficient funds",
+                description: "You do not have enough funds in your wallet to complete this transaction.",
+                variant: "destructive",
+            });
+            return;
+        }
         if (amount < 100) {
             toast({
                 title: "Invalid Amount",
@@ -309,21 +326,39 @@ const WithdrawDialog = ({ setWalletBalance }) => {
                     )}
                     <div className="grid gap-2">
                         <Label htmlFor="accountNumber">Account Number</Label>
-                        <Input 
-                            id="accountNumber"
-                            placeholder="Account Number"
-                            value={accountNumber}
-                            onChange={(e) => setAccountNumber(e.target.value)}
-                        />
+                        <TooltipProvider>
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <Input 
+                                        id="accountNumber"
+                                        placeholder="Account Number"
+                                        value={accountNumber}
+                                        readOnly
+                                    />
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                    <p>To edit, go to your settings page.</p>
+                                </TooltipContent>
+                            </Tooltip>
+                        </TooltipProvider>
                     </div>
                     <div className="grid gap-2">
                         <Label htmlFor="accountName">Account Name</Label>
-                        <Input 
-                            id="accountName"
-                            placeholder="Account Name"
-                            value={accountName}
-                            readOnly
-                        />
+                        <TooltipProvider>
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <Input 
+                                        id="accountName"
+                                        placeholder="Account Name"
+                                        value={accountName}
+                                        readOnly
+                                    />
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                    <p>To edit, go to your settings page.</p>
+                                </TooltipContent>
+                            </Tooltip>
+                        </TooltipProvider>
                     </div>
                     <div className="grid gap-2">
                         <Label htmlFor="amount">Amount</Label>
@@ -353,7 +388,7 @@ const WithdrawDialog = ({ setWalletBalance }) => {
     )
 }
 
-const TransferDialog = ({ setWalletBalance }) => {
+const TransferDialog = ({ setWalletBalance, walletBalance }) => {
     const [amount, setAmount] = useState(0);
     const [recipient, setRecipient] = useState('');
     const [open, setOpen] = useState(false);
@@ -361,6 +396,14 @@ const TransferDialog = ({ setWalletBalance }) => {
     const { data: players, isLoading } = useAdminPlayers();
 
     const handleTransfer = () => {
+        if (amount > walletBalance) {
+            toast({
+                title: "Insufficient funds",
+                description: "You do not have enough funds in your wallet to complete this transaction.",
+                variant: "destructive",
+            });
+            return;
+        }
         setWalletBalance(prev => prev - amount);
         toast({
             title: "Transfer Successful",
@@ -496,7 +539,7 @@ const FundWalletDialog = () => {
                     </div>
                 </div>
                 <DialogFooter>
-                    <Button onClick={() => initializePayment(onSuccess, onClose)}>Fund with Paystack</Button>
+                    <Button onClick={() => initializePayment(onSuccess, onClose)} disabled={!user || !profile || amount <= 0}>Fund with Paystack</Button>
                 </DialogFooter>
             </DialogContent>
         </Dialog>
@@ -537,9 +580,9 @@ const Wallet: React.FC = () => {
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
         {profile?.role === 'clan_master' && <FundWalletDialog />}
-        <WithdrawDialog setWalletBalance={setWalletBalance} />
-        <TransferDialog setWalletBalance={setWalletBalance} />
-        <GiveawayDialog setWalletBalance={setWalletBalance} />
+        <WithdrawDialog setWalletBalance={setWalletBalance} walletBalance={walletBalance} />
+        <TransferDialog setWalletBalance={setWalletBalance} walletBalance={walletBalance} />
+        <GiveawayDialog setWalletBalance={setWalletBalance} walletBalance={walletBalance} />
       </div>
 
       <Card className="bg-transparent shadow-none">
