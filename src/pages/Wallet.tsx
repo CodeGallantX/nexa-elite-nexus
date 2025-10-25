@@ -6,7 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { Shield, Coins, ArrowDown, ArrowUp, Gift, Award, ArrowUpDown, Copy, Check, ChevronsUpDown } from 'lucide-react';
+import { Shield, Coins, ArrowDown, ArrowUp, Gift, Award, ArrowUpDown, Copy, Check, ChevronsUpDown, Loader2 } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/components/ui/use-toast';
@@ -488,6 +488,7 @@ const TransferDialog = ({ setWalletBalance, walletBalance }) => {
 const FundWalletDialog = () => {
     const { user, profile } = useAuth();
     const [amount, setAmount] = useState(0);
+    const [isLoading, setIsLoading] = useState(false);
     const { toast } = useToast();
 
     const config = {
@@ -512,6 +513,12 @@ const FundWalletDialog = () => {
             description: "You closed the payment window. Your transaction was not completed.",
             variant: "destructive",
         });
+        setIsLoading(false);
+    }
+
+    const handlePayment = () => {
+        setIsLoading(true);
+        initializePayment(onSuccess, onClose);
     }
 
     return (
@@ -539,7 +546,10 @@ const FundWalletDialog = () => {
                     </div>
                 </div>
                 <DialogFooter>
-                    <Button onClick={() => initializePayment(onSuccess, onClose)} disabled={!user || !profile || amount <= 0}>Fund with Paystack</Button>
+                    <Button onClick={handlePayment} disabled={!user || !profile || amount <= 0 || isLoading || !import.meta.env.VITE_PAYSTACK_PUBLIC_KEY}>
+                        {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        Fund with Paystack
+                    </Button>
                 </DialogFooter>
             </DialogContent>
         </Dialog>
