@@ -5,10 +5,13 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
+import { useAuth } from '@/contexts/AuthContext';
+
 const PaymentSuccess: React.FC = () => {
     const [status, setStatus] = useState('verifying');
     const [message, setMessage] = useState('Verifying your payment...');
     const location = useLocation();
+    const { updateProfile } = useAuth();
 
     useEffect(() => {
         const query = new URLSearchParams(location.search);
@@ -39,6 +42,7 @@ const PaymentSuccess: React.FC = () => {
         if (data.data.status === 'success') {
             setStatus('success');
             setMessage('Payment successful! Your wallet has been credited.');
+            await updateProfile({}); // Re-fetch profile
         } else {
             setStatus('error');
             setMessage(`Payment failed: ${data.data.gateway_response}`);

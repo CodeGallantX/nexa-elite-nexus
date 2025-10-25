@@ -17,6 +17,8 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { useAdminPlayers } from '@/hooks/useAdminPlayers';
 import { sendBroadcastPushNotification } from '@/lib/pushNotifications';
 import { usePaystackPayment } from 'react-paystack';
+import { supabase } from '@/integrations/supabase/client';
+
 
 const TransactionItem = ({ transaction }) => (
   <div className="flex items-center justify-between p-4 bg-background/80 backdrop-blur-sm rounded-lg mb-2">
@@ -236,12 +238,12 @@ const GiveawayDialog = ({ setWalletBalance, walletBalance }) => {
     )
 }
 
-const WithdrawDialog = ({ setWalletBalance, walletBalance }) => {
+const WithdrawDialog = ({ setWalletBalance, walletBalance, banks }) => {
     const { profile } = useAuth();
     const [amount, setAmount] = useState(0);
     const [accountNumber, setAccountNumber] = useState('');
     const [accountName, setAccountName] = useState('');
-    const [bankName, setBankName] = useState('');
+    const [bankCode, setBankCode] = useState('');
     const [notes, setNotes] = useState('');
     const { toast } = useToast();
 
@@ -249,22 +251,11 @@ const WithdrawDialog = ({ setWalletBalance, walletBalance }) => {
         if (profile?.banking_info) {
             setAccountName(profile.banking_info.account_name || '');
             setAccountNumber(profile.banking_info.account_number || '');
-            setBankName(profile.banking_info.bank_name || '');
+            setBankCode(profile.banking_info.bank_code || '');
         }
     }, [profile]);
 
-    const banks = [
-        { name: 'Access Bank', domain: 'accessbankplc.com' },
-        { name: 'UBA', domain: 'ubagroup.com' },
-        { name: 'First Bank', domain: 'firstbanknigeria.com' },
-        { name: 'Zenith Bank', domain: 'zenithbank.com' },
-        { name: 'Moniepoint', domain: 'moniepoint.com' },
-        { name: 'OPay', domain: 'opayweb.com' },
-        { name: 'PalmPay', domain: 'palmpay.com' },
-        { name: 'Kuda', domain: 'kuda.com' },
-    ];
-
-    const handleWithdraw = () => {
+    const handleWithdraw = async () => {
         if (amount > walletBalance) {
             toast({
                 title: "Insufficient funds",
@@ -281,7 +272,7 @@ const WithdrawDialog = ({ setWalletBalance, walletBalance }) => {
             });
             return;
         }
-        if (!bankName) {
+        if (!bankCode) {
             toast({
                 title: "Bank not selected",
                 description: "Please select a bank",
@@ -293,6 +284,41 @@ const WithdrawDialog = ({ setWalletBalance, walletBalance }) => {
             toast({
                 title: "Invalid Account Number",
                 description: "Please enter a valid 10-digit account number",
+                variant: "destructive",
+            });
+            return;
+        }
+
+        const { data: recipientData, error: recipientError } = await supabase.functions.invoke('paystack-transfer', {
+            body: {
+                endpoint: 'create-transfer-recipient',
+                name: accountName,
+                account_number: accountNumber,
+                bank_code: bankCode,
+            },
+        });
+
+        if (recipientError || !recipientData.status) {
+            toast({
+                title: "Error creating transfer recipient",
+                description: recipientData.message || "An error occurred",
+                variant: "destructive",
+            });
+            return;
+        }
+
+        const { data: transferData, error: transferError } = await supabase.functions.invoke('paystack-transfer', {
+            body: {
+                endpoint: 'initiate-transfer',
+                amount,
+                recipient_code: recipientData.data.recipient_code,
+            },
+        });
+
+        if (transferError || !transferData.status) {
+            toast({
+                title: "Error initiating transfer",
+                description: transferData.message || "An error occurred",
                 variant: "destructive",
             });
             return;
@@ -318,12 +344,18 @@ const WithdrawDialog = ({ setWalletBalance, walletBalance }) => {
                     <DialogTitle>Withdraw</DialogTitle>
                 </DialogHeader>
                 <div className="py-4 grid gap-4">
-                    {bankName && (
-                        <div className="flex items-center gap-2 p-2 rounded-md bg-muted">
-                            <img src={`https://logo.clearbit.com/${banks.find(b => b.name === bankName)?.domain}`} alt={bankName} className="h-6 w-6" />
-                            <span>{bankName}</span>
-                        </div>
-                    )}
+                    <Select onValueChange={setBankCode} value={bankCode}>
+                        <SelectTrigger>
+                            <SelectValue placeholder="Select Bank" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {banks.map(bank => (
+                                <SelectItem key={bank.code} value={bank.code}>
+                                    {bank.name}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
                     <div className="grid gap-2">
                         <Label htmlFor="accountNumber">Account Number</Label>
                         <TooltipProvider>
@@ -560,6 +592,7 @@ const Wallet: React.FC = () => {
   const { profile } = useAuth();
   const [walletBalance, setWalletBalance] = useState(0);
   const [transactions, setTransactions] = useState<any[]>([]);
+  const [banks, setBanks] = useState<any[]>([]);
 
   useEffect(() => {
     if (profile) {
@@ -567,6 +600,17 @@ const Wallet: React.FC = () => {
       // TODO: Fetch transactions from the database
     }
   }, [profile]);
+
+  useEffect(() => {
+    const fetchBanks = async () => {
+      const { data, error } = await supabase.functions.invoke('get-banks');
+      if (data.status && data.data) {
+        setBanks(data.data);
+        console.log(data.data);
+      }
+    };
+    fetchBanks();
+  }, []);
 
   return (
     <div className="container mx-auto p-4 md:p-6 lg:p-8">
@@ -590,7 +634,7 @@ const Wallet: React.FC = () => {
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
         {profile?.role === 'clan_master' && <FundWalletDialog />}
-        <WithdrawDialog setWalletBalance={setWalletBalance} walletBalance={walletBalance} />
+        <WithdrawDialog setWalletBalance={setWalletBalance} walletBalance={walletBalance} banks={banks} />
         <TransferDialog setWalletBalance={setWalletBalance} walletBalance={walletBalance} />
         <GiveawayDialog setWalletBalance={setWalletBalance} walletBalance={walletBalance} />
       </div>
