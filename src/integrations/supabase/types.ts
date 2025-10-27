@@ -84,6 +84,7 @@ export type Database = {
           is_pinned: boolean | null
           is_published: boolean | null
           scheduled_for: string | null
+          target_users: string[] | null
           title: string
           updated_at: string | null
         }
@@ -96,6 +97,7 @@ export type Database = {
           is_pinned?: boolean | null
           is_published?: boolean | null
           scheduled_for?: string | null
+          target_users?: string[] | null
           title: string
           updated_at?: string | null
         }
@@ -108,6 +110,7 @@ export type Database = {
           is_pinned?: boolean | null
           is_published?: boolean | null
           scheduled_for?: string | null
+          target_users?: string[] | null
           title?: string
           updated_at?: string | null
         }
@@ -116,14 +119,14 @@ export type Database = {
             foreignKeyName: "announcements_created_by_fkey"
             columns: ["created_by"]
             isOneToOne: false
-            referencedRelation: "profiles"
+            referencedRelation: "leaderboard"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "announcements_created_by_fkey"
             columns: ["created_by"]
             isOneToOne: false
-            referencedRelation: "weekly_leaderboard"
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -183,14 +186,21 @@ export type Database = {
             foreignKeyName: "attendance_marked_by_fkey"
             columns: ["marked_by"]
             isOneToOne: false
-            referencedRelation: "profiles"
+            referencedRelation: "leaderboard"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "attendance_marked_by_fkey"
             columns: ["marked_by"]
             isOneToOne: false
-            referencedRelation: "weekly_leaderboard"
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "attendance_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "leaderboard"
             referencedColumns: ["id"]
           },
           {
@@ -200,11 +210,49 @@ export type Database = {
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
+        ]
+      }
+      bug_reports: {
+        Row: {
+          category: Database["public"]["Enums"]["bug_category"]
+          created_at: string | null
+          description: string
+          file_url: string | null
+          id: string
+          reporter_id: string | null
+          status: Database["public"]["Enums"]["bug_status"]
+        }
+        Insert: {
+          category: Database["public"]["Enums"]["bug_category"]
+          created_at?: string | null
+          description: string
+          file_url?: string | null
+          id?: string
+          reporter_id?: string | null
+          status?: Database["public"]["Enums"]["bug_status"]
+        }
+        Update: {
+          category?: Database["public"]["Enums"]["bug_category"]
+          created_at?: string | null
+          description?: string
+          file_url?: string | null
+          id?: string
+          reporter_id?: string | null
+          status?: Database["public"]["Enums"]["bug_status"]
+        }
+        Relationships: [
           {
-            foreignKeyName: "attendance_player_id_fkey"
-            columns: ["player_id"]
+            foreignKeyName: "bug_reports_reporter_id_fkey"
+            columns: ["reporter_id"]
             isOneToOne: false
-            referencedRelation: "weekly_leaderboard"
+            referencedRelation: "leaderboard"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bug_reports_reporter_id_fkey"
+            columns: ["reporter_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -255,14 +303,14 @@ export type Database = {
             foreignKeyName: "chat_messages_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
-            referencedRelation: "profiles"
+            referencedRelation: "leaderboard"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "chat_messages_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
-            referencedRelation: "weekly_leaderboard"
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -355,14 +403,14 @@ export type Database = {
             foreignKeyName: "event_participants_player_id_fkey"
             columns: ["player_id"]
             isOneToOne: false
-            referencedRelation: "profiles"
+            referencedRelation: "leaderboard"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "event_participants_player_id_fkey"
             columns: ["player_id"]
             isOneToOne: false
-            referencedRelation: "weekly_leaderboard"
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -412,14 +460,14 @@ export type Database = {
             foreignKeyName: "events_created_by_fkey"
             columns: ["created_by"]
             isOneToOne: false
-            referencedRelation: "profiles"
+            referencedRelation: "leaderboard"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "events_created_by_fkey"
             columns: ["created_by"]
             isOneToOne: false
-            referencedRelation: "weekly_leaderboard"
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -472,14 +520,14 @@ export type Database = {
             foreignKeyName: "loadouts_player_id_fkey"
             columns: ["player_id"]
             isOneToOne: false
-            referencedRelation: "profiles"
+            referencedRelation: "leaderboard"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "loadouts_player_id_fkey"
             columns: ["player_id"]
             isOneToOne: false
-            referencedRelation: "weekly_leaderboard"
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -526,14 +574,14 @@ export type Database = {
             foreignKeyName: "notifications_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
-            referencedRelation: "profiles"
+            referencedRelation: "leaderboard"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "notifications_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
-            referencedRelation: "weekly_leaderboard"
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -559,6 +607,7 @@ export type Database = {
           kills: number | null
           mp_class: string | null
           mp_kills: number | null
+          player_type: Database["public"]["Enums"]["player_type"] | null
           player_uid: string | null
           preferred_mode: string | null
           role: Database["public"]["Enums"]["user_role"]
@@ -589,6 +638,7 @@ export type Database = {
           kills?: number | null
           mp_class?: string | null
           mp_kills?: number | null
+          player_type?: Database["public"]["Enums"]["player_type"] | null
           player_uid?: string | null
           preferred_mode?: string | null
           role?: Database["public"]["Enums"]["user_role"]
@@ -619,6 +669,7 @@ export type Database = {
           kills?: number | null
           mp_class?: string | null
           mp_kills?: number | null
+          player_type?: Database["public"]["Enums"]["player_type"] | null
           player_uid?: string | null
           preferred_mode?: string | null
           role?: Database["public"]["Enums"]["user_role"]
@@ -656,6 +707,68 @@ export type Database = {
           endpoint?: string
           id?: string
           p256dh_key?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      transactions: {
+        Row: {
+          amount: number
+          created_at: string
+          id: string
+          reference: string
+          status: string
+          type: string
+          wallet_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          id?: string
+          reference: string
+          status: string
+          type: string
+          wallet_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          id?: string
+          reference?: string
+          status?: string
+          type?: string
+          wallet_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transactions_wallet_id_fkey"
+            columns: ["wallet_id"]
+            isOneToOne: false
+            referencedRelation: "wallets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      wallets: {
+        Row: {
+          balance: number
+          created_at: string
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          balance?: number
+          created_at?: string
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          balance?: number
+          created_at?: string
+          id?: string
           updated_at?: string
           user_id?: string
         }
@@ -709,14 +822,14 @@ export type Database = {
             foreignKeyName: "weapon_layouts_player_id_fkey"
             columns: ["player_id"]
             isOneToOne: false
-            referencedRelation: "profiles"
+            referencedRelation: "leaderboard"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "weapon_layouts_player_id_fkey"
             columns: ["player_id"]
             isOneToOne: false
-            referencedRelation: "weekly_leaderboard"
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -726,27 +839,51 @@ export type Database = {
       admin_dashboard_stats: {
         Row: {
           avg_attendance: number | null
+          total_br_kills: number | null
           total_events: number | null
           total_kills: number | null
           total_loadouts: number | null
+          total_mp_kills: number | null
           total_players: number | null
         }
         Relationships: []
       }
-      weekly_leaderboard: {
+      leaderboard: {
         Row: {
           avatar_url: string | null
+          br_kills: number | null
           grade: string | null
           id: string | null
           ign: string | null
+          mp_kills: number | null
+          status: string | null
           tier: string | null
-          total_br_kills: number | null
           total_kills: number | null
-          total_mp_kills: number | null
           username: string | null
-          weekly_br_kills: number | null
-          weekly_mp_kills: number | null
-          weekly_total_kills: number | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          br_kills?: number | null
+          grade?: string | null
+          id?: string | null
+          ign?: string | null
+          mp_kills?: number | null
+          status?: string | null
+          tier?: string | null
+          total_kills?: number | null
+          username?: string | null
+        }
+        Update: {
+          avatar_url?: string | null
+          br_kills?: number | null
+          grade?: string | null
+          id?: string | null
+          ign?: string | null
+          mp_kills?: number | null
+          status?: string | null
+          tier?: string | null
+          total_kills?: number | null
+          username?: string | null
         }
         Relationships: []
       }
@@ -756,8 +893,12 @@ export type Database = {
         Args: { user_id_to_delete: string }
         Returns: boolean
       }
+      execute_user_transfer: {
+        Args: { amount: number; recipient_ign: string; sender_id: string }
+        Returns: undefined
+      }
       get_public_profiles: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           attendance: number
           avatar_url: string
@@ -784,12 +925,21 @@ export type Database = {
         Args: { user_id: string }
         Returns: Database["public"]["Enums"]["user_role"]
       }
+      immutable_date: { Args: { t: string }; Returns: string }
       mark_access_code_used: {
         Args: { code_input: string; email_input: string }
         Returns: boolean
       }
-      update_event_status: {
-        Args: Record<PropertyKey, never>
+      update_event_status: { Args: never; Returns: undefined }
+      update_wallet_and_create_transaction: {
+        Args: {
+          new_balance: number
+          transaction_amount: number
+          transaction_reference: string
+          transaction_status: string
+          transaction_type: string
+          wallet_id: string
+        }
         Returns: undefined
       }
       validate_access_code: {
@@ -799,7 +949,10 @@ export type Database = {
     }
     Enums: {
       attendance_status: "present" | "absent"
+      bug_category: "gameplay" | "ui" | "performance" | "other"
+      bug_status: "new" | "in_progress" | "resolved" | "not_a_bug"
       event_type: "MP" | "BR" | "Mixed" | "Tournament" | "Scrims"
+      player_type: "main" | "beta"
       user_role: "admin" | "player" | "moderator" | "clan_master"
     }
     CompositeTypes: {
@@ -929,7 +1082,10 @@ export const Constants = {
   public: {
     Enums: {
       attendance_status: ["present", "absent"],
+      bug_category: ["gameplay", "ui", "performance", "other"],
+      bug_status: ["new", "in_progress", "resolved", "not_a_bug"],
       event_type: ["MP", "BR", "Mixed", "Tournament", "Scrims"],
+      player_type: ["main", "beta"],
       user_role: ["admin", "player", "moderator", "clan_master"],
     },
   },
