@@ -589,6 +589,7 @@ const FundWalletDialog = () => {
           userId: profile?.id || '',
           custom_fields: []
         },
+        currency: 'NGN',
     };
 
     const initializePayment = usePaystackPayment(config as any);
