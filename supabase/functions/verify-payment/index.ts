@@ -4,6 +4,11 @@ import { corsHeaders } from "../_shared/cors.ts";
 const PAYSTACK_SECRET_KEY = Deno.env.get("PAYSTACK_SECRET_KEY");
 
 serve(async (req) => {
+  // Handle preflight requests
+  if (req.method === "OPTIONS") {
+    return new Response("ok", { headers: corsHeaders });
+  }
+
   const { reference } = await req.json();
 
   const paystackUrl = `https://api.paystack.co/transaction/verify/${reference}`;
