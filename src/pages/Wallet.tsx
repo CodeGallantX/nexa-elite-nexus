@@ -443,7 +443,7 @@ const WithdrawDialog = ({ setWalletBalance, walletBalance, banks }) => {
     )
 }
 
-const TransferDialog = ({ setWalletBalance, walletBalance }) => {
+const TransferDialog = ({ walletBalance, onTransferComplete }) => {
     const [amount, setAmount] = useState(0);
     const [recipient, setRecipient] = useState('');
     const [open, setOpen] = useState(false);
@@ -479,11 +479,13 @@ const TransferDialog = ({ setWalletBalance, walletBalance }) => {
                 throw new Error(error.message);
             }
 
-            setWalletBalance(prev => prev - amount);
             toast({
                 title: "Transfer Successful",
                 description: `You have transferred ₦${amount} to ${recipient}`,
             });
+            
+            // Trigger wallet refresh via callback
+            onTransferComplete?.();
         } catch (err) {
             toast({
                 title: "Transfer Failed",
@@ -580,15 +582,16 @@ const FundWalletDialog = () => {
 
     const config = {
         reference: (new Date()).getTime().toString(),
-        email: user?.email!,
+        email: user?.email || '',
         amount: amount * 100,
-        publicKey: import.meta.env.VITE_PAYSTACK_PUBLIC_KEY,
+        publicKey: import.meta.env.VITE_PAYSTACK_PUBLIC_KEY || '',
         metadata: {
-          userId: profile?.id,
+          userId: profile?.id || '',
+          custom_fields: []
         },
     };
 
-    const initializePayment = usePaystackPayment(config);
+    const initializePayment = usePaystackPayment(config as any);
 
     const onSuccess = () => {
       window.location.href = `${window.location.origin}/payment-success?reference=${config.reference}`;
@@ -605,7 +608,7 @@ const FundWalletDialog = () => {
 
     const handlePayment = () => {
         setIsLoading(true);
-        initializePayment(onSuccess, onClose);
+        initializePayment({ onSuccess, onClose } as any);
     }
 
     return (
@@ -644,24 +647,70 @@ const FundWalletDialog = () => {
 }
 
 const Wallet: React.FC = () => {
-  const { profile } = useAuth();
+  const { profile, user } = useAuth();
   const [walletBalance, setWalletBalance] = useState(0);
   const [transactions, setTransactions] = useState<any[]>([]);
   const [banks, setBanks] = useState<any[]>([]);
+  const { toast } = useToast();
+
+  const fetchWalletData = async () => {
+    if (!user?.id) return;
+
+    try {
+      // Fetch wallet balance
+      const { data: walletData, error: walletError } = await supabase
+        .from('wallets')
+        .select('balance')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (walletError) {
+        console.error('Error fetching wallet:', walletError);
+      } else if (walletData) {
+        setWalletBalance(Number(walletData.balance) || 0);
+      }
+
+      // Fetch transactions
+      const { data: walletIdData } = await supabase
+        .from('wallets')
+        .select('id')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (walletIdData) {
+        const { data: transactionsData, error: transactionsError } = await supabase
+          .from('transactions')
+          .select('*')
+          .eq('wallet_id', walletIdData.id)
+          .order('created_at', { ascending: false })
+          .limit(50);
+
+        if (transactionsError) {
+          console.error('Error fetching transactions:', transactionsError);
+        } else if (transactionsData) {
+          setTransactions(transactionsData.map(tx => ({
+            id: tx.id,
+            description: `${tx.type} - ${tx.status}`,
+            date: new Date(tx.created_at).toLocaleDateString(),
+            amount: tx.type === 'transfer_out' || tx.type === 'withdrawal' ? -Number(tx.amount) : Number(tx.amount),
+            type: tx.type === 'deposit' ? 'Earnings' : tx.type === 'withdrawal' ? 'Withdrawals' : 'Transfer'
+          })));
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching wallet data:', error);
+    }
+  };
 
   useEffect(() => {
-    if (profile) {
-      setWalletBalance(profile.wallet_balance || 0);
-      // TODO: Fetch transactions from the database
-    }
-  }, [profile]);
+    fetchWalletData();
+  }, [user?.id]);
 
   useEffect(() => {
     const fetchBanks = async () => {
       const { data, error } = await supabase.functions.invoke('get-banks');
-      if (data.status && data.data) {
+      if (data?.status && data?.data) {
         setBanks(data.data);
-        console.log(data.data);
       }
     };
     fetchBanks();
@@ -690,7 +739,7 @@ const Wallet: React.FC = () => {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
         {profile?.role === 'clan_master' && <FundWalletDialog />}
         <WithdrawDialog setWalletBalance={setWalletBalance} walletBalance={walletBalance} banks={banks} />
-        <TransferDialog setWalletBalance={setWalletBalance} walletBalance={walletBalance} />
+        <TransferDialog walletBalance={walletBalance} onTransferComplete={fetchWalletData} />
         <GiveawayDialog setWalletBalance={setWalletBalance} walletBalance={walletBalance} />
       </div>
 
