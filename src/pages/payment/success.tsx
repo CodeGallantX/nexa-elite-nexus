@@ -31,7 +31,7 @@ const PaymentSuccess: React.FC = () => {
             reference,
           },
         });
-        if (error) {
+        if (error || !data || !data.data) {
             setStatus('error');
             setMessage('Error verifying payment.');
             return;
