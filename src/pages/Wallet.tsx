@@ -18,7 +18,7 @@ import { useAdminPlayers } from '@/hooks/useAdminPlayers';
 import { sendBroadcastPushNotification } from '@/lib/pushNotifications';
 import { usePaystackPayment } from 'react-paystack';
 import { supabase } from '@/integrations/supabase/client';
-
+import { useNavigate } from 'react-router-dom';
 
 const TransactionItem = ({ transaction }) => (
   <div className="flex items-center justify-between p-4 bg-background/80 backdrop-blur-sm rounded-lg mb-2">
@@ -575,6 +575,7 @@ const TransferDialog = ({ walletBalance, onTransferComplete }) => {
 }
 
 const FundWalletDialog = () => {
+    const navigate = useNavigate();
     const { user, profile } = useAuth();
     const [amount, setAmount] = useState(0);
     const [isLoading, setIsLoading] = useState(false);
@@ -595,7 +596,7 @@ const FundWalletDialog = () => {
     const initializePayment = usePaystackPayment(config as any);
 
     const onSuccess = () => {
-      window.location.href = `${window.location.origin}/payment-success?reference=${config.reference}`;
+      navigate(`/payment-success?reference=${config.reference}`);
     };
 
     const onClose = () => {

@@ -37,7 +37,7 @@ const PaymentSuccess: React.FC = () => {
             return;
         }
 
-        if (data.data.status === 'success') {
+        if (data.message === 'Transaction already processed' || data.data.status === 'success') {
             setStatus('success');
             setMessage('Payment successful! Your wallet has been credited.');
             await updateProfile({}); // Re-fetch profile
