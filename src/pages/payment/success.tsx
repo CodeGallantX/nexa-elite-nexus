@@ -1,9 +1,9 @@
 
 import React, { useEffect, useState } from 'react';
-import { useLocation, Link } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
-import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { CheckCircle, XCircle, Loader } from 'lucide-react';
 
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -11,6 +11,7 @@ const PaymentSuccess: React.FC = () => {
     const [status, setStatus] = useState('verifying');
     const [message, setMessage] = useState('Verifying your payment...');
     const location = useLocation();
+    const navigate = useNavigate();
     const { updateProfile } = useAuth();
 
     useEffect(() => {
@@ -24,6 +25,15 @@ const PaymentSuccess: React.FC = () => {
             setMessage('No payment reference found.');
         }
     }, [location]);
+
+    useEffect(() => {
+        if (status === 'success') {
+            const timer = setTimeout(() => {
+                navigate('/wallet');
+            }, 3000);
+            return () => clearTimeout(timer);
+        }
+    }, [status, navigate]);
 
       const verifyPayment = async (reference: string) => {
         const { data, error } = await supabase.functions.invoke('verify-payment', {
@@ -47,19 +57,29 @@ const PaymentSuccess: React.FC = () => {
         }
     };
 
+    const renderIcon = () => {
+        switch (status) {
+            case 'success':
+                return <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />;
+            case 'error':
+                return <XCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />;
+            default:
+                return <Loader className="w-16 h-16 text-gray-500 animate-spin mx-auto mb-4" />;
+        }
+    }
+
     return (
         <div className="container mx-auto p-4 md:p-6 lg:p-8 flex justify-center items-center h-screen">
             <Card className="w-full max-w-md">
                 <CardHeader>
-                    <CardTitle>Payment Status</CardTitle>
+                    <CardTitle className="text-center">Payment Status</CardTitle>
                 </CardHeader>
                 <CardContent className="text-center">
+                    {renderIcon()}
                     <p className={`text-lg font-semibold ${status === 'success' ? 'text-green-500' : status === 'error' ? 'text-red-500' : ''}`}>
                         {message}
                     </p>
-                    <Link to="/wallet">
-                        <Button className="mt-4">Back to Wallet</Button>
-                    </Link>
+                    {status === 'success' && <p className="text-sm text-gray-500 mt-2">Redirecting to your wallet...</p>}
                 </CardContent>
             </Card>
         </div>
