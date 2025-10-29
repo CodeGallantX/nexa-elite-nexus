@@ -59,12 +59,16 @@ serve(async (req) => {
     const amount = paystackData.data.amount / 100;
     const currency = paystackData.data.currency;
 
+    console.log("Calling credit_wallet with:", { userId, amount, reference, currency });
+
     const { data: newBalance, error: creditWalletError } = await supabaseAdmin.rpc('credit_wallet', {
       p_user_id: userId,
       p_amount: amount,
       p_reference: reference,
       p_currency: currency,
     });
+
+    console.log("credit_wallet response:", { newBalance, creditWalletError });
 
     if (creditWalletError) {
       console.error('Error crediting wallet:', creditWalletError);
