@@ -26,7 +26,7 @@ serve(async (req) => {
   const event = JSON.parse(body);
 
   if (event.event === "charge.success") {
-    const { amount, reference, customer } = event.data;
+    const { amount, reference, customer, currency } = event.data;
     const { email } = customer;
 
     const { data: user, error: userError } = await supabaseAdmin
@@ -87,6 +87,7 @@ serve(async (req) => {
         transaction_type: "deposit",
         transaction_status: "success",
         transaction_reference: reference,
+        transaction_currency: currency,
       }
     );
 

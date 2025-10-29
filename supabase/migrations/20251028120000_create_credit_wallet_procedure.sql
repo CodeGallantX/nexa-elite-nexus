@@ -1,7 +1,8 @@
 CREATE OR REPLACE FUNCTION credit_wallet(
     p_user_id UUID,
     p_amount DECIMAL,
-    p_reference TEXT
+    p_reference TEXT,
+    p_currency TEXT
 )
 RETURNS DECIMAL AS $$
 DECLARE
@@ -25,8 +26,8 @@ BEGIN
     RETURNING balance INTO v_new_balance;
 
     -- Create a new transaction
-    INSERT INTO transactions (wallet_id, amount, type, status, reference)
-    VALUES (v_wallet_id, p_amount, 'deposit', 'success', p_reference);
+    INSERT INTO transactions (wallet_id, amount, type, status, reference, currency)
+    VALUES (v_wallet_id, p_amount, 'deposit', 'success', p_reference, p_currency);
 
     RETURN v_new_balance;
 END;
