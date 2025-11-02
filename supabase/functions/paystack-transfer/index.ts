@@ -111,7 +111,18 @@ serve(async (req) => {
       console.log("Paystack transfer response:", result);
 
       if (!response.ok || !result.status) {
-        return new Response(JSON.stringify(result), {
+        // Return user-friendly error messages
+        let errorMessage = result.message || "Transfer failed";
+        
+        if (result.code === "insufficient_balance") {
+          errorMessage = "Service temporarily unavailable. Please try again later or contact support.";
+        }
+        
+        return new Response(JSON.stringify({ 
+          status: false, 
+          message: errorMessage,
+          error: errorMessage 
+        }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
           status: 400,
         });

@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Shield, Coins, ArrowDown, ArrowUp, Gift, Award, ArrowUpDown, Copy, Check, ChevronsUpDown, Loader2 } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useToast } from '@/components/ui/use-toast';
+import { useToast } from '@/hooks/use-toast';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Textarea } from '@/components/ui/textarea';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
@@ -245,6 +245,7 @@ const WithdrawDialog = ({ setWalletBalance, walletBalance, banks }) => {
     const [accountName, setAccountName] = useState('');
     const [bankCode, setBankCode] = useState('');
     const [notes, setNotes] = useState('');
+    const [open, setOpen] = useState(false);
     const { toast } = useToast();
 
     useEffect(() => {
@@ -334,25 +335,38 @@ const WithdrawDialog = ({ setWalletBalance, walletBalance, banks }) => {
 
         if (transferError || !transferData.status) {
             console.error("Error initiating transfer:", transferError || transferData);
+            
+            // Show user-friendly error message
+            const errorMessage = transferData?.message || transferData?.error || transferError?.message || "An unexpected error occurred";
+            
             toast({
-                title: "Error initiating transfer",
-                description: transferData?.message || transferError?.message || "An error occurred",
+                title: "Withdrawal Failed",
+                description: errorMessage,
                 variant: "destructive",
             });
             return;
         }
 
         console.log("Transfer initiated successfully:", transferData);
+        
+        // Update local balance
         setWalletBalance(prev => prev - amount);
+        
+        // Reset form and close dialog
+        setAmount(0);
+        setNotes('');
+        setOpen(false);
+        
+        // Show success message
         toast({
-            title: "Withdrawal Successful",
-            description: `Your request to withdraw ₦${amount} has been submitted.`,
+            title: "Withdrawal Submitted",
+            description: `Your request to withdraw ₦${amount.toLocaleString()} has been submitted successfully. Funds will be sent to your account shortly.`,
         });
         console.log("Withdrawal process finished.");
     }
 
     return (
-        <Dialog>
+        <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
                 <Button variant="outline" className="w-full h-24 flex flex-col items-center justify-center">
                     <ArrowDown className="h-8 w-8 mb-2" />
@@ -480,16 +494,21 @@ const TransferDialog = ({ walletBalance, onTransferComplete }) => {
             }
 
             toast({
-                title: "Transfer Successful",
-                description: `You have transferred ₦${amount} to ${recipient}`,
+                title: "Transfer Successful!",
+                description: `₦${amount.toLocaleString()} has been sent to ${recipient}`,
             });
+            
+            // Reset form
+            setAmount(0);
+            setRecipient('');
+            setOpen(false);
             
             // Trigger wallet refresh via callback
             onTransferComplete?.();
         } catch (err) {
             toast({
                 title: "Transfer Failed",
-                description: err.message || "An unexpected error occurred.",
+                description: err.message || "Unable to complete transfer. Please try again.",
                 variant: "destructive",
             });
         } finally {
@@ -498,7 +517,7 @@ const TransferDialog = ({ walletBalance, onTransferComplete }) => {
     }
 
     return (
-        <Dialog>
+        <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
                 <Button variant="outline" className="w-full h-24 flex flex-col items-center justify-center">
                     <ArrowUpDown className="h-8 w-8 mb-2" />
@@ -566,7 +585,7 @@ const TransferDialog = ({ walletBalance, onTransferComplete }) => {
                 <DialogFooter>
                     <Button onClick={handleTransfer} disabled={isTransferring}>
                         {isTransferring && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                        Transfer
+                        {isTransferring ? "Processing..." : "Transfer Funds"}
                     </Button>
                 </DialogFooter>
             </DialogContent>
