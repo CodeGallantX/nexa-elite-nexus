@@ -6,8 +6,10 @@ export const useWeeklyLeaderboard = () => {
     queryKey: ['weekly-leaderboard'],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('weekly_leaderboard')
-        .select('*');
+        .from('leaderboard')
+        .select('*')
+        .order('total_kills', { ascending: false })
+        .limit(10);
 
       if (error) throw error;
       return data || [];

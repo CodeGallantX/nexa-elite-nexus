@@ -26,6 +26,7 @@ interface UserProfile {
   br_class?: string;
   mp_class?: string;
   best_gun?: string;
+  status?: string;
 }
 
 interface AuthContextType {

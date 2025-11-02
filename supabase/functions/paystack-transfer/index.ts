@@ -29,39 +29,130 @@ serve(async (req) => {
   const { endpoint, name, account_number, bank_code, amount, recipient_code } = await req.json();
 
   if (endpoint === "create-transfer-recipient") {
-    // ... (rest of the endpoint remains the same)
+    try {
+      const paystackUrl = "https://api.paystack.co/transferrecipient";
+      const response = await fetch(paystackUrl, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${PAYSTACK_SECRET_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          type: "nuban",
+          name,
+          account_number,
+          bank_code,
+          currency: "NGN",
+        }),
+      });
+
+      const result = await response.json();
+      console.log("Paystack create recipient response:", result);
+
+      return new Response(JSON.stringify(result), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: response.ok ? 200 : 400,
+      });
+    } catch (error) {
+      console.error("Error creating transfer recipient:", error);
+      return new Response(JSON.stringify({ error: error.message }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 500,
+      });
+    }
   }
 
   if (endpoint === "initiate-transfer") {
     console.log(`Initiating transfer for user ${user.id} of amount ${amount}`);
 
-    // 1. Verify user's wallet balance
-    const { data: wallet, error: walletError } = await supabaseAdmin
-      .from("wallets")
-      .select("balance")
-      .eq("user_id", user.id)
-      .single();
+    try {
+      // 1. Verify user's wallet balance
+      const { data: wallet, error: walletError } = await supabaseAdmin
+        .from("wallets")
+        .select("balance")
+        .eq("user_id", user.id)
+        .single();
 
-    if (walletError || !wallet) {
-      console.error(`Wallet not found for user ${user.id}:`, walletError);
-      return new Response(JSON.stringify({ error: "Wallet not found" }), {
+      if (walletError || !wallet) {
+        console.error(`Wallet not found for user ${user.id}:`, walletError);
+        return new Response(JSON.stringify({ error: "Wallet not found" }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 404,
+        });
+      }
+
+      if (wallet.balance < amount) {
+        console.warn(`User ${user.id} has insufficient funds. Balance: ${wallet.balance}, Amount: ${amount}`);
+        return new Response(JSON.stringify({ error: "Insufficient funds" }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 400,
+        });
+      }
+
+      // 2. Proceed with Paystack transfer (convert amount to kobo)
+      const amountInKobo = amount * 100;
+      const paystackUrl = "https://api.paystack.co/transfer";
+      
+      const response = await fetch(paystackUrl, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${PAYSTACK_SECRET_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          source: "balance",
+          amount: amountInKobo,
+          recipient: recipient_code,
+          reason: "Wallet withdrawal",
+        }),
+      });
+
+      const result = await response.json();
+      console.log("Paystack transfer response:", result);
+
+      if (!response.ok || !result.status) {
+        return new Response(JSON.stringify(result), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 400,
+        });
+      }
+
+      // 3. Deduct from wallet and create transaction record
+      const { error: updateError } = await supabaseAdmin.rpc(
+        'update_wallet_and_create_transaction',
+        {
+          wallet_id: (await supabaseAdmin.from('wallets').select('id').eq('user_id', user.id).single()).data.id,
+          new_balance: wallet.balance - amount,
+          transaction_amount: amount,
+          transaction_type: 'withdrawal',
+          transaction_status: 'success',
+          transaction_reference: result.data.reference,
+        }
+      );
+
+      if (updateError) {
+        console.error("Error updating wallet:", updateError);
+        return new Response(JSON.stringify({ error: "Failed to update wallet" }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 500,
+        });
+      }
+
+      return new Response(JSON.stringify(result), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 404,
+        status: 200,
+      });
+    } catch (error) {
+      console.error("Error initiating transfer:", error);
+      return new Response(JSON.stringify({ error: error.message }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 500,
       });
     }
-
-    if (wallet.balance < amount) {
-      console.warn(`User ${user.id} has insufficient funds for withdrawal. Balance: ${wallet.balance}, Amount: ${amount}`);
-      return new Response(JSON.stringify({ error: "Insufficient funds" }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 400,
-      });
-    }
-
-    // 2. Proceed with Paystack transfer
-    const paystackUrl = "https://api.paystack.co/transfer";
-    // ... (rest of the transfer logic remains the same)
   }
-  
-  // ... (rest of the file remains the same)
+
+  return new Response(JSON.stringify({ error: "Invalid endpoint" }), {
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+    status: 400,
+  });
 });

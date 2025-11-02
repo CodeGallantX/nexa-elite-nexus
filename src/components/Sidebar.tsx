@@ -256,7 +256,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   isActive={location.pathname.startsWith(item.path)}
                   isCollapsed={isCollapsed || isMediumScreen}
                   onClick={() => navigate(item.path)}
-                  subItems={item.subItems}
                 />
               ))}
             </>

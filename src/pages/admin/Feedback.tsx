@@ -35,7 +35,7 @@ export const Feedback: React.FC = () => {
   });
 
   const updateStatusMutation = useMutation({
-    mutationFn: async ({ id, status }: { id: string; status: string }) => {
+    mutationFn: async ({ id, status }: { id: string; status: 'new' | 'in_progress' | 'resolved' | 'not_a_bug' }) => {
       const { error } = await supabase.from('bug_reports').update({ status }).eq('id', id);
       if (error) throw error;
     },
@@ -182,7 +182,7 @@ export const Feedback: React.FC = () => {
                         <div>
                           <h4 className="font-semibold">Status</h4>
                           <Select
-                            onValueChange={(value) => updateStatusMutation.mutate({ id: report.id, status: value })}
+                            onValueChange={(value) => updateStatusMutation.mutate({ id: report.id, status: value as 'new' | 'in_progress' | 'resolved' | 'not_a_bug' })}
                             defaultValue={report.status}
                           >
                             <SelectTrigger>
@@ -204,7 +204,7 @@ export const Feedback: React.FC = () => {
                           <TooltipProvider>
                             <Tooltip>
                               <TooltipTrigger asChild>
-                                <a href={`mailto:?subject=Bug Report: ${report.title}&body=${generateShareMessage(report)}`}>
+                                <a href={`mailto:?subject=Bug Report&body=${generateShareMessage(report)}`}>
                                   <Button variant="outline"><Mail className="w-4 h-4" /></Button>
                                 </a>
                               </TooltipTrigger>

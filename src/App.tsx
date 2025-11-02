@@ -47,7 +47,6 @@ import AdminDashboard from '@/pages/AdminDashboard';
 import { Feedback } from '@/pages/admin/Feedback';
 import Activities from '@/pages/admin/Activities';
 import Wallet from '@/pages/Wallet';
-import PurchaseAirtime from '@/pages/wallet/PurchaseAirtime';
 import PaymentSuccess from '@/pages/payment/success';
 
 
