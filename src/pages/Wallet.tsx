@@ -37,16 +37,26 @@ const TransactionItem = ({ transaction }) => (
 
 const renderTransactionIcon = (type: string) => {
   switch (type) {
-    case 'Earnings':
-      return <Award className="h-8 w-8 text-green-500" />;
-    case 'Withdrawals':
-      return <ArrowDown className="h-8 w-8 text-red-500" />;
-    case 'Redeems':
-      return <Gift className="h-8 w-8 text-blue-500" />;
-    case 'Send Reward':
-      return <ArrowUp className="h-8 w-8 text-yellow-500" />;
+    case 'Deposit':
+    case 'Transfer In':
+      return (
+        <div className="p-2 rounded-full bg-green-500/20 backdrop-blur-sm">
+          <ArrowDown className="h-8 w-8 text-green-500" />
+        </div>
+      );
+    case 'Withdrawal':
+    case 'Transfer Out':
+      return (
+        <div className="p-2 rounded-full bg-red-500/20 backdrop-blur-sm">
+          <ArrowUp className="h-8 w-8 text-red-500" />
+        </div>
+      );
     default:
-      return <Coins className="h-8 w-8 text-gray-500" />;
+      return (
+        <div className="p-2 rounded-full bg-gray-500/20 backdrop-blur-sm">
+          <Coins className="h-8 w-8 text-gray-500" />
+        </div>
+      );
   }
 };
 
@@ -238,7 +248,7 @@ const GiveawayDialog = ({ setWalletBalance, walletBalance }) => {
     )
 }
 
-const WithdrawDialog = ({ setWalletBalance, walletBalance, banks }) => {
+const WithdrawDialog = ({ setWalletBalance, walletBalance, banks, onWithdrawalComplete }) => {
     const { profile } = useAuth();
     const [amount, setAmount] = useState(0);
     const [accountNumber, setAccountNumber] = useState('');
@@ -362,6 +372,7 @@ const WithdrawDialog = ({ setWalletBalance, walletBalance, banks }) => {
             title: "Withdrawal Submitted",
             description: `Your request to withdraw ₦${amount.toLocaleString()} has been submitted successfully. Funds will be sent to your account shortly.`,
         });
+        onWithdrawalComplete?.();
         console.log("Withdrawal process finished.");
     }
 
@@ -714,7 +725,7 @@ const Wallet: React.FC = () => {
             description: `${tx.type} - ${tx.status}`,
             date: new Date(tx.created_at).toLocaleDateString(),
             amount: tx.type === 'transfer_out' || tx.type === 'withdrawal' ? -Number(tx.amount) : Number(tx.amount),
-            type: tx.type === 'deposit' ? 'Earnings' : tx.type === 'withdrawal' ? 'Withdrawals' : 'Transfer'
+            type: tx.type === 'deposit' ? 'Deposit' : tx.type === 'withdrawal' ? 'Withdrawal' : tx.type === 'transfer_in' ? 'Transfer In' : 'Transfer Out'
           })));
         }
       }
@@ -759,7 +770,7 @@ const Wallet: React.FC = () => {
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
         {profile?.role === 'clan_master' && <FundWalletDialog />}
-        <WithdrawDialog setWalletBalance={setWalletBalance} walletBalance={walletBalance} banks={banks} />
+        <WithdrawDialog setWalletBalance={setWalletBalance} walletBalance={walletBalance} banks={banks} onWithdrawalComplete={fetchWalletData} />
         <TransferDialog walletBalance={walletBalance} onTransferComplete={fetchWalletData} />
         <GiveawayDialog setWalletBalance={setWalletBalance} walletBalance={walletBalance} />
       </div>
