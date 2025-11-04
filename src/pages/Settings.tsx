@@ -35,6 +35,8 @@ import {
   TrendingUp,
   Star,
   Bell,
+  CheckCircle2,
+  XCircle,
 } from "lucide-react";
 
 // Device and brand data
@@ -168,7 +170,7 @@ export const Settings: React.FC = () => {
   });
 
   const [isUploading, setIsUploading] = useState(false);
-  const [isVerifying, setIsVerifying] = useState(false);
+  const [verificationStatus, setVerificationStatus] = useState<'idle' | 'verifying' | 'success' | 'error'>('idle');
   const [activeTab, setActiveTab] = useState("profile");
   const [banks, setBanks] = useState<any[]>([]);
 
@@ -209,9 +211,14 @@ export const Settings: React.FC = () => {
   }, [profile]);
 
   useEffect(() => {
+    if (!formData.banking_info.account_number || !formData.banking_info.bank_code) {
+        setVerificationStatus('idle');
+        return;
+    }
+
     const verifyAccount = async () => {
         if (formData.banking_info.account_number?.length === 10 && formData.banking_info.bank_code) {
-            setIsVerifying(true);
+            setVerificationStatus('verifying');
             try {
                 const { data, error } = await supabase.functions.invoke('verify-bank-account', {
                     body: {
@@ -230,8 +237,10 @@ export const Settings: React.FC = () => {
                             account_name: data.data.account_name,
                         }
                     }));
+                    setVerificationStatus('success');
                 } else {
                     console.error("Account verification failed:", data.message);
+                    setVerificationStatus('error');
                     toast({
                         title: "Account Verification Failed",
                         description: "We couldn't verify the account details with the selected bank. Please double-check the account number and bank, or try again.",
@@ -239,13 +248,12 @@ export const Settings: React.FC = () => {
                     });
                 }
             } catch (error) {
+                setVerificationStatus('error');
                 toast({
                     title: "Verification Error",
                     description: error.message || "An error occurred during account verification.",
                     variant: "destructive",
                 });
-            } finally {
-                setIsVerifying(false);
             }
         }
     };
@@ -871,11 +879,17 @@ export const Settings: React.FC = () => {
                       className="bg-background/50 border-border text-white pr-10"
                       placeholder="Account holder name"
                     />
-                    {isVerifying && (
-                      <div className="absolute inset-y-0 right-0 flex items-center pr-3">
+                    <div className="absolute inset-y-0 right-0 flex items-center pr-3">
+                      {verificationStatus === 'verifying' && (
                         <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                      </div>
-                    )}
+                      )}
+                      {verificationStatus === 'success' && (
+                        <CheckCircle2 className="h-5 w-5 text-green-500" />
+                      )}
+                      {verificationStatus === 'error' && (
+                        <XCircle className="h-5 w-5 text-red-500" />
+                      )}
+                    </div>
                   </div>
                 </div>
 
