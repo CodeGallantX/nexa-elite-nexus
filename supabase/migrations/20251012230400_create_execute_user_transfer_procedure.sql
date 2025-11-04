@@ -41,8 +41,8 @@ BEGIN
     -- Log both transactions
     INSERT INTO transactions (wallet_id, amount, type, status, reference)
     VALUES
-        (sender_wallet_id, -amount, 'transfer', 'success', 'transfer_to_' || recipient_ign),
-        (recipient_wallet_id, amount, 'transfer', 'success', 'transfer_from_' || (SELECT email FROM auth.users WHERE id = sender_id));
+        (sender_wallet_id, amount, 'transfer_out', 'success', 'transfer_to_' || recipient_ign),
+        (recipient_wallet_id, amount, 'transfer_in', 'success', 'transfer_from_' || (SELECT email FROM auth.users WHERE id = sender_id));
 
 END;
 $$ LANGUAGE plpgsql;

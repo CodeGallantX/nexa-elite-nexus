@@ -168,7 +168,19 @@ export const Settings: React.FC = () => {
   });
 
   const [isUploading, setIsUploading] = useState(false);
+  const [isVerifying, setIsVerifying] = useState(false);
   const [activeTab, setActiveTab] = useState("profile");
+  const [banks, setBanks] = useState<any[]>([]);
+
+  useEffect(() => {
+    const fetchBanks = async () => {
+        const { data, error } = await supabase.functions.invoke('get-banks');
+        if (data?.status && data?.data) {
+            setBanks(data.data);
+        }
+    };
+    fetchBanks();
+  }, []);
 
   // Initialize form data when profile loads
   useEffect(() => {
@@ -195,6 +207,52 @@ export const Settings: React.FC = () => {
       });
     }
   }, [profile]);
+
+  useEffect(() => {
+    const verifyAccount = async () => {
+        if (formData.banking_info.account_number?.length === 10 && formData.banking_info.bank_code) {
+            setIsVerifying(true);
+            try {
+                const { data, error } = await supabase.functions.invoke('verify-bank-account', {
+                    body: {
+                        bank_code: formData.banking_info.bank_code,
+                        account_number: formData.banking_info.account_number,
+                    }
+                });
+
+                if (error) throw error;
+
+                if (data.status && data.data) {
+                    setFormData(prev => ({
+                        ...prev,
+                        banking_info: {
+                            ...prev.banking_info,
+                            account_name: data.data.account_name,
+                        }
+                    }));
+                } else {
+                    toast({
+                        title: "Verification Failed",
+                        description: data.message || "Could not verify account details.",
+                        variant: "destructive",
+                    });
+                }
+            } catch (error) {
+                toast({
+                    title: "Verification Error",
+                    description: error.message || "An error occurred during account verification.",
+                    variant: "destructive",
+                });
+            } finally {
+                setIsVerifying(false);
+            }
+        }
+    };
+
+    const timeoutId = setTimeout(verifyAccount, 1000); // Debounce for 1 second
+    return () => clearTimeout(timeoutId);
+
+}, [formData.banking_info.account_number, formData.banking_info.bank_code]);
 
   // Upload avatar to Supabase Storage
   const uploadAvatar = async (file: File): Promise<string> => {
@@ -805,20 +863,19 @@ export const Settings: React.FC = () => {
                     <Wallet className="w-4 h-4 mr-2 text-blue-400" />
                     Account Name
                   </Label>
-                  <Input
-                    value={formData.banking_info.account_name || ""}
-                    onChange={(e) =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        banking_info: {
-                          ...prev.banking_info,
-                          account_name: e.target.value,
-                        },
-                      }))
-                    }
-                    className="bg-background/50 border-border text-white"
-                    placeholder="Account holder name"
-                  />
+                  <div className="relative">
+                    <Input
+                      value={formData.banking_info.account_name || ""}
+                      readOnly
+                      className="bg-background/50 border-border text-white pr-10"
+                      placeholder="Account holder name"
+                    />
+                    {isVerifying && (
+                      <div className="absolute inset-y-0 right-0 flex items-center pr-3">
+                        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 <div className="space-y-2">
@@ -848,24 +905,26 @@ export const Settings: React.FC = () => {
                     Bank Name
                   </Label>
                   <Select
-                    value={formData.banking_info.bank_name || ""}
-                    onValueChange={(value) =>
+                    value={formData.banking_info.bank_code || ""}
+                    onValueChange={(code) => {
+                      const selectedBank = banks.find(bank => bank.code === code);
                       setFormData((prev) => ({
                         ...prev,
                         banking_info: {
                           ...prev.banking_info,
-                          bank_name: value,
+                          bank_code: code,
+                          bank_name: selectedBank?.name || '',
                         },
                       }))
-                    }
+                    }}
                   >
                     <SelectTrigger className="bg-background/50 border-border text-white">
                       <SelectValue placeholder="Select your bank" />
                     </SelectTrigger>
                     <SelectContent>
-                      {bankOptions.map((bank) => (
-                        <SelectItem key={bank} value={bank}>
-                          {bank}
+                      {banks.map((bank) => (
+                        <SelectItem key={bank.id} value={bank.code}>
+                          {bank.name}
                         </SelectItem>
                       ))}
                     </SelectContent>

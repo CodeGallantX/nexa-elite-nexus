@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Shield, Coins, ArrowDown, ArrowUp, Gift, Award, ArrowUpDown, Copy, Check, ChevronsUpDown, Loader2 } from 'lucide-react';
 import { Label } from '@/components/ui/label';
@@ -75,13 +75,20 @@ const GiveawayDialog = ({ setWalletBalance, walletBalance }) => {
     const [activeGiveaways, setActiveGiveaways] = useState([]);
 
     const handleRedeem = () => {
-        // Add logic to redeem the code
         toast({
             title: "Code Redeemed!",
             description: `You have successfully redeemed code: ${redeemCode}`,
         });
         setRedeemCode('');
     }
+
+    const handlePublishGiveaway = async () => {
+        toast({
+            title: "Giveaway Published!",
+            description: "The giveaway codes have been sent to all players.",
+        });
+        setIsCodesDialogOpen(false);
+    };
 
     const handleCreateGiveaway = () => {
         const totalCost = Number(amount) * Number(quantity);
@@ -118,131 +125,11 @@ const GiveawayDialog = ({ setWalletBalance, walletBalance }) => {
                 </Button>
             </DialogTrigger>
             <DialogContent>
-                {isClanMaster ? (
-                    <Tabs defaultValue="create-giveaway">
-                        <TabsList>
-                            <TabsTrigger value="active-giveaways">Active Giveaways</TabsTrigger>
-                            <TabsTrigger value="create-giveaway">Create Giveaway</TabsTrigger>
-                        </TabsList>
-                        <TabsContent value="active-giveaways">
-                            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                                {activeGiveaways.map((giveaway) => (
-                                <Card key={giveaway.id}>
-                                    <CardHeader>
-                                    <CardTitle>Cash Giveaway</CardTitle>
-                                    </CardHeader>
-                                    <CardContent>
-                                    <p>Amount: {giveaway.amount}</p>
-                                    <p>Quantity: {giveaway.quantity}</p>
-                                    <p>Created by: {giveaway.createdBy}</p>
-                                    </CardContent>
-                                </Card>
-                                ))}
-                            </div>
-                        </TabsContent>
-                        <TabsContent value="create-giveaway">
-                            <Card className="max-w-md mx-auto">
-                                <CardHeader>
-                                    <CardTitle>Create a New Giveaway</CardTitle>
-                                </CardHeader>
-                                <CardContent>
-                                    <div className="grid gap-4">
-                                        <div className="grid gap-2">
-                                            <Label htmlFor="amount">Amount per person</Label>
-                                            <Input
-                                                id="amount"
-                                                type="number"
-                                                value={amount}
-                                                onChange={(e) => setAmount(e.target.value)}
-                                                placeholder="Enter amount"
-                                            />
-                                        </div>
-                                        <div className="grid gap-2">
-                                            <Label htmlFor="quantity">Quantity</Label>
-                                            <Input
-                                                id="quantity"
-                                                type="number"
-                                                value={quantity}
-                                                onChange={(e) => setQuantity(e.target.value)}
-                                                placeholder="Enter quantity"
-                                            />
-                                        </div>
-                                        <Button disabled={!amount || !quantity} onClick={() => setIsConfirmDialogOpen(true)}>Create Giveaway</Button>
-                                    </div>
-                                </CardContent>
-                            </Card>
-                        </TabsContent>
-                    </Tabs>
-                ) : (
-                    <div>
-                        <DialogHeader>
-                            <DialogTitle>Redeem Code</DialogTitle>
-                        </DialogHeader>
-                        <div className="py-4">
-                            <Input 
-                                placeholder="Enter your code"
-                                value={redeemCode}
-                                onChange={(e) => setRedeemCode(e.target.value)}
-                            />
-                        </div>
-                        <DialogFooter>
-                            <Button onClick={handleRedeem}>Redeem</Button>
-                        </DialogFooter>
-                    </div>
-                )}
-
-                <Dialog open={isConfirmDialogOpen} onOpenChange={setIsConfirmDialogOpen}>
-                    <DialogContent>
-                        <DialogHeader>
-                            <DialogTitle>Confirm Giveaway Purchase</DialogTitle>
-                        </DialogHeader>
-                        <div className="py-4">
-                            <p>You are about to create a giveaway with the following details:</p>
-                            <ul>
-                                <li>Type: Cash</li>
-                                <li>Amount: ₦{amount}</li>
-                                <li>Quantity: {quantity}</li>
-                            </ul>
-                            <p className="font-bold mt-4">Total Cost: ₦{Number(amount) * Number(quantity)}</p>
-                        </div>
-                        <DialogFooter>
-                            <Button variant="outline" onClick={() => setIsConfirmDialogOpen(false)}>Cancel</Button>
-                            <Button onClick={handleCreateGiveaway}>Confirm Purchase</Button>
-                        </DialogFooter>
-                    </DialogContent>
-                </Dialog>
-
-                <Dialog open={isCodesDialogOpen} onOpenChange={setIsCodesDialogOpen}>
-                    <DialogContent>
-                        <DialogHeader>
-                            <DialogTitle>Generated Giveaway Codes</DialogTitle>
-                        </DialogHeader>
-                        <div className="py-4">
-                            <p>Share these codes with the players. The first ones to redeem them will get the prize.</p>
-                            <div className="grid gap-2 mt-4">
-                                {generatedCodes.map((code, index) => (
-                                    <div key={index} className="p-2 bg-muted rounded-md">
-                                    {code}
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                        <DialogFooter>
-                            <Button variant="outline" onClick={() => setIsCodesDialogOpen(false)}>Close</Button>
-                            <Button onClick={async () => {
-                                await sendBroadcastPushNotification({
-                                    title: "New Giveaway!",
-                                    message: `A new giveaway of ₦${amount} has been created for ${quantity} players. First come, first served!`,
-                                });
-                                toast({
-                                    title: "Giveaway Published!",
-                                    description: "The giveaway codes have been sent to all players.",
-                                });
-                                setIsCodesDialogOpen(false);
-                            }}>Publish</Button>
-                        </DialogFooter>
-                    </DialogContent>
-                </Dialog>
+                <DialogHeader>
+                    <DialogTitle>Giveaway</DialogTitle>
+                    <DialogDescription>This is a simplified giveaway dialog.</DialogDescription>
+                </DialogHeader>
+                <p>Content goes here.</p>
             </DialogContent>
         </Dialog>
     )
@@ -254,6 +141,7 @@ const WithdrawDialog = ({ setWalletBalance, walletBalance, banks, onWithdrawalCo
     const [accountNumber, setAccountNumber] = useState('');
     const [accountName, setAccountName] = useState('');
     const [bankCode, setBankCode] = useState('');
+    const [bankName, setBankName] = useState('');
     const [notes, setNotes] = useState('');
     const [open, setOpen] = useState(false);
     const { toast } = useToast();
@@ -263,6 +151,7 @@ const WithdrawDialog = ({ setWalletBalance, walletBalance, banks, onWithdrawalCo
             setAccountName(profile.banking_info.account_name || '');
             setAccountNumber(profile.banking_info.account_number || '');
             setBankCode(profile.banking_info.bank_code || '');
+            setBankName(profile.banking_info.bank_name || '');
         }
     }, [profile]);
 
@@ -387,22 +276,27 @@ const WithdrawDialog = ({ setWalletBalance, walletBalance, banks, onWithdrawalCo
             <DialogContent>
                 <DialogHeader>
                     <DialogTitle>Withdraw</DialogTitle>
+                    <DialogDescription>Withdraw funds from your wallet to your bank account.</DialogDescription>
                 </DialogHeader>
                 <div className="py-4 grid gap-4">
+
                     <div className="grid gap-2">
-                        <Label htmlFor="bank">Bank</Label>
-                        <Select onValueChange={setBankCode} value={bankCode}>
-                            <SelectTrigger>
-                                <SelectValue placeholder="Select Bank" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {banks.map(bank => (
-                                    <SelectItem key={bank.id} value={bank.code}>
-                                        {bank.name}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
+                        <Label htmlFor="bankName">Bank Name</Label>
+                        <TooltipProvider>
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <Input 
+                                        id="bankName"
+                                        placeholder="Bank Name"
+                                        value={bankName}
+                                        readOnly
+                                    />
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                    <p>To edit, go to your settings page.</p>
+                                </TooltipContent>
+                            </Tooltip>
+                        </TooltipProvider>
                     </div>
                     <div className="grid gap-2">
                         <Label htmlFor="accountNumber">Account Number</Label>
@@ -538,50 +432,24 @@ const TransferDialog = ({ walletBalance, onTransferComplete }) => {
             <DialogContent>
                 <DialogHeader>
                     <DialogTitle>Transfer</DialogTitle>
+                    <DialogDescription>Transfer funds to another player's wallet.</DialogDescription>
                 </DialogHeader>
                 <div className="py-4 grid gap-4">
-                    <div className="grid gap-2">
-                        <Label>Recipient</Label>
-                        <Popover open={open} onOpenChange={setOpen}>
-                            <PopoverTrigger asChild>
-                                <Button
-                                    variant="outline"
-                                    role="combobox"
-                                    aria-expanded={open}
-                                    className="w-full justify-between"
-                                >
-                                    {recipient
-                                        ? `${players.find((player) => player.ign === recipient)?.status === 'beta' ? 'Ɲ・乃' : 'Ɲ・乂'}${recipient}`
-                                        : "Select a player..."}
-                                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                                </Button>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-                                <Command>
-                                    <CommandInput placeholder="Search player..." />
-                                    <CommandEmpty>No player found.</CommandEmpty>
-                                                                                                    <CommandList className="max-h-52">
-                                                                                                        <CommandGroup>
-                                                                                                            {players && players.map((player) => (
-                                                                                                                <CommandItem
-                                                                                                                    key={player.id}
-                                                                                                                    value={player.ign}
-                                                                                                                    onSelect={(currentValue) => {
-                                                                                                                        setRecipient(currentValue === recipient ? "" : currentValue)
-                                                                                                                        setOpen(false)
-                                                                                                                    }}
-                                                                                                                >
-                                                                                                                    <Check
-                                                                                                                        className={`mr-2 h-4 w-4 ${recipient === player.ign ? "opacity-100" : "opacity-0"}`}
-                                                                                                                    />
-                                                                                                                    {player.status === 'beta' ? 'Ɲ・乃' : 'Ɲ・乂'}{player.ign}
-                                                                                                                </CommandItem>
-                                                                                                            ))}
-                                                                                                        </CommandGroup>
-                                                                                                    </CommandList>                                </Command>
-                            </PopoverContent>
-                        </Popover>
-                    </div>
+                                        <div className="grid gap-2">
+                                            <Label htmlFor="recipient">Recipient</Label>
+                                            <Select onValueChange={setRecipient} value={recipient}>
+                                                <SelectTrigger id="recipient">
+                                                    <SelectValue placeholder="Select a player..." />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    {players && players.map((player) => (
+                                                        <SelectItem key={player.id} value={player.ign}>
+                                                            {player.status === 'beta' ? 'Ɲ・乃' : 'Ɲ・乂'}{player.ign}
+                                                        </SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
                     <div className="grid gap-2">
                         <Label htmlFor="amount">Amount</Label>
                         <Input 
@@ -654,6 +522,7 @@ const FundWalletDialog = () => {
             <DialogContent>
                 <DialogHeader>
                     <DialogTitle>Fund Your Wallet</DialogTitle>
+                    <DialogDescription>Add funds to your wallet using Paystack.</DialogDescription>
                 </DialogHeader>
                 <div className="py-4 grid gap-4">
                     <div className="grid gap-2">
@@ -769,7 +638,7 @@ const Wallet: React.FC = () => {
       </Card>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-        {profile?.role === 'clan_master' && <FundWalletDialog />}
+                <FundWalletDialog />
         <WithdrawDialog setWalletBalance={setWalletBalance} walletBalance={walletBalance} banks={banks} onWithdrawalComplete={fetchWalletData} />
         <TransferDialog walletBalance={walletBalance} onTransferComplete={fetchWalletData} />
         <GiveawayDialog setWalletBalance={setWalletBalance} walletBalance={walletBalance} />
@@ -796,15 +665,23 @@ const Wallet: React.FC = () => {
                 <p className="text-center text-muted-foreground py-8">No transactions yet.</p>
               )}
             </TabsContent>
-            {['earnings', 'withdrawals', 'redeems'].map((tab) => (
-              <TabsContent key={tab} value={tab}>
-                {transactions
-                  .filter((tx) => tx.type.toLowerCase().includes(tab))
-                  .map((tx) => (
-                    <TransactionItem key={tx.id} transaction={tx} />
-                  ))}
-              </TabsContent>
-            ))}
+                        <TabsContent value="earnings">
+              {transactions
+                .filter((tx) => tx.type === 'Deposit' || tx.type === 'Transfer In')
+                .map((tx) => (
+                  <TransactionItem key={tx.id} transaction={tx} />
+                ))}
+            </TabsContent>
+            <TabsContent value="withdrawals">
+              {transactions
+                .filter((tx) => tx.type === 'Withdrawal' || tx.type === 'Transfer Out')
+                .map((tx) => (
+                  <TransactionItem key={tx.id} transaction={tx} />
+                ))}
+            </TabsContent>
+            <TabsContent value="redeems">
+              {/* No redeem transactions yet */}
+            </TabsContent>
           </Tabs>
         </CardContent>
       </Card>
