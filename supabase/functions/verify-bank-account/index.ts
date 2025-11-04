@@ -10,6 +10,8 @@ serve(async (req) => {
   try {
     const { bank_code, account_number } = await req.json();
 
+    console.log(`Verifying account: ${account_number} with bank code: ${bank_code}`);
+
     if (!bank_code || !account_number) {
       return new Response(JSON.stringify({ error: "bank_code and account_number are required" }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },

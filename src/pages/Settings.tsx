@@ -231,9 +231,10 @@ export const Settings: React.FC = () => {
                         }
                     }));
                 } else {
+                    console.error("Account verification failed:", data.message);
                     toast({
-                        title: "Verification Failed",
-                        description: data.message || "Could not verify account details.",
+                        title: "Account Verification Failed",
+                        description: "We couldn't verify the account details with the selected bank. Please double-check the account number and bank, or try again.",
                         variant: "destructive",
                     });
                 }
