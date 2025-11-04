@@ -205,7 +205,21 @@ const WithdrawDialog = ({ setWalletBalance, walletBalance, banks, onWithdrawalCo
         };
         console.log("Recipient payload:", recipientPayload);
 
+        const { data: { session } } = await supabase.auth.getSession();
+
+        if (!session || !session.access_token) {
+            toast({
+                title: "Authentication Error",
+                description: "Your session has expired. Please log out and log back in.",
+                variant: "destructive",
+            });
+            return;
+        }
+
         const { data: recipientData, error: recipientError } = await supabase.functions.invoke('paystack-transfer', {
+            headers: {
+                'Authorization': `Bearer ${session.access_token}`,
+            },
             body: recipientPayload,
         });
 
@@ -229,20 +243,30 @@ const WithdrawDialog = ({ setWalletBalance, walletBalance, banks, onWithdrawalCo
         console.log("Transfer payload:", transferPayload);
 
         const { data: transferData, error: transferError } = await supabase.functions.invoke('paystack-transfer', {
+            headers: {
+                'Authorization': `Bearer ${session.access_token}`,
+            },
             body: transferPayload,
         });
 
         if (transferError || !transferData.status) {
             console.error("Error initiating transfer:", transferError || transferData);
             
-            // Show user-friendly error message
             const errorMessage = transferData?.message || transferData?.error || transferError?.message || "An unexpected error occurred";
             
-            toast({
-                title: "Withdrawal Failed",
-                description: errorMessage,
-                variant: "destructive",
-            });
+            if (transferData?.error === "insufficient_paystack_balance") {
+                toast({
+                    title: "Withdrawal Service Unavailable",
+                    description: "We are currently unable to process withdrawals. Please try again later. Our team has been notified.",
+                    variant: "destructive",
+                });
+            } else {
+                toast({
+                    title: "Withdrawal Failed",
+                    description: errorMessage,
+                    variant: "destructive",
+                });
+            }
             return;
         }
 
@@ -387,7 +411,22 @@ const TransferDialog = ({ walletBalance, onTransferComplete }) => {
 
         setIsTransferring(true);
         try {
+            const { data: { session } } = await supabase.auth.getSession();
+
+            if (!session || !session.access_token) {
+                toast({
+                    title: "Authentication Error",
+                    description: "Your session has expired. Please log out and log back in.",
+                    variant: "destructive",
+                });
+                setIsTransferring(false);
+                return;
+            }
+
             const { error } = await supabase.functions.invoke('transfer-funds', {
+                headers: {
+                    'Authorization': `Bearer ${session.access_token}`,
+                },
                 body: {
                     recipient_ign: recipient,
                     amount,

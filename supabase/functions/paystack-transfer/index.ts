@@ -111,12 +111,41 @@ serve(async (req) => {
       console.log("Paystack transfer response:", result);
 
       if (!response.ok || !result.status) {
-        // Return user-friendly error messages
-        let errorMessage = result.message || "Transfer failed";
-        
+        // Log transaction failure for specific cases
         if (result.code === "insufficient_balance") {
-          errorMessage = "Service temporarily unavailable. Please try again later or contact support.";
+          console.error('Paystack account has insufficient funds.');
+          // Log to failed_transactions table
+          await supabaseAdmin.from('failed_transactions').insert({
+            user_id: user.id,
+            amount: amount,
+            reason: 'insufficient_paystack_balance',
+            status: 'pending_retry'
+          });
+
+          // Send notification to clan master
+          const { data: clanMaster } = await supabaseAdmin.from('profiles').select('id').eq('role', 'clan_master').single();
+          if (clanMaster) {
+            await supabaseAdmin.functions.invoke('send-push-notification', {
+              body: {
+                user_id: clanMaster.id,
+                title: 'Urgent: Paystack Balance Low',
+                message: `A withdrawal of ${amount} failed due to insufficient funds in the Paystack account.`
+              }
+            });
+          }
+
+          return new Response(JSON.stringify({ 
+            status: false, 
+            message: "Withdrawal service is temporarily unavailable. Please try again later or contact support.",
+            error: "insufficient_paystack_balance"
+          }), {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+            status: 503, // Service Unavailable
+          });
         }
+
+        // Return user-friendly error messages for other failures
+        let errorMessage = result.message || "Transfer failed";
         
         return new Response(JSON.stringify({ 
           status: false, 
