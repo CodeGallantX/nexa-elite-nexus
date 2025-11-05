@@ -2,9 +2,18 @@
 <html lang="en" class="scroll-smooth">
   <head>
     <meta charset="UTF-8" />
+    <meta http-equiv="x-ua-compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- DNS prefetch / preconnect for external resources -->
+    <link rel="dns-prefetch" href="//fonts.googleapis.com">
+    <link rel="dns-prefetch" href="//fonts.gstatic.com">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <!-- Preload key assets -->
+    <link rel="preload" href="/thumbnail.png" as="image" />
+    <link rel="preload" href="/manifest.webmanifest" as="document" />
     <link rel="icon" href="/favicon.ico" sizes="48x48">
     <link rel="apple-touch-icon" href="/apple-touch-icon-180x180.png">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <!-- Primary Meta Tags -->
     <title>NeXa_Esports | Call of Duty Mobile Clan</title>
     <meta name="title" content="NeXa_Esports | Call of Duty Mobile Clan" />
@@ -14,6 +23,8 @@
     />
 
     <!-- Open Graph / Facebook -->
+    <meta property="og:locale" content="en_US" />
+    <meta property="og:site_name" content="NeXa_Esports" />
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://nexa-esports.vercel.app/" />
     <meta property="og:title" content="NeXa_Esports | CoDM Clan Platform" />
@@ -25,6 +36,8 @@
       property="og:image"
       content="https://nexa-esports.vercel.app/thumbnail.png"
     />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
 
     <!-- Twitter -->
     <meta name="twitter:card" content="summary_large_image" />
@@ -45,6 +58,7 @@
 
     <!-- Canonical URL -->
     <link rel="canonical" href="https://nexa-esports.vercel.app/" />
+    <link rel="sitemap" type="application/xml" title="Sitemap" href="/sitemap.xml" />
 
     <!-- Additional SEO Tags -->
     <meta name="robots" content="index, follow" />
@@ -54,16 +68,48 @@
     />
     <meta name="author" content="CodeGallantX" />
 
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
       href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Rajdhani:wght@300;400;500;600;700&display=swap"
       rel="stylesheet"
     />
+    <!-- Accessibility & performance niceties -->
+    <meta name="format-detection" content="telephone=no" />
+    <meta name="distribution" content="global" />
+
+    <!-- Structured data (JSON-LD) for SEO -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "Organization",
+          "name": "NeXa_Esports",
+          "url": "https://nexa-esports.vercel.app/",
+          "logo": "https://nexa-esports.vercel.app/thumbnail.png",
+          "sameAs": []
+        },
+        {
+          "@type": "WebSite",
+          "url": "https://nexa-esports.vercel.app/",
+          "potentialAction": {
+            "@type": "SearchAction",
+            "target": "https://nexa-esports.vercel.app/?s={search_term_string}",
+            "query-input": "required name=search_term_string"
+          }
+        }
+      ]
+    }
+    </script>
   </head>
 
   <body>
+    <noscript>
+      <div style="padding:1rem;background:#111;color:#fff;text-align:center;">
+        JavaScript is required to view this site. Please enable JavaScript or use a modern browser.
+      </div>
+    </noscript>
     <div id="root"></div>
+    <!-- module scripts are deferred by default; keep as module for modern loading -->
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
