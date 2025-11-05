@@ -1,3 +1,4 @@
+import { sendPushNotification } from '@/lib/pushNotifications';
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
@@ -106,6 +107,56 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         setTimeout(() => {
           fetchProfile(session.user.id);
         }, 0);
+        // If the user already has a service-worker push subscription (e.g. they
+        // granted permission before logging in), link it to their account by
+        // upserting into `push_subscriptions`. Then attempt the welcome push.
+        try {
+          if (typeof window !== 'undefined' && 'serviceWorker' in navigator && 'PushManager' in window) {
+            const registration = await navigator.serviceWorker.ready;
+            const existingSubscription = await registration.pushManager.getSubscription();
+            if (existingSubscription) {
+              const arrayBufferToBase64 = (buffer: ArrayBuffer | null) => {
+                if (!buffer) return '';
+                const bytes = new Uint8Array(buffer);
+                let binary = '';
+                for (let i = 0; i < bytes.byteLength; i++) {
+                  binary += String.fromCharCode(bytes[i]);
+                }
+                return btoa(binary);
+              };
+
+              const p256dh = existingSubscription.getKey?.('p256dh') ?? null;
+              const auth = existingSubscription.getKey?.('auth') ?? null;
+
+              const subscriptionData = {
+                user_id: session.user.id,
+                endpoint: existingSubscription.endpoint,
+                p256dh_key: arrayBufferToBase64(p256dh as ArrayBuffer | null),
+                auth_key: arrayBufferToBase64(auth as ArrayBuffer | null),
+              } as any;
+
+              const { error: upsertError } = await supabase
+                .from('push_subscriptions')
+                .upsert(subscriptionData, { onConflict: 'user_id' });
+
+              if (upsertError) console.error('Failed to upsert push subscription for user:', upsertError);
+              else console.log('Linked existing push subscription to user', session.user.id);
+            }
+          }
+
+          // Attempt welcome push (will only reach users with DB subscription)
+          try {
+            await sendPushNotification([session.user.id], {
+              title: 'Welcome Soldier!',
+              message: 'Welcome Soldier!'
+            });
+            console.log('Welcome push attempted for user', session.user.id);
+          } catch (err) {
+            console.error('Error sending welcome push:', err);
+          }
+        } catch (err) {
+          console.error('Error linking or sending push on login:', err);
+        }
       } else {
         setProfile(null);
       }

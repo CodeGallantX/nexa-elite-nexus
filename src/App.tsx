@@ -1,9 +1,11 @@
 
+import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { Toaster } from '@/components/ui/toaster';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { ThemeProvider } from '@/contexts/ThemeContext';
 import { Layout } from '@/components/Layout';
+import { usePushNotifications } from '@/hooks/usePushNotifications';
 
 // Public pages
 import Index from '@/pages/Index';
@@ -56,6 +58,57 @@ import InstallPrompt from '@/components/InstallPrompt';
 import { UpdatePrompt } from '@/components/UpdatePrompt';
 
 function App() {
+  // Initialize push notifications hook to register service worker and
+  // check subscription. We also ask for notification permission on first
+  // load so the browser prompt appears (user requested behavior).
+  const push = usePushNotifications();
+
+  useEffect(() => {
+    try {
+      if (push.isSupported && typeof Notification !== 'undefined' && Notification.permission === 'default') {
+        Notification.requestPermission().then(async (result) => {
+          console.log('Notification permission result:', result);
+          if (result === 'granted') {
+            try {
+              if ('serviceWorker' in navigator) {
+                const registration = await navigator.serviceWorker.ready;
+                const existingSubscription = await registration.pushManager.getSubscription();
+                if (!existingSubscription) {
+                  // create a subscription so the browser has it; we'll link it to
+                  // the user on login (AuthContext will upsert it).
+                  const urlBase64ToUint8Array = (base64String: string) => {
+                    const padding = '='.repeat((4 - base64String.length % 4) % 4);
+                    const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+                    const rawData = atob(base64);
+                    const outputArray = new Uint8Array(rawData.length);
+                    for (let i = 0; i < rawData.length; ++i) {
+                      outputArray[i] = rawData.charCodeAt(i);
+                    }
+                    return outputArray;
+                  };
+
+                  const vapidKey = import.meta.env.VITE_VAPID_PUBLIC_KEY as string | undefined;
+                  if (vapidKey) {
+                    await registration.pushManager.subscribe({
+                      userVisibleOnly: true,
+                      applicationServerKey: urlBase64ToUint8Array(vapidKey)
+                    } as any);
+                    console.log('Created a push subscription after permission grant');
+                  } else {
+                    console.warn('VAPID public key not available; cannot create subscription');
+                  }
+                }
+              }
+            } catch (err) {
+              console.error('Error creating push subscription after permission:', err);
+            }
+          }
+        });
+      }
+    } catch (err) {
+      console.error('Error requesting notification permission:', err);
+    }
+  }, [push.isSupported]);
 
   return (
     <ThemeProvider>
