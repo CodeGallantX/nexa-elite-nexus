@@ -96,6 +96,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   };
 
   useEffect(() => {
+    const fetchSession = async () => {
+      try {
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
+        console.log("Initial session check:", session?.user?.email);
+
+        setSession(session);
+        setUser(session?.user ?? null);
+
+        if (session?.user) {
+          await fetchProfile(session.user.id);
+        }
+      } catch (error) {
+        console.error("Error fetching initial session:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchSession();
+
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
@@ -104,29 +126,33 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       setUser(session?.user ?? null);
 
       if (session?.user) {
-        setTimeout(() => {
-          fetchProfile(session.user.id);
-        }, 0);
+        await fetchProfile(session.user.id);
+
         // If the user already has a service-worker push subscription (e.g. they
         // granted permission before logging in), link it to their account by
         // upserting into `push_subscriptions`. Then attempt the welcome push.
         try {
-          if (typeof window !== 'undefined' && 'serviceWorker' in navigator && 'PushManager' in window) {
+          if (
+            typeof window !== "undefined" &&
+            "serviceWorker" in navigator &&
+            "PushManager" in window
+          ) {
             const registration = await navigator.serviceWorker.ready;
-            const existingSubscription = await registration.pushManager.getSubscription();
+            const existingSubscription =
+              await registration.pushManager.getSubscription();
             if (existingSubscription) {
               const arrayBufferToBase64 = (buffer: ArrayBuffer | null) => {
-                if (!buffer) return '';
+                if (!buffer) return "";
                 const bytes = new Uint8Array(buffer);
-                let binary = '';
+                let binary = "";
                 for (let i = 0; i < bytes.byteLength; i++) {
                   binary += String.fromCharCode(bytes[i]);
                 }
                 return btoa(binary);
               };
 
-              const p256dh = existingSubscription.getKey?.('p256dh') ?? null;
-              const auth = existingSubscription.getKey?.('auth') ?? null;
+              const p256dh = existingSubscription.getKey?.("p256dh") ?? null;
+              const auth = existingSubscription.getKey?.("auth") ?? null;
 
               const subscriptionData = {
                 user_id: session.user.id,
@@ -136,39 +162,37 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
               } as any;
 
               const { error: upsertError } = await supabase
-                .from('push_subscriptions')
-                .upsert(subscriptionData, { onConflict: 'user_id' });
+                .from("push_subscriptions")
+                .upsert(subscriptionData, { onConflict: "user_id" });
 
-              if (upsertError) console.error('Failed to upsert push subscription for user:', upsertError);
-              else console.log('Linked existing push subscription to user', session.user.id);
+              if (upsertError)
+                console.error(
+                  "Failed to upsert push subscription for user:",
+                  upsertError
+                );
+              else
+                console.log(
+                  "Linked existing push subscription to user",
+                  session.user.id
+                );
             }
           }
 
           // Attempt welcome push (will only reach users with DB subscription)
           try {
             await sendPushNotification([session.user.id], {
-              title: 'Welcome Soldier!',
-              message: 'Welcome Soldier!'
+              title: "Welcome Soldier!",
+              message: "Welcome Soldier!",
             });
-            console.log('Welcome push attempted for user', session.user.id);
+            console.log("Welcome push attempted for user", session.user.id);
           } catch (err) {
-            console.error('Error sending welcome push:', err);
+            console.error("Error sending welcome push:", err);
           }
         } catch (err) {
-          console.error('Error linking or sending push on login:', err);
+          console.error("Error linking or sending push on login:", err);
         }
       } else {
         setProfile(null);
-      }
-      setLoading(false);
-    });
-
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      console.log("Initial session check:", session?.user?.email);
-      setSession(session);
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        fetchProfile(session.user.id);
       }
       setLoading(false);
     });
