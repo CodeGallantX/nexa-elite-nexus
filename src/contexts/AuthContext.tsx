@@ -96,12 +96,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   };
 
   useEffect(() => {
-    const fetchSession = async () => {
+    let mounted = true;
+    const loadingTimeout = setTimeout(() => {
+      if (mounted) {
+        console.warn("Auth loading timeout - forcing completion");
+        setLoading(false);
+      }
+    }, 3000);
+
+    const initAuth = async () => {
       try {
-        const {
-          data: { session },
-        } = await supabase.auth.getSession();
-        console.log("Initial session check:", session?.user?.email);
+        const { data: { session }, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          console.error("Session fetch error:", error);
+          return;
+        }
+
+        if (!mounted) return;
 
         setSession(session);
         setUser(session?.user ?? null);
@@ -110,97 +122,103 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
           await fetchProfile(session.user.id);
         }
       } catch (error) {
-        console.error("Error fetching initial session:", error);
+        console.error("Auth initialization error:", error);
       } finally {
-        setLoading(false);
+        if (mounted) {
+          clearTimeout(loadingTimeout);
+          setLoading(false);
+        }
       }
     };
 
-    fetchSession();
+    initAuth();
 
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log("Auth state changed:", event, session?.user?.email);
-      setSession(session);
-      setUser(session?.user ?? null);
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        if (!mounted) return;
 
-      if (session?.user) {
-        await fetchProfile(session.user.id);
+        console.log("Auth event:", event);
+        setSession(session);
+        setUser(session?.user ?? null);
 
-        // If the user already has a service-worker push subscription (e.g. they
-        // granted permission before logging in), link it to their account by
-        // upserting into `push_subscriptions`. Then attempt the welcome push.
-        try {
-          if (
-            typeof window !== "undefined" &&
-            "serviceWorker" in navigator &&
-            "PushManager" in window
-          ) {
-            const registration = await navigator.serviceWorker.ready;
-            const existingSubscription =
-              await registration.pushManager.getSubscription();
-            if (existingSubscription) {
-              const arrayBufferToBase64 = (buffer: ArrayBuffer | null) => {
-                if (!buffer) return "";
-                const bytes = new Uint8Array(buffer);
-                let binary = "";
-                for (let i = 0; i < bytes.byteLength; i++) {
-                  binary += String.fromCharCode(bytes[i]);
-                }
-                return btoa(binary);
-              };
-
-              const p256dh = existingSubscription.getKey?.("p256dh") ?? null;
-              const auth = existingSubscription.getKey?.("auth") ?? null;
-
-              const subscriptionData = {
-                user_id: session.user.id,
-                endpoint: existingSubscription.endpoint,
-                p256dh_key: arrayBufferToBase64(p256dh as ArrayBuffer | null),
-                auth_key: arrayBufferToBase64(auth as ArrayBuffer | null),
-              } as any;
-
-              const { error: upsertError } = await supabase
-                .from("push_subscriptions")
-                .upsert(subscriptionData, { onConflict: "user_id" });
-
-              if (upsertError)
-                console.error(
-                  "Failed to upsert push subscription for user:",
-                  upsertError
-                );
-              else
-                console.log(
-                  "Linked existing push subscription to user",
-                  session.user.id
-                );
-            }
+        if (session?.user) {
+          fetchProfile(session.user.id);
+          
+          // Handle push notifications in background
+          if (event === 'SIGNED_IN') {
+            setTimeout(() => {
+              handlePushNotificationSetup(session.user.id);
+            }, 100);
           }
-
-          // Attempt welcome push (will only reach users with DB subscription)
-          try {
-            setTimeout(async () => {
-              await sendPushNotification([session.user.id], {
-                title: "Welcome Soldier!",
-                message: "You have successfully logged in to NeXa Elite Nexus.",
-              });
-              console.log("Welcome push attempted for user", session.user.id);
-            }, 2000);
-          } catch (err) {
-            console.error("Error sending welcome push:", err);
-          }
-        } catch (err) {
-          console.error("Error linking or sending push on login:", err);
+        } else {
+          setProfile(null);
         }
-      } else {
-        setProfile(null);
+        
+        setLoading(false);
       }
-      setLoading(false);
-    });
+    );
 
-    return () => subscription.unsubscribe();
+    return () => {
+      mounted = false;
+      clearTimeout(loadingTimeout);
+      subscription.unsubscribe();
+    };
   }, []);
+
+  const handlePushNotificationSetup = async (userId: string) => {
+    try {
+      if (
+        typeof window === "undefined" ||
+        !("serviceWorker" in navigator) ||
+        !("PushManager" in window)
+      ) {
+        return;
+      }
+
+      const registration = await navigator.serviceWorker.ready;
+      const existingSubscription = await registration.pushManager.getSubscription();
+      
+      if (existingSubscription) {
+        const arrayBufferToBase64 = (buffer: ArrayBuffer | null) => {
+          if (!buffer) return "";
+          const bytes = new Uint8Array(buffer);
+          let binary = "";
+          for (let i = 0; i < bytes.byteLength; i++) {
+            binary += String.fromCharCode(bytes[i]);
+          }
+          return btoa(binary);
+        };
+
+        const p256dh = existingSubscription.getKey?.("p256dh") ?? null;
+        const auth = existingSubscription.getKey?.("auth") ?? null;
+
+        const subscriptionData = {
+          user_id: userId,
+          endpoint: existingSubscription.endpoint,
+          p256dh_key: arrayBufferToBase64(p256dh as ArrayBuffer | null),
+          auth_key: arrayBufferToBase64(auth as ArrayBuffer | null),
+        };
+
+        await supabase
+          .from("push_subscriptions")
+          .upsert(subscriptionData, { onConflict: "user_id" });
+
+        // Send welcome notification
+        setTimeout(async () => {
+          try {
+            await sendPushNotification([userId], {
+              title: "Welcome Soldier!",
+              message: "You have successfully logged in to NeXa Elite Nexus.",
+            });
+          } catch (err) {
+            console.error("Welcome push error:", err);
+          }
+        }, 2000);
+      }
+    } catch (err) {
+      console.error("Push notification setup error:", err);
+    }
+  };
 
   const login = async (email: string, password: string): Promise<boolean> => {
     try {
