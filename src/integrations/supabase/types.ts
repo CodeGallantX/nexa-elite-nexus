@@ -472,6 +472,124 @@ export type Database = {
           },
         ]
       }
+      giveaway_codes: {
+        Row: {
+          code: string
+          created_at: string
+          expires_at: string
+          giveaway_id: string
+          id: string
+          is_redeemed: boolean
+          redeemed_at: string | null
+          redeemed_by: string | null
+          value: number
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          expires_at: string
+          giveaway_id: string
+          id?: string
+          is_redeemed?: boolean
+          redeemed_at?: string | null
+          redeemed_by?: string | null
+          value: number
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          expires_at?: string
+          giveaway_id?: string
+          id?: string
+          is_redeemed?: boolean
+          redeemed_at?: string | null
+          redeemed_by?: string | null
+          value?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "giveaway_codes_giveaway_id_fkey"
+            columns: ["giveaway_id"]
+            isOneToOne: false
+            referencedRelation: "giveaways"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "giveaway_codes_redeemed_by_fkey"
+            columns: ["redeemed_by"]
+            isOneToOne: false
+            referencedRelation: "leaderboard"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "giveaway_codes_redeemed_by_fkey"
+            columns: ["redeemed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      giveaways: {
+        Row: {
+          code_value: number
+          created_at: string
+          created_by: string
+          expires_at: string
+          id: string
+          message: string | null
+          redeemed_amount: number
+          redeemed_count: number
+          title: string
+          total_amount: number
+          total_codes: number
+          updated_at: string
+        }
+        Insert: {
+          code_value: number
+          created_at?: string
+          created_by: string
+          expires_at: string
+          id?: string
+          message?: string | null
+          redeemed_amount?: number
+          redeemed_count?: number
+          title: string
+          total_amount: number
+          total_codes: number
+          updated_at?: string
+        }
+        Update: {
+          code_value?: number
+          created_at?: string
+          created_by?: string
+          expires_at?: string
+          id?: string
+          message?: string | null
+          redeemed_amount?: number
+          redeemed_count?: number
+          title?: string
+          total_amount?: number
+          total_codes?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "giveaways_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "leaderboard"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "giveaways_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       loadouts: {
         Row: {
           attachments: Json | null
@@ -716,6 +834,7 @@ export type Database = {
         Row: {
           amount: number
           created_at: string
+          currency: string | null
           id: string
           reference: string
           status: string
@@ -725,6 +844,7 @@ export type Database = {
         Insert: {
           amount: number
           created_at?: string
+          currency?: string | null
           id?: string
           reference: string
           status: string
@@ -734,6 +854,7 @@ export type Database = {
         Update: {
           amount?: number
           created_at?: string
+          currency?: string | null
           id?: string
           reference?: string
           status?: string
@@ -889,6 +1010,25 @@ export type Database = {
       }
     }
     Functions: {
+      create_giveaway_with_codes: {
+        Args: {
+          p_code_value: number
+          p_expires_in_hours: number
+          p_message: string
+          p_title: string
+          p_total_codes: number
+        }
+        Returns: string
+      }
+      credit_wallet: {
+        Args: {
+          p_amount: number
+          p_currency: string
+          p_reference: string
+          p_user_id: string
+        }
+        Returns: number
+      }
       delete_user_completely: {
         Args: { user_id_to_delete: string }
         Returns: boolean
@@ -897,6 +1037,7 @@ export type Database = {
         Args: { amount: number; recipient_ign: string; sender_id: string }
         Returns: undefined
       }
+      expire_giveaway_codes: { Args: never; Returns: undefined }
       get_public_profiles: {
         Args: never
         Returns: {
@@ -930,6 +1071,7 @@ export type Database = {
         Args: { code_input: string; email_input: string }
         Returns: boolean
       }
+      redeem_giveaway_code: { Args: { p_code: string }; Returns: Json }
       update_event_status: { Args: never; Returns: undefined }
       update_wallet_and_create_transaction: {
         Args: {

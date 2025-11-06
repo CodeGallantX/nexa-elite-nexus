@@ -39,6 +39,7 @@ const renderTransactionIcon = (type: string) => {
   switch (type) {
     case 'Deposit':
     case 'Transfer In':
+    case 'Giveaway Redeemed':
       return (
         <div className="p-2 rounded-full bg-green-500/20 backdrop-blur-sm">
           <ArrowDown className="h-8 w-8 text-green-500" />
@@ -46,9 +47,16 @@ const renderTransactionIcon = (type: string) => {
       );
     case 'Withdrawal':
     case 'Transfer Out':
+    case 'Giveaway Created':
       return (
         <div className="p-2 rounded-full bg-red-500/20 backdrop-blur-sm">
           <ArrowUp className="h-8 w-8 text-red-500" />
+        </div>
+      );
+    case 'Giveaway Refund':
+      return (
+        <div className="p-2 rounded-full bg-blue-500/20 backdrop-blur-sm">
+          <Gift className="h-8 w-8 text-blue-500" />
         </div>
       );
     default:
@@ -63,77 +71,414 @@ const renderTransactionIcon = (type: string) => {
 const GiveawayDialog = ({ setWalletBalance, walletBalance }) => {
     const { profile } = useAuth();
     const { toast } = useToast();
-    const isClanMaster = profile?.role === 'clan_master';
+    const isClanMaster = profile?.role === 'clan_master' || profile?.role === 'admin';
   
-    const [amount, setAmount] = useState('');
-    const [quantity, setQuantity] = useState('');
-    const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
-    const [isCodesDialogOpen, setIsCodesDialogOpen] = useState(false);
-    const [generatedCodes, setGeneratedCodes] = useState<string[]>([]);
+    const [codeValue, setCodeValue] = useState('500');
+    const [totalCodes, setTotalCodes] = useState('10');
+    const [expiresIn, setExpiresIn] = useState('24');
+    const [title, setTitle] = useState('');
+    const [message, setMessage] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
+    const [open, setOpen] = useState(false);
+    
+    // For redeeming codes
     const [redeemCode, setRedeemCode] = useState('');
+    const [isRedeeming, setIsRedeeming] = useState(false);
+    
+    // For viewing giveaways
+    const [myGiveaways, setMyGiveaways] = useState<any[]>([]);
+    const [selectedGiveaway, setSelectedGiveaway] = useState<any>(null);
+    const [showCodesDialog, setShowCodesDialog] = useState(false);
 
-    const [activeGiveaways, setActiveGiveaways] = useState([]);
+    useEffect(() => {
+        if (open && isClanMaster) {
+            fetchMyGiveaways();
+        }
+    }, [open, isClanMaster]);
 
-    const handleRedeem = () => {
-        toast({
-            title: "Code Redeemed!",
-            description: `You have successfully redeemed code: ${redeemCode}`,
-        });
-        setRedeemCode('');
-    }
+    const fetchMyGiveaways = async () => {
+        try {
+            const { data, error } = await supabase
+                .from('giveaways')
+                .select(`
+                    *,
+                    giveaway_codes(code, is_redeemed, redeemed_at, redeemed_by)
+                `)
+                .eq('created_by', profile?.id)
+                .order('created_at', { ascending: false });
 
-    const handlePublishGiveaway = async () => {
-        toast({
-            title: "Giveaway Published!",
-            description: "The giveaway codes have been sent to all players.",
-        });
-        setIsCodesDialogOpen(false);
+            if (error) throw error;
+            setMyGiveaways(data || []);
+        } catch (error) {
+            console.error('Error fetching giveaways:', error);
+        }
     };
 
-    const handleCreateGiveaway = () => {
-        const totalCost = Number(amount) * Number(quantity);
-        if (totalCost > walletBalance) {
+    const handleCreateGiveaway = async () => {
+        const totalCost = Number(codeValue) * Number(totalCodes);
+        
+        if (!title.trim()) {
             toast({
-                title: "Insufficient funds",
-                description: "You do not have enough funds in your wallet to create this giveaway.",
+                title: "Title required",
+                description: "Please enter a title for your giveaway",
                 variant: "destructive",
             });
             return;
         }
-        setWalletBalance(prev => prev - totalCost);
-        const codes = Array.from({ length: Number(quantity) }, () => Math.floor(100000 + Math.random() * 900000).toString());
-        setGeneratedCodes(codes);
-        setIsConfirmDialogOpen(false);
-        setIsCodesDialogOpen(true);
 
-        const newGiveaway = {
-            id: activeGiveaways.length + 1,
-            type: 'Cash',
-            amount: Number(amount),
-            quantity: Number(quantity),
-            createdBy: profile?.ign || 'Unknown',
-        };
-        setActiveGiveaways([...activeGiveaways, newGiveaway]);
-    }
+        if (totalCost > walletBalance) {
+            toast({
+                title: "Insufficient funds",
+                description: `You need ₦${totalCost.toLocaleString()} but only have ₦${walletBalance.toLocaleString()}`,
+                variant: "destructive",
+            });
+            return;
+        }
+
+        setIsLoading(true);
+        try {
+            const { data: { session } } = await supabase.auth.getSession();
+            const { data, error } = await supabase.functions.invoke('create-giveaway', {
+                headers: {
+                    'Authorization': `Bearer ${session?.access_token}`,
+                },
+                body: {
+                    title,
+                    message,
+                    code_value: Number(codeValue),
+                    total_codes: Number(totalCodes),
+                    expires_in_hours: Number(expiresIn),
+                },
+            });
+
+            if (error) throw error;
+
+            toast({
+                title: "🎁 Giveaway Created!",
+                description: `${totalCodes} codes worth ₦${codeValue} each have been generated and shared with your clan!`,
+            });
+
+            // Show codes dialog
+            setSelectedGiveaway(data.giveaway);
+            setShowCodesDialog(true);
+            
+            // Reset form
+            setTitle('');
+            setMessage('');
+            setCodeValue('500');
+            setTotalCodes('10');
+            
+            // Refresh wallet balance
+            setWalletBalance(prev => prev - totalCost);
+            await fetchMyGiveaways();
+        } catch (error: any) {
+            console.error('Error creating giveaway:', error);
+            toast({
+                title: "Error",
+                description: error.message || "Failed to create giveaway",
+                variant: "destructive",
+            });
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const handleRedeemCode = async () => {
+        if (!redeemCode.trim()) {
+            toast({
+                title: "Invalid code",
+                description: "Please enter a code",
+                variant: "destructive",
+            });
+            return;
+        }
+
+        setIsRedeeming(true);
+        try {
+            const { data: { session } } = await supabase.auth.getSession();
+            const { data, error } = await supabase.functions.invoke('redeem-giveaway', {
+                headers: {
+                    'Authorization': `Bearer ${session?.access_token}`,
+                },
+                body: {
+                    code: redeemCode.trim().toUpperCase(),
+                },
+            });
+
+            if (error) throw error;
+
+            if (!data.success) {
+                toast({
+                    title: "Redemption Failed",
+                    description: data.message,
+                    variant: "destructive",
+                });
+                return;
+            }
+
+            // Show confetti
+            const confetti = (await import('canvas-confetti')).default;
+            confetti({
+                particleCount: 100,
+                spread: 70,
+                origin: { y: 0.6 }
+            });
+
+            toast({
+                title: "🎉 Success!",
+                description: `₦${data.amount.toLocaleString()} has been credited to your wallet!`,
+            });
+
+            setRedeemCode('');
+            setWalletBalance(data.new_balance);
+            setOpen(false);
+        } catch (error: any) {
+            console.error('Error redeeming code:', error);
+            toast({
+                title: "Error",
+                description: error.message || "Failed to redeem code",
+                variant: "destructive",
+            });
+        } finally {
+            setIsRedeeming(false);
+        }
+    };
+
+    const copyCode = (code: string) => {
+        navigator.clipboard.writeText(code);
+        toast({
+            title: "Copied!",
+            description: `Code ${code} copied to clipboard`,
+        });
+    };
   
     return (
-        <Dialog>
-            <DialogTrigger asChild>
-                <Button variant="outline" className="w-full h-24 flex flex-col items-center justify-center">
-                    <Gift className="h-8 w-8 mb-2" />
-                    Giveaway
-                </Button>
-            </DialogTrigger>
-            <DialogContent>
-                <DialogHeader>
-                    <DialogTitle>Giveaway</DialogTitle>
-                    <DialogDescription>This is a simplified giveaway dialog.</DialogDescription>
-                </DialogHeader>
-                <p>Content goes here.</p>
-            </DialogContent>
-        </Dialog>
-    )
-}
+        <>
+            <Dialog open={open} onOpenChange={setOpen}>
+                <DialogTrigger asChild>
+                    <Button variant="outline" className="w-full h-24 flex flex-col items-center justify-center">
+                        <Gift className="h-8 w-8 mb-2" />
+                        {isClanMaster ? 'Create Giveaway' : 'Redeem Code'}
+                    </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                    <DialogHeader>
+                        <DialogTitle>{isClanMaster ? '🎁 Create Giveaway' : '🎁 Redeem Giveaway Code'}</DialogTitle>
+                        <DialogDescription>
+                            {isClanMaster 
+                                ? 'Create redeemable codes for your clan members' 
+                                : 'Enter a code to instantly credit your wallet'}
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    {isClanMaster ? (
+                        <Tabs defaultValue="create" className="w-full">
+                            <TabsList className="grid w-full grid-cols-2">
+                                <TabsTrigger value="create">Create New</TabsTrigger>
+                                <TabsTrigger value="history">My Giveaways</TabsTrigger>
+                            </TabsList>
+                            
+                            <TabsContent value="create" className="space-y-4 mt-4">
+                                <div className="grid gap-4">
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="title">Giveaway Title *</Label>
+                                        <Input
+                                            id="title"
+                                            placeholder="e.g., Weekend Bonus"
+                                            value={title}
+                                            onChange={(e) => setTitle(e.target.value)}
+                                        />
+                                    </div>
+                                    
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="message">Message (Optional)</Label>
+                                        <Textarea
+                                            id="message"
+                                            placeholder="Add a message for your clan..."
+                                            value={message}
+                                            onChange={(e) => setMessage(e.target.value)}
+                                            rows={2}
+                                        />
+                                    </div>
+
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="grid gap-2">
+                                            <Label htmlFor="codeValue">Value per Code</Label>
+                                            <Select value={codeValue} onValueChange={setCodeValue}>
+                                                <SelectTrigger>
+                                                    <SelectValue />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="500">₦500</SelectItem>
+                                                    <SelectItem value="1000">₦1,000</SelectItem>
+                                                    <SelectItem value="2000">₦2,000</SelectItem>
+                                                    <SelectItem value="5000">₦5,000</SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+
+                                        <div className="grid gap-2">
+                                            <Label htmlFor="totalCodes">Number of Codes</Label>
+                                            <Input
+                                                id="totalCodes"
+                                                type="number"
+                                                min="1"
+                                                max="100"
+                                                value={totalCodes}
+                                                onChange={(e) => setTotalCodes(e.target.value)}
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="expiresIn">Expires In (hours)</Label>
+                                        <Select value={expiresIn} onValueChange={setExpiresIn}>
+                                            <SelectTrigger>
+                                                <SelectValue />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="6">6 hours</SelectItem>
+                                                <SelectItem value="12">12 hours</SelectItem>
+                                                <SelectItem value="24">24 hours</SelectItem>
+                                                <SelectItem value="48">48 hours</SelectItem>
+                                                <SelectItem value="168">1 week</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+
+                                    <Alert>
+                                        <AlertTitle>Total Cost</AlertTitle>
+                                        <AlertDescription>
+                                            <div className="flex justify-between items-center">
+                                                <span>₦{codeValue} × {totalCodes} codes</span>
+                                                <span className="font-bold text-lg">
+                                                    = ₦{(Number(codeValue) * Number(totalCodes)).toLocaleString()}
+                                                </span>
+                                            </div>
+                                            <div className="text-sm text-muted-foreground mt-2">
+                                                Your balance: ₦{walletBalance.toLocaleString()}
+                                            </div>
+                                        </AlertDescription>
+                                    </Alert>
+                                </div>
+
+                                <DialogFooter>
+                                    <Button 
+                                        onClick={handleCreateGiveaway}
+                                        disabled={isLoading || !title.trim()}
+                                        className="w-full"
+                                    >
+                                        {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                        Create Giveaway
+                                    </Button>
+                                </DialogFooter>
+                            </TabsContent>
+
+                            <TabsContent value="history" className="mt-4">
+                                <div className="space-y-4 max-h-96 overflow-y-auto">
+                                    {myGiveaways.length === 0 ? (
+                                        <div className="text-center py-8 text-muted-foreground">
+                                            No giveaways created yet
+                                        </div>
+                                    ) : (
+                                        myGiveaways.map((giveaway) => (
+                                            <Card key={giveaway.id} className="p-4">
+                                                <div className="flex justify-between items-start">
+                                                    <div>
+                                                        <h4 className="font-semibold">{giveaway.title}</h4>
+                                                        {giveaway.message && (
+                                                            <p className="text-sm text-muted-foreground">{giveaway.message}</p>
+                                                        )}
+                                                        <div className="flex gap-4 mt-2 text-sm">
+                                                            <span>₦{Number(giveaway.code_value).toLocaleString()} per code</span>
+                                                            <span>•</span>
+                                                            <span>{giveaway.total_codes} codes</span>
+                                                        </div>
+                                                        <div className="flex gap-4 mt-1 text-sm text-muted-foreground">
+                                                            <span>{giveaway.redeemed_count} redeemed</span>
+                                                            <span>•</span>
+                                                            <span>Expires: {new Date(giveaway.expires_at).toLocaleString()}</span>
+                                                        </div>
+                                                    </div>
+                                                    <Button
+                                                        variant="outline"
+                                                        size="sm"
+                                                        onClick={() => {
+                                                            setSelectedGiveaway(giveaway);
+                                                            setShowCodesDialog(true);
+                                                        }}
+                                                    >
+                                                        View Codes
+                                                    </Button>
+                                                </div>
+                                            </Card>
+                                        ))
+                                    )}
+                                </div>
+                            </TabsContent>
+                        </Tabs>
+                    ) : (
+                        <div className="space-y-4 py-4">
+                            <div className="grid gap-2">
+                                <Label htmlFor="redeemCode">Enter Giveaway Code</Label>
+                                <Input
+                                    id="redeemCode"
+                                    placeholder="Enter code..."
+                                    value={redeemCode}
+                                    onChange={(e) => setRedeemCode(e.target.value.toUpperCase())}
+                                    className="uppercase"
+                                />
+                            </div>
+
+                            <Button 
+                                onClick={handleRedeemCode}
+                                disabled={isRedeeming || !redeemCode.trim()}
+                                className="w-full"
+                            >
+                                {isRedeeming && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                Redeem Code
+                            </Button>
+                        </div>
+                    )}
+                </DialogContent>
+            </Dialog>
+
+            {/* Codes Dialog */}
+            <Dialog open={showCodesDialog} onOpenChange={setShowCodesDialog}>
+                <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                    <DialogHeader>
+                        <DialogTitle>Giveaway Codes</DialogTitle>
+                        <DialogDescription>
+                            {selectedGiveaway?.title}
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-2 max-h-96 overflow-y-auto">
+                        {selectedGiveaway?.giveaway_codes?.map((codeObj: any, index: number) => (
+                            <div key={index} className="flex items-center justify-between p-3 bg-muted rounded-lg">
+                                <div className="flex items-center gap-2">
+                                    <code className="font-mono font-bold">{codeObj.code}</code>
+                                    {codeObj.is_redeemed && (
+                                        <span className="text-xs text-green-600 bg-green-100 px-2 py-1 rounded">
+                                            Redeemed
+                                        </span>
+                                    )}
+                                </div>
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => copyCode(codeObj.code)}
+                                    disabled={codeObj.is_redeemed}
+                                >
+                                    <Copy className="h-4 w-4" />
+                                </Button>
+                            </div>
+                        ))}
+                    </div>
+                </DialogContent>
+            </Dialog>
+        </>
+    );
+};
 
 const WithdrawDialog = ({ setWalletBalance, walletBalance, banks, onWithdrawalComplete }) => {
     const { profile } = useAuth();
@@ -628,13 +973,27 @@ const Wallet: React.FC = () => {
         if (transactionsError) {
           console.error('Error fetching transactions:', transactionsError);
         } else if (transactionsData) {
-          setTransactions(transactionsData.map(tx => ({
-            id: tx.id,
-            description: `${tx.type} - ${tx.status}`,
-            date: new Date(tx.created_at).toLocaleDateString(),
-            amount: tx.type === 'transfer_out' || tx.type === 'withdrawal' ? -Number(tx.amount) : Number(tx.amount),
-            type: tx.type === 'deposit' ? 'Deposit' : tx.type === 'withdrawal' ? 'Withdrawal' : tx.type === 'transfer_in' ? 'Transfer In' : 'Transfer Out'
-          })));
+          setTransactions(transactionsData.map(tx => {
+            const typeMapping: Record<string, string> = {
+              'deposit': 'Deposit',
+              'withdrawal': 'Withdrawal',
+              'transfer_in': 'Transfer In',
+              'transfer_out': 'Transfer Out',
+              'giveaway_created': 'Giveaway Created',
+              'giveaway_redeemed': 'Giveaway Redeemed',
+              'giveaway_refund': 'Giveaway Refund',
+            };
+            
+            const isDebit = ['transfer_out', 'withdrawal', 'giveaway_created'].includes(tx.type);
+            
+            return {
+              id: tx.id,
+              description: `${typeMapping[tx.type] || tx.type} - ${tx.status}`,
+              date: new Date(tx.created_at).toLocaleDateString(),
+              amount: isDebit ? -Number(tx.amount) : Number(tx.amount),
+              type: typeMapping[tx.type] || 'Other'
+            };
+          }));
         }
       }
     } catch (error) {
