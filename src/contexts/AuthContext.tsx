@@ -180,11 +180,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
           // Attempt welcome push (will only reach users with DB subscription)
           try {
-            await sendPushNotification([session.user.id], {
-              title: "Welcome Soldier!",
-              message: "Welcome Soldier!",
-            });
-            console.log("Welcome push attempted for user", session.user.id);
+            setTimeout(async () => {
+              await sendPushNotification([session.user.id], {
+                title: "Welcome Soldier!",
+                message: "You have successfully logged in to NeXa Elite Nexus.",
+              });
+              console.log("Welcome push attempted for user", session.user.id);
+            }, 2000);
           } catch (err) {
             console.error("Error sending welcome push:", err);
           }
@@ -281,6 +283,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   };
 
   const logout = async (): Promise<void> => {
+    setLoading(true);
     try {
       console.log("Attempting logout");
       const { error } = await supabase.auth.signOut();
@@ -288,6 +291,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         console.error("Logout error:", error);
         throw error;
       }
+      setUser(null);
+      setSession(null);
+      setProfile(null);
       console.log("Logout successful");
     } catch (error: any) {
       console.error("Logout exception:", error);
@@ -296,6 +302,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         description: error.message || "An unexpected error occurred",
         variant: "destructive",
       });
+    } finally {
+      setLoading(false);
     }
   };
 

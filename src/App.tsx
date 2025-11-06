@@ -57,9 +57,7 @@ function App() {
   return (
     <ThemeProvider>
       <AuthProvider>
-        <Router>
-          <AppRoutes />
-        </Router>
+        <AppRoutes />
       </AuthProvider>
     </ThemeProvider>
   );
@@ -77,7 +75,7 @@ function AppRoutes() {
   }
 
   return (
-    <>
+    <Router>
       <Routes>
         {/* Public routes */}
         <Route path="/" element={<Index />} />
@@ -145,7 +143,7 @@ function AppRoutes() {
       <Toaster />
       <InstallPrompt />
       <UpdatePrompt />
-    </>
+    </Router>
   );
 }
 
