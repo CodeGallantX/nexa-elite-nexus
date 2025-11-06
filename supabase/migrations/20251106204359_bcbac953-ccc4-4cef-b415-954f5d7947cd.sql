@@ -109,6 +109,7 @@ ALTER TABLE public.giveaways ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.giveaway_codes ENABLE ROW LEVEL SECURITY;
 
 -- RLS Policies for giveaways
+DROP POLICY IF EXISTS "Clan masters and admins can create giveaways" ON public.giveaways;
 CREATE POLICY "Clan masters and admins can create giveaways"
 ON public.giveaways
 FOR INSERT
@@ -118,6 +119,7 @@ WITH CHECK (
     AND auth.uid() = created_by
 );
 
+DROP POLICY IF EXISTS "Clan masters and admins can view their own giveaways" ON public.giveaways;
 CREATE POLICY "Clan masters and admins can view their own giveaways"
 ON public.giveaways
 FOR SELECT
@@ -127,6 +129,7 @@ USING (
     OR get_user_role(auth.uid()) = ANY(ARRAY['admin'::user_role, 'clan_master'::user_role])
 );
 
+DROP POLICY IF EXISTS "Clan masters and admins can update their own giveaways" ON public.giveaways;
 CREATE POLICY "Clan masters and admins can update their own giveaways"
 ON public.giveaways
 FOR UPDATE
@@ -135,12 +138,14 @@ USING (auth.uid() = created_by)
 WITH CHECK (auth.uid() = created_by);
 
 -- RLS Policies for giveaway_codes
+DROP POLICY IF EXISTS "Only system can insert codes" ON public.giveaway_codes;
 CREATE POLICY "Only system can insert codes"
 ON public.giveaway_codes
 FOR INSERT
 TO authenticated
 WITH CHECK (false);
 
+DROP POLICY IF EXISTS "Authenticated users can view unredeemed codes" ON public.giveaway_codes;
 CREATE POLICY "Authenticated users can view unredeemed codes"
 ON public.giveaway_codes
 FOR SELECT
@@ -155,6 +160,7 @@ USING (
     )
 );
 
+DROP POLICY IF EXISTS "System can update codes for redemption" ON public.giveaway_codes;
 CREATE POLICY "System can update codes for redemption"
 ON public.giveaway_codes
 FOR UPDATE
@@ -391,6 +397,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+DROP TRIGGER IF EXISTS update_giveaways_updated_at ON giveaways;
 CREATE TRIGGER update_giveaways_updated_at
 BEFORE UPDATE ON giveaways
 FOR EACH ROW

@@ -87,6 +87,27 @@ serve(async (req) => {
       await supabaseClient.from('notifications').insert(notifications);
     }
 
+    // Send push notification to all subscribed users
+    try {
+      await supabaseClient.functions.invoke('send-push-notification', {
+        body: {
+          userIds: null, // Sending to all users
+          notification: {
+            title: '🎁 New Giveaway Available!',
+            message: `${title} - Be the first to claim your share!`,
+            data: {
+              giveaway_id: giveawayId,
+              code_value: code_value,
+              total_codes: total_codes,
+            },
+          },
+        },
+      });
+    } catch (pushError) {
+      console.error("Error sending push notification:", pushError);
+      // Do not block the response for push notification errors
+    }
+
     return new Response(JSON.stringify({ 
       success: true, 
       giveaway_id: giveawayId,

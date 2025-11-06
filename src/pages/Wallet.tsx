@@ -713,6 +713,13 @@ const WithdrawDialog = ({ setWalletBalance, walletBalance, banks, onWithdrawalCo
                             onChange={(e) => setAmount(Number(e.target.value))}
                         />
                     </div>
+                    <Alert>
+                        <Coins className="h-4 w-4" />
+                        <AlertTitle>Transaction Fee</AlertTitle>
+                        <AlertDescription>
+                            A fee of ₦50 will be deducted for this transaction.
+                        </AlertDescription>
+                    </Alert>
                     <div className="grid gap-2">
                         <Label htmlFor="notes">Transaction Notes</Label>
                         <Textarea 
@@ -911,22 +918,28 @@ const FundWalletDialog = () => {
                 <div className="py-4 grid gap-4">
                     <div className="grid gap-2">
                         <Label htmlFor="amount">Amount</Label>
-                        <Input 
-                            id="amount"
-                            type="number"
-                            placeholder="₦0.00"
-                            value={amount}
-                            onChange={(e) => setAmount(Number(e.target.value))}
-                        />
-                    </div>
-                </div>
-                <DialogFooter>
-                    <Button onClick={handlePayment} disabled={!user || !profile || amount <= 0 || isLoading || !import.meta.env.VITE_PAYSTACK_PUBLIC_KEY}>
-                        {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                        Fund with Paystack
-                    </Button>
-                </DialogFooter>
-            </DialogContent>
+                                                <Input
+                                                    id="amount"
+                                                    type="number"
+                                                    placeholder="₦0.00"
+                                                    value={amount}
+                                                    onChange={(e) => setAmount(Number(e.target.value))}
+                                                />
+                                            </div>
+                                            <Alert>
+                                                <Coins className="h-4 w-4" />
+                                                <AlertTitle>Transaction Fee</AlertTitle>
+                                                <AlertDescription>
+                                                    A fee of ₦50 will be deducted for this transaction.
+                                                </AlertDescription>
+                                            </Alert>
+                                        </div>
+                                        <DialogFooter>
+                                            <Button onClick={handlePayment} disabled={!user || !profile || amount <= 0 || isLoading || !import.meta.env.VITE_PAYSTACK_PUBLIC_KEY}>
+                                                {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                                Fund with Paystack
+                                            </Button>
+                                        </DialogFooter>            </DialogContent>
         </Dialog>
     )
 }
@@ -937,8 +950,11 @@ const Wallet: React.FC = () => {
   const [transactions, setTransactions] = useState<any[]>([]);
   const [banks, setBanks] = useState<any[]>([]);
   const { toast } = useToast();
+  const [currentPage, setCurrentPage] = useState(1);
+  const [transactionsPerPage] = useState(10);
+  const [totalTransactions, setTotalTransactions] = useState(0);
 
-  const fetchWalletData = async () => {
+  const fetchWalletData = async (page = 1) => {
     if (!user?.id) return;
 
     try {
@@ -963,12 +979,15 @@ const Wallet: React.FC = () => {
         .maybeSingle();
 
       if (walletIdData) {
-        const { data: transactionsData, error: transactionsError } = await supabase
+        const from = (page - 1) * transactionsPerPage;
+        const to = from + transactionsPerPage - 1;
+
+        const { data: transactionsData, error: transactionsError, count } = await supabase
           .from('transactions')
-          .select('*')
+          .select('*', { count: 'exact' })
           .eq('wallet_id', walletIdData.id)
           .order('created_at', { ascending: false })
-          .limit(50);
+          .range(from, to);
 
         if (transactionsError) {
           console.error('Error fetching transactions:', transactionsError);
@@ -982,9 +1001,10 @@ const Wallet: React.FC = () => {
               'giveaway_created': 'Giveaway Created',
               'giveaway_redeemed': 'Giveaway Redeemed',
               'giveaway_refund': 'Giveaway Refund',
+              'tax_deduction': 'Tax Deduction',
             };
             
-            const isDebit = ['transfer_out', 'withdrawal', 'giveaway_created'].includes(tx.type);
+            const isDebit = ['transfer_out', 'withdrawal', 'giveaway_created', 'tax_deduction'].includes(tx.type);
             
             return {
               id: tx.id,
@@ -994,6 +1014,7 @@ const Wallet: React.FC = () => {
               type: typeMapping[tx.type] || 'Other'
             };
           }));
+          setTotalTransactions(count || 0);
         }
       }
     } catch (error) {
@@ -1002,8 +1023,8 @@ const Wallet: React.FC = () => {
   };
 
   useEffect(() => {
-    fetchWalletData();
-  }, [user?.id]);
+    fetchWalletData(currentPage);
+  }, [user?.id, currentPage]);
 
   useEffect(() => {
     const fetchBanks = async () => {
@@ -1017,13 +1038,7 @@ const Wallet: React.FC = () => {
 
   return (
     <div className="container mx-auto p-4 md:p-6 lg:p-8">
-      <Alert className="mb-6 bg-yellow-100 border-yellow-400 text-yellow-700">
-        <Shield className="h-4 w-4 text-yellow-500" />
-        <AlertTitle>Wallet Feature in Beta</AlertTitle>
-        <AlertDescription>
-          This feature is currently under development. Some functionalities may not work as expected.
-        </AlertDescription>
-      </Alert>
+
 
       <Card className="mb-6 bg-background/80 backdrop-blur-sm text-center">
         <CardHeader>
@@ -1062,6 +1077,21 @@ const Wallet: React.FC = () => {
               ) : (
                 <p className="text-center text-muted-foreground py-8">No transactions yet.</p>
               )}
+              <div className="flex justify-center items-center gap-4 mt-4">
+                <Button 
+                  onClick={() => setCurrentPage(prev => prev - 1)} 
+                  disabled={currentPage === 1}
+                >
+                  Previous
+                </Button>
+                <span>Page {currentPage} of {Math.ceil(totalTransactions / transactionsPerPage)}</span>
+                <Button 
+                  onClick={() => setCurrentPage(prev => prev + 1)} 
+                  disabled={currentPage === Math.ceil(totalTransactions / transactionsPerPage)}
+                >
+                  Next
+                </Button>
+              </div>
             </TabsContent>
                         <TabsContent value="earnings">
               {transactions

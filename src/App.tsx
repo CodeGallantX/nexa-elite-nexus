@@ -49,6 +49,7 @@ import { Feedback } from '@/pages/admin/Feedback';
 import Activities from '@/pages/admin/Activities';
 import Wallet from '@/pages/Wallet';
 import PaymentSuccess from '@/pages/payment/success';
+import Earnings from '@/pages/Earnings';
 
 import InstallPrompt from '@/components/InstallPrompt';
 import { UpdatePrompt } from '@/components/UpdatePrompt';
@@ -136,6 +137,7 @@ function AppRoutes() {
         <Route path="/admin/activities" element={<Layout showSidebar><Activities /></Layout>} />
         <Route path="/admin/config" element={<Layout showSidebar><AdminConfig /></Layout>} />
         <Route path="/admin/feedback" element={<Layout showSidebar><Feedback /></Layout>} />
+        <Route path="/admin/earnings" element={<Layout showSidebar><Earnings /></Layout>} />
 
         {/* 404 */}
         <Route path="*" element={<NotFound />} />
