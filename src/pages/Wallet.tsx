@@ -309,6 +309,8 @@ const GiveawayDialog = ({ setWalletBalance, walletBalance }) => {
                                                     <SelectValue />
                                                 </SelectTrigger>
                                                 <SelectContent>
+                                                    <SelectItem value="100">₦100</SelectItem>
+                                                    <SelectItem value="200">₦200</SelectItem>
                                                     <SelectItem value="500">₦500</SelectItem>
                                                     <SelectItem value="1000">₦1,000</SelectItem>
                                                     <SelectItem value="2000">₦2,000</SelectItem>
@@ -331,17 +333,18 @@ const GiveawayDialog = ({ setWalletBalance, walletBalance }) => {
                                     </div>
 
                                     <div className="grid gap-2">
-                                        <Label htmlFor="expiresIn">Expires In (hours)</Label>
+                                        <Label htmlFor="expiresIn">Expires In</Label>
                                         <Select value={expiresIn} onValueChange={setExpiresIn}>
                                             <SelectTrigger>
                                                 <SelectValue />
                                             </SelectTrigger>
                                             <SelectContent>
+                                                <SelectItem value="0.166667">10 minutes</SelectItem>
+                                                <SelectItem value="0.25">15 minutes</SelectItem>
+                                                <SelectItem value="0.5">30 minutes</SelectItem>
                                                 <SelectItem value="6">6 hours</SelectItem>
-                                                <SelectItem value="12">12 hours</SelectItem>
-                                                <SelectItem value="24">24 hours</SelectItem>
-                                                <SelectItem value="48">48 hours</SelectItem>
-                                                <SelectItem value="168">1 week</SelectItem>
+                                                <selectitem value="12">12 hours</selectitem>
+                                                <selectitem value="24">24 hours</selectitem>
                                             </SelectContent>
                                         </Select>
                                     </div>
