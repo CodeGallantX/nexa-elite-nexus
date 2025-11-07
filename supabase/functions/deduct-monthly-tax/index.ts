@@ -1,32 +1,23 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { corsHeaders } from "../_shared/cors.ts";
-import { supabaseAdmin } from "../_shared/supabaseAdmin.ts";
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
 
 serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', { headers: corsHeaders });
   }
 
   try {
-    // This function should only be callable by a service role or a scheduled job
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 401,
-      });
-    }
+    const supabaseAdmin = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    );
 
-    const token = authHeader.split(' ')[1];
-    if (token !== Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')) {
-      return new Response(JSON.stringify({ error: "Forbidden: Invalid service role key" }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 403,
-      });
-    }
-
-    // Fetch the current tax amount
+    // Get the latest tax amount
     const { data: taxData, error: taxError } = await supabaseAdmin
       .from('taxes')
       .select('amount')
@@ -34,79 +25,96 @@ serve(async (req) => {
       .limit(1)
       .single();
 
-    if (taxError && taxError.code !== 'PGRST116') {
-      console.error('Error fetching tax amount:', taxError);
-      throw taxError;
+    if (taxError || !taxData) {
+      return new Response(
+        JSON.stringify({ error: 'No tax amount configured' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+      );
     }
 
-    const taxAmount = taxData ? taxData.amount : 0;
+    const taxAmount = taxData.amount;
 
-    if (taxAmount <= 0) {
-      return new Response(JSON.stringify({ message: "No tax to deduct (amount is 0 or less)" }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 200,
-      });
-    }
-
-    // Fetch all user wallets
+    // Get all wallets with balance >= tax amount
     const { data: wallets, error: walletsError } = await supabaseAdmin
       .from('wallets')
-      .select('id, user_id, balance');
+      .select('id, balance, user_id')
+      .gte('balance', taxAmount);
 
     if (walletsError) {
-      console.error('Error fetching wallets:', walletsError);
       throw walletsError;
     }
 
-    const deductionPromises = wallets.map(async (wallet) => {
-      if (wallet.balance >= taxAmount) {
-        const newBalance = wallet.balance - taxAmount;
-        const { error: updateError } = await supabaseAdmin.rpc('update_wallet_and_create_transaction', {
-          p_wallet_id: wallet.id,
-          p_new_balance: newBalance,
-          p_transaction_amount: taxAmount,
-          p_transaction_type: 'tax_deduction',
-          p_transaction_status: 'success',
-          p_transaction_reference: `monthly_tax_${new Date().toISOString().slice(0, 7)}`,
-        });
+    if (!wallets || wallets.length === 0) {
+      return new Response(
+        JSON.stringify({ message: 'No wallets with sufficient balance for tax deduction', deducted: 0 }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+      );
+    }
+
+    let deductedCount = 0;
+    const errors = [];
+
+    // Deduct tax from each wallet
+    for (const wallet of wallets) {
+      try {
+        // Deduct from wallet
+        const { error: updateError } = await supabaseAdmin
+          .from('wallets')
+          .update({ balance: wallet.balance - taxAmount })
+          .eq('id', wallet.id);
 
         if (updateError) {
-          console.error(`Error deducting tax from wallet ${wallet.id}:`, updateError);
-          return { walletId: wallet.id, success: false, error: updateError.message };
+          errors.push({ wallet_id: wallet.id, error: updateError.message });
+          continue;
         }
 
-        // Log the tax amount as earnings
-        const { error: earningsError } = await supabaseAdmin
+        // Record transaction
+        const { data: transactionData, error: transactionError } = await supabaseAdmin
+          .from('transactions')
+          .insert({
+            wallet_id: wallet.id,
+            amount: taxAmount,
+            type: 'tax_deduction',
+            status: 'success',
+            reference: `monthly_tax_${new Date().toISOString().slice(0, 7)}_${wallet.id}`
+          })
+          .select('id')
+          .single();
+
+        if (transactionError) {
+          errors.push({ wallet_id: wallet.id, error: transactionError.message });
+          continue;
+        }
+
+        // Log as earnings
+        await supabaseAdmin
           .from('earnings')
-          .insert({ transaction_id: null, amount: taxAmount }); // transaction_id will be null for tax earnings
+          .insert({
+            transaction_id: transactionData.id,
+            amount: taxAmount
+          });
 
-        if (earningsError) {
-          console.error(`Error logging tax earnings for wallet ${wallet.id}:`, earningsError);
-        }
-
-        return { walletId: wallet.id, success: true };
-      } else {
-        console.log(`Wallet ${wallet.id} has insufficient funds for tax deduction. Balance: ${wallet.balance}, Tax: ${taxAmount}`);
-        return { walletId: wallet.id, success: false, error: "Insufficient funds" };
+        deductedCount++;
+      } catch (err) {
+        errors.push({ wallet_id: wallet.id, error: err.message });
       }
-    });
+    }
 
-    const results = await Promise.all(deductionPromises);
-    const successfulDeductions = results.filter(r => r.success).length;
-
-    return new Response(JSON.stringify({
-      message: `Monthly tax deduction processed. Successful deductions: ${successfulDeductions}/${wallets.length}`,
-      results,
-    }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: 200,
-    });
-
-  } catch (err) {
-    console.error("Unexpected error in deduct-monthly-tax:", err);
-    return new Response(JSON.stringify({ error: err.message }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: 500,
-    });
+    return new Response(
+      JSON.stringify({
+        success: true,
+        message: `Monthly tax of ₦${taxAmount} deducted from ${deductedCount} wallets`,
+        deducted: deductedCount,
+        total_wallets: wallets.length,
+        errors: errors.length > 0 ? errors : undefined
+      }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+    );
+  } catch (error) {
+    console.error('Error in deduct-monthly-tax:', error);
+    return new Response(
+      JSON.stringify({ error: error.message }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+    );
   }
 });

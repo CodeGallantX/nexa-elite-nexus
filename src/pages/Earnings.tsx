@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useEarnings } from '@/hooks/useEarnings';
 import { useTaxSettings } from '@/hooks/useTaxSettings';
 import { useAuth } from '@/contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
@@ -12,11 +13,22 @@ import { Loader2 } from 'lucide-react';
 
 const Earnings = () => {
     const { profile } = useAuth();
+    const navigate = useNavigate();
     const { earnings, loading: earningsLoading } = useEarnings();
     const { taxAmount, loading: taxLoading, isUpdating, updateTaxAmount } = useTaxSettings();
     const [newTaxAmount, setNewTaxAmount] = useState<number>(taxAmount || 0);
 
     const isClanMaster = profile?.role === 'clan_master' || profile?.role === 'admin';
+
+    useEffect(() => {
+        if (profile && !isClanMaster) {
+            navigate('/dashboard');
+        }
+    }, [profile, isClanMaster, navigate]);
+
+    if (!isClanMaster) {
+        return null;
+    }
 
     const totalEarnings = earnings.reduce((acc, earning) => acc + earning.amount, 0);
 

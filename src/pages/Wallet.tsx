@@ -40,6 +40,7 @@ const renderTransactionIcon = (type: string) => {
     case 'Deposit':
     case 'Transfer In':
     case 'Giveaway Redeemed':
+    case 'Giveaway Refund':
       return (
         <div className="p-2 rounded-full bg-green-500/20 backdrop-blur-sm">
           <ArrowDown className="h-8 w-8 text-green-500" />
@@ -48,6 +49,7 @@ const renderTransactionIcon = (type: string) => {
     case 'Withdrawal':
     case 'Transfer Out':
     case 'Giveaway Created':
+    case 'Monthly Tax':
       return (
         <div className="p-2 rounded-full bg-red-500/20 backdrop-blur-sm">
           <ArrowUp className="h-8 w-8 text-red-500" />
@@ -854,6 +856,13 @@ const TransferDialog = ({ walletBalance, onTransferComplete }) => {
                             onChange={(e) => setAmount(Number(e.target.value))}
                         />
                     </div>
+                    <Alert>
+                        <Coins className="h-4 w-4" />
+                        <AlertTitle>Transaction Fee</AlertTitle>
+                        <AlertDescription>
+                            A fee of ₦50 will be deducted for this transaction.
+                        </AlertDescription>
+                    </Alert>
                 </div>
                 <DialogFooter>
                     <Button onClick={handleTransfer} disabled={isTransferring}>

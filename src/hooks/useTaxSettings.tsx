@@ -12,7 +12,7 @@ export const useTaxSettings = () => {
         const fetchTaxSettings = async () => {
             try {
                 const { data, error } = await supabase
-                    .from('taxes')
+                    .from('taxes' as any)
                     .select('amount')
                     .order('created_at', { ascending: false })
                     .limit(1)
@@ -42,7 +42,7 @@ export const useTaxSettings = () => {
         setIsUpdating(true);
         try {
             const { error } = await supabase
-                .from('taxes')
+                .from('taxes' as any)
                 .insert({ amount: newAmount });
 
             if (error) {
