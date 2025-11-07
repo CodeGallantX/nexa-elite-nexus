@@ -343,8 +343,8 @@ const GiveawayDialog = ({ setWalletBalance, walletBalance }) => {
                                                 <SelectItem value="0.25">15 minutes</SelectItem>
                                                 <SelectItem value="0.5">30 minutes</SelectItem>
                                                 <SelectItem value="6">6 hours</SelectItem>
-                                                <selectitem value="12">12 hours</selectitem>
-                                                <selectitem value="24">24 hours</selectitem>
+                                                <SelectItem value="12">12 hours</SelectItem>
+                                                <SelectItem value="24">24 hours</SelectItem>
                                             </SelectContent>
                                         </Select>
                                     </div>
