@@ -40,7 +40,6 @@ const renderTransactionIcon = (type: string) => {
     case 'Deposit':
     case 'Transfer In':
     case 'Giveaway Redeemed':
-    case 'Giveaway Refund':
       return (
         <div className="p-2 rounded-full bg-green-500/20 backdrop-blur-sm">
           <ArrowDown className="h-8 w-8 text-green-500" />
