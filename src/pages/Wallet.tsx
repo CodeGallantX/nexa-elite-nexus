@@ -1116,7 +1116,7 @@ const Wallet: React.FC = () => {
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
                 <FundWalletDialog />
-        <WithdrawDialog setWalletBalance={setWalletBalance} walletBalance={walletBalance} banks={banks} onWithdrawalComplete={fetchWalletData} isWithdrawalServiceAvailable={false} />
+        <WithdrawDialog setWalletBalance={setWalletBalance} walletBalance={walletBalance} banks={banks} onWithdrawalComplete={fetchWalletData} isWithdrawalServiceAvailable={true} />
         <TransferDialog walletBalance={walletBalance} onTransferComplete={fetchWalletData} />
         <GiveawayDialog setWalletBalance={setWalletBalance} walletBalance={walletBalance} onRedeemComplete={fetchWalletData} />
       </div>
