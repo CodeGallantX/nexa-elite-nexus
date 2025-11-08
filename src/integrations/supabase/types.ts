@@ -315,6 +315,35 @@ export type Database = {
           },
         ]
       }
+      earnings: {
+        Row: {
+          amount: number
+          created_at: string
+          id: string
+          transaction_id: string | null
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          id?: string
+          transaction_id?: string | null
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          id?: string
+          transaction_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "earnings_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "transactions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       event_groups: {
         Row: {
           created_at: string | null
@@ -830,6 +859,27 @@ export type Database = {
         }
         Relationships: []
       }
+      taxes: {
+        Row: {
+          amount: number
+          created_at: string
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          id?: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       transactions: {
         Row: {
           amount: number
@@ -838,7 +888,7 @@ export type Database = {
           id: string
           reference: string
           status: string
-          type: string
+          type: Database["public"]["Enums"]["transaction_type"]
           wallet_id: string
         }
         Insert: {
@@ -848,7 +898,7 @@ export type Database = {
           id?: string
           reference: string
           status: string
-          type: string
+          type: Database["public"]["Enums"]["transaction_type"]
           wallet_id: string
         }
         Update: {
@@ -858,7 +908,7 @@ export type Database = {
           id?: string
           reference?: string
           status?: string
-          type?: string
+          type?: Database["public"]["Enums"]["transaction_type"]
           wallet_id?: string
         }
         Relationships: [
@@ -1075,14 +1125,14 @@ export type Database = {
       update_event_status: { Args: never; Returns: undefined }
       update_wallet_and_create_transaction: {
         Args: {
-          new_balance: number
-          transaction_amount: number
-          transaction_reference: string
-          transaction_status: string
-          transaction_type: string
-          wallet_id: string
+          p_new_balance: number
+          p_transaction_amount: number
+          p_transaction_reference: string
+          p_transaction_status: string
+          p_transaction_type: string
+          p_wallet_id: string
         }
-        Returns: undefined
+        Returns: string
       }
       validate_access_code: {
         Args: { code_input: string; email_input: string }
@@ -1095,6 +1145,15 @@ export type Database = {
       bug_status: "new" | "in_progress" | "resolved" | "not_a_bug"
       event_type: "MP" | "BR" | "Mixed" | "Tournament" | "Scrims"
       player_type: "main" | "beta"
+      transaction_type:
+        | "deposit"
+        | "withdrawal"
+        | "transfer_in"
+        | "transfer_out"
+        | "giveaway_created"
+        | "giveaway_redeemed"
+        | "giveaway_refund"
+        | "tax_deduction"
       user_role: "admin" | "player" | "moderator" | "clan_master"
     }
     CompositeTypes: {
@@ -1228,6 +1287,16 @@ export const Constants = {
       bug_status: ["new", "in_progress", "resolved", "not_a_bug"],
       event_type: ["MP", "BR", "Mixed", "Tournament", "Scrims"],
       player_type: ["main", "beta"],
+      transaction_type: [
+        "deposit",
+        "withdrawal",
+        "transfer_in",
+        "transfer_out",
+        "giveaway_created",
+        "giveaway_redeemed",
+        "giveaway_refund",
+        "tax_deduction",
+      ],
       user_role: ["admin", "player", "moderator", "clan_master"],
     },
   },
