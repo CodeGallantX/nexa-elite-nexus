@@ -501,7 +501,7 @@ const GiveawayDialog = ({ setWalletBalance, walletBalance, onRedeemComplete }) =
     );
 };
 
-const WithdrawDialog = ({ setWalletBalance, walletBalance, banks, onWithdrawalComplete }) => {
+const WithdrawDialog = ({ setWalletBalance, walletBalance, banks, onWithdrawalComplete, isWithdrawalServiceAvailable = true }) => {
     const { profile } = useAuth();
     const [amount, setAmount] = useState(0);
     const [accountNumber, setAccountNumber] = useState('');
@@ -657,12 +657,28 @@ const WithdrawDialog = ({ setWalletBalance, walletBalance, banks, onWithdrawalCo
 
     return (
         <Dialog open={open} onOpenChange={setOpen}>
-            <DialogTrigger asChild>
-                <Button variant="outline" className="w-full h-24 flex flex-col items-center justify-center">
-                    <ArrowDown className="h-8 w-8 mb-2" />
-                    Withdraw
-                </Button>
-            </DialogTrigger>
+            {isWithdrawalServiceAvailable ? (
+                <DialogTrigger asChild>
+                    <Button variant="outline" className="w-full h-24 flex flex-col items-center justify-center">
+                        <ArrowDown className="h-8 w-8 mb-2" />
+                        Withdraw
+                    </Button>
+                </DialogTrigger>
+            ) : (
+                <TooltipProvider>
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <Button variant="outline" className="w-full h-24 flex flex-col items-center justify-center" disabled>
+                                <ArrowDown className="h-8 w-8 mb-2" />
+                                Withdraw
+                            </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                            <p>Withdrawal service is not available at the moment.</p>
+                        </TooltipContent>
+                    </Tooltip>
+                </TooltipProvider>
+            )}
             <DialogContent>
                 <DialogHeader>
                     <DialogTitle>Withdraw</DialogTitle>
@@ -1080,7 +1096,7 @@ const Wallet: React.FC = () => {
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
                 <FundWalletDialog />
-        <WithdrawDialog setWalletBalance={setWalletBalance} walletBalance={walletBalance} banks={banks} onWithdrawalComplete={fetchWalletData} />
+        <WithdrawDialog setWalletBalance={setWalletBalance} walletBalance={walletBalance} banks={banks} onWithdrawalComplete={fetchWalletData} isWithdrawalServiceAvailable={false} />
         <TransferDialog walletBalance={walletBalance} onTransferComplete={fetchWalletData} />
         <GiveawayDialog setWalletBalance={setWalletBalance} walletBalance={walletBalance} onRedeemComplete={fetchWalletData} />
       </div>
