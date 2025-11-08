@@ -664,10 +664,12 @@ const WithdrawDialog = ({ setWalletBalance, walletBalance, banks, onWithdrawalCo
                     <Button 
                         variant="outline" 
                         className="w-full h-24 flex flex-col items-center justify-center"
-                        disabled={cooldown > 0}
+                        // Temporarily disable withdrawals app-wide until service is re-enabled
+                        disabled={true}
                     >
                         <ArrowDown className="h-8 w-8 mb-2" />
-                        {cooldown > 0 ? `Wait ${cooldown}s` : 'Withdraw'}
+                        {/* Provide clear label so users know why it's disabled */}
+                        {'Withdraw (Unavailable)'}
                     </Button>
                 </DialogTrigger>
             ) : (
