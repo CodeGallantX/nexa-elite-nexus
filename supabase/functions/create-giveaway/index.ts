@@ -81,6 +81,7 @@ serve(async (req) => {
           giveaway_id: giveawayId,
           code_value: code_value,
           total_codes: total_codes,
+          codes: giveaway?.giveaway_codes?.map(c => c.code) || [],
         },
       }));
 
@@ -99,6 +100,7 @@ serve(async (req) => {
               giveaway_id: giveawayId,
               code_value: code_value,
               total_codes: total_codes,
+              codes: giveaway?.giveaway_codes?.map(c => c.code) || [],
             },
           },
         },

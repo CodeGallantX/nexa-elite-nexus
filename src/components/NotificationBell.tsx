@@ -133,9 +133,30 @@ export const NotificationBell: React.FC = () => {
           <DialogTitle>{selectedNotification?.title}</DialogTitle>
         </DialogHeader>
         <div>
-          <p><span className="font-semibold">Message:</span> {selectedNotification?.message}</p>
-          <p><span className="font-semibold">Sender:</span> {selectedNotification?.type === 'announcement' ? 'System' : 'Direct Message'}</p>
-          <p><span className="font-semibold">Type:</span> {selectedNotification?.type}</p>
+          <p className="text-sm text-muted-foreground">{selectedNotification?.message}</p>
+          
+          {selectedNotification?.type === 'giveaway_created' && selectedNotification?.data?.codes && (
+            <div className="mt-4">
+              <h4 className="font-semibold mb-2">Giveaway Codes:</h4>
+              {selectedNotification.data.codes.length > 0 ? (
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-48 overflow-y-auto">
+                  {selectedNotification.data.codes.map((code: string, index: number) => (
+                    <div key={index} className="bg-muted p-2 rounded-md flex items-center justify-center">
+                      <code className="font-mono text-sm">{code}</code>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">No codes found for this giveaway.</p>
+              )}
+            </div>
+          )}
+
+          <div className="mt-4 pt-4 border-t">
+            <p className="text-xs text-muted-foreground">
+              Received: {selectedNotification ? new Date(selectedNotification.timestamp).toLocaleString() : ''}
+            </p>
+          </div>
         </div>
       </DialogContent>
     </Dialog>
