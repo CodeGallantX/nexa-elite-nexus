@@ -208,10 +208,24 @@ const GiveawayDialog = ({ setWalletBalance, walletBalance, onRedeemComplete, red
 
             if (error) throw error;
 
+            // Map server-side messages to friendlier client-side messages
+            const mapRedeemMessage = (msg: string) => {
+                switch ((msg || '').toString()) {
+                    case 'Invalid code':
+                        return 'The code you entered is invalid. Please check and try again.';
+                    case 'Code already redeemed':
+                        return 'This code has already been redeemed.';
+                    case 'Code expired':
+                        return 'This code has expired.';
+                    default:
+                        return msg || 'Redemption failed. Please try again.';
+                }
+            };
+
             if (!data.success) {
                 toast({
                     title: "Redemption Failed",
-                    description: data.message,
+                    description: mapRedeemMessage(data.message),
                     variant: "destructive",
                 });
                 return;
