@@ -9,7 +9,7 @@ export const useEarnings = () => {
         const fetchEarnings = async () => {
             try {
                 const { data, error } = await supabase
-                    .from('earnings')
+                    .from('earnings' as any)
                     .select('*, transactions(*)')
                     .order('created_at', { ascending: false });
 

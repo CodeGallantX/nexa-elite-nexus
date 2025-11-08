@@ -339,7 +339,7 @@ const GiveawayDialog = ({ setWalletBalance, walletBalance, onRedeemComplete }) =
                                     <div className="grid grid-cols-2 gap-4">
                                         <div className="grid gap-2">
                                             <Label htmlFor="codeValue">Value per Code</Label>
-                                            <Select value={codeValue} onValuechange={setCodeValue}>
+                                            <Select value={codeValue} onValueChange={setCodeValue}>
                                                 <SelectTrigger>
                                                     <SelectValue />
                                                 </SelectTrigger>
@@ -638,9 +638,6 @@ const WithdrawDialog = ({ setWalletBalance, walletBalance, banks, onWithdrawalCo
 
         console.log("Transfer initiated successfully:", transferData);
         
-        // Update local balance
-        setWalletBalance(prev => prev - amount);
-        
         // Reset form and close dialog
         setAmount(0);
         setNotes('');
@@ -651,6 +648,8 @@ const WithdrawDialog = ({ setWalletBalance, walletBalance, banks, onWithdrawalCo
             title: "Withdrawal Submitted",
             description: `Your request to withdraw ₦${amount.toLocaleString()} has been submitted successfully. Funds will be sent to your account shortly.`,
         });
+        
+        // Refresh wallet data from database
         onWithdrawalComplete?.();
         console.log("Withdrawal process finished.");
     }
@@ -1036,7 +1035,8 @@ const Wallet: React.FC = () => {
         if (transactionsError) {
           console.error('Error fetching transactions:', transactionsError);
         } else if (transactionsData) {
-          setTransactions(transactionsData.map(tx => {
+          // Extract user names from references for transfers
+          const enrichedTransactions = await Promise.all(transactionsData.map(async (tx) => {
             const typeMapping: Record<string, string> = {
               'deposit': 'Deposit',
               'withdrawal': 'Withdrawal',
@@ -1045,19 +1045,39 @@ const Wallet: React.FC = () => {
               'giveaway_created': 'Giveaway Created',
               'giveaway_redeemed': 'Giveaway Redeemed',
               'giveaway_refund': 'Giveaway Refund',
-              'tax_deduction': 'Tax Deduction',
+              'tax_deduction': 'Monthly Tax',
             };
             
             const isDebit = ['transfer_out', 'withdrawal', 'giveaway_created', 'tax_deduction'].includes(tx.type);
+            let displayName = '';
+            
+            // Extract username from reference for transfers
+            if (tx.type === 'transfer_in' || tx.type === 'transfer_out') {
+              const match = tx.reference.match(/transfer_(from|to)_(.+)_\d/);
+              if (match) {
+                displayName = match[2];
+              }
+            }
+            
+            let description = typeMapping[tx.type] || tx.type;
+            if (displayName) {
+              description += tx.type === 'transfer_in' ? ` from ${displayName}` : ` to ${displayName}`;
+            } else if (tx.type === 'giveaway_created') {
+              description = 'Giveaway Created';
+            } else if (tx.type === 'giveaway_redeemed') {
+              description = 'Giveaway Redeemed';
+            }
             
             return {
               id: tx.id,
-              description: `${typeMapping[tx.type] || tx.type} - ${tx.status}`,
+              description: `${description} - ${tx.status}`,
               date: new Date(tx.created_at).toLocaleDateString(),
               amount: isDebit ? -Number(tx.amount) : Number(tx.amount),
               type: typeMapping[tx.type] || 'Other'
             };
           }));
+          
+          setTransactions(enrichedTransactions);
           setTotalTransactions(count || 0);
         }
       }

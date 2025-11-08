@@ -147,7 +147,19 @@ export const useNotifications = () => {
         return [];
       }
 
-      return data.map((notification) => ({
+      // Filter out expired giveaway notifications
+      const now = new Date();
+      const validNotifications = data.filter((notification) => {
+        if (notification.type === 'giveaway_created') {
+          const expiresAt = notification.expires_at ? new Date(notification.expires_at) : null;
+          if (expiresAt && expiresAt < now) {
+            return false; // Skip expired giveaway notifications
+          }
+        }
+        return true;
+      });
+
+      return validNotifications.map((notification) => ({
         id: notification.id,
         type: notification.type,
         message: notification.message,

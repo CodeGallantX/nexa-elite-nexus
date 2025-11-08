@@ -22,7 +22,7 @@ export const useTaxSettings = () => {
                     throw error;
                 }
 
-                setTaxAmount(data ? data.amount : 0);
+                setTaxAmount(data && typeof (data as any).amount === 'number' ? (data as any).amount : 0);
             } catch (error) {
                 console.error('Error fetching tax settings:', error);
                 toast({
