@@ -262,30 +262,55 @@ const GiveawayDialog = ({ setWalletBalance, walletBalance, onRedeemComplete }) =
         });
     };
   
+    const redeemUI = (
+        <div className="space-y-4 py-4">
+            <div className="grid gap-2">
+                <Label htmlFor="redeemCode">Enter Giveaway Code</Label>
+                <Input
+                    id="redeemCode"
+                    placeholder="Enter code..."
+                    value={redeemCode}
+                    onChange={(e) => setRedeemCode(e.target.value.toUpperCase())}
+                    className="uppercase"
+                />
+            </div>
+
+            <Button 
+                onClick={handleRedeemCode}
+                disabled={isRedeeming || !redeemCode.trim()}
+                className="w-full"
+            >
+                {isRedeeming && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Redeem Code
+            </Button>
+        </div>
+    );
+
     return (
         <>
             <Dialog open={open} onOpenChange={setOpen}>
                 <DialogTrigger asChild>
                     <Button variant="outline" className="w-full h-24 flex flex-col items-center justify-center">
                         <Gift className="h-8 w-8 mb-2" />
-                        {isClanMaster ? 'Create Giveaway' : 'Redeem Code'}
+                        Giveaway
                     </Button>
                 </DialogTrigger>
                 <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
                     <DialogHeader>
-                        <DialogTitle>{isClanMaster ? '🎁 Create Giveaway' : '🎁 Redeem Giveaway Code'}</DialogTitle>
+                        <DialogTitle>🎁 Giveaway</DialogTitle>
                         <DialogDescription>
                             {isClanMaster 
-                                ? 'Create redeemable codes for your clan members' 
-                                : 'Enter a code to instantly credit your wallet'}
+                                ? 'Create, view, or redeem giveaway codes.' 
+                                : 'Enter a code to instantly credit your wallet.'}
                         </DialogDescription>
                     </DialogHeader>
 
                     {isClanMaster ? (
                         <Tabs defaultValue="create" className="w-full">
-                            <TabsList className="grid w-full grid-cols-2">
+                            <TabsList className="grid w-full grid-cols-3">
                                 <TabsTrigger value="create">Create New</TabsTrigger>
                                 <TabsTrigger value="history">My Giveaways</TabsTrigger>
+                                <TabsTrigger value="redeem">Redeem</TabsTrigger>
                             </TabsList>
                             
                             <TabsContent value="create" className="space-y-4 mt-4">
@@ -314,7 +339,7 @@ const GiveawayDialog = ({ setWalletBalance, walletBalance, onRedeemComplete }) =
                                     <div className="grid grid-cols-2 gap-4">
                                         <div className="grid gap-2">
                                             <Label htmlFor="codeValue">Value per Code</Label>
-                                            <Select value={codeValue} onValueChange={setCodeValue}>
+                                            <Select value={codeValue} onValuechange={setCodeValue}>
                                                 <SelectTrigger>
                                                     <SelectValue />
                                                 </SelectTrigger>
@@ -429,29 +454,12 @@ const GiveawayDialog = ({ setWalletBalance, walletBalance, onRedeemComplete }) =
                                     )}
                                 </div>
                             </TabsContent>
+                            <TabsContent value="redeem" className="mt-4">
+                                {redeemUI}
+                            </TabsContent>
                         </Tabs>
                     ) : (
-                        <div className="space-y-4 py-4">
-                            <div className="grid gap-2">
-                                <Label htmlFor="redeemCode">Enter Giveaway Code</Label>
-                                <Input
-                                    id="redeemCode"
-                                    placeholder="Enter code..."
-                                    value={redeemCode}
-                                    onChange={(e) => setRedeemCode(e.target.value.toUpperCase())}
-                                    className="uppercase"
-                                />
-                            </div>
-
-                            <Button 
-                                onClick={handleRedeemCode}
-                                disabled={isRedeeming || !redeemCode.trim()}
-                                className="w-full"
-                            >
-                                {isRedeeming && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                Redeem Code
-                            </Button>
-                        </div>
+                        redeemUI
                     )}
                 </DialogContent>
             </Dialog>

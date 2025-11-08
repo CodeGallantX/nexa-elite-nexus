@@ -133,7 +133,7 @@ serve(async (req) => {
       if (updateError) {
         console.error("Error updating wallet:", updateError);
         // Potentially reverse Paystack transfer here if possible, or flag for manual review
-        return new Response(JSON.stringify({ error: "Failed to update wallet" }), {
+        return new Response(JSON.stringify({ error: `Failed to update wallet: ${updateError.message}` }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
           status: 500,
         });
