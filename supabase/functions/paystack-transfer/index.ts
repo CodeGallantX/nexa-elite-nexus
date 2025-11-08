@@ -127,6 +127,7 @@ serve(async (req) => {
           p_transaction_type: 'withdrawal',
           p_transaction_status: 'success',
           p_transaction_reference: result.data.reference,
+          p_transaction_currency: 'NGN',
         }
       );
 
