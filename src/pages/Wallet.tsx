@@ -69,7 +69,7 @@ const renderTransactionIcon = (type: string) => {
   }
 };
 
-const GiveawayDialog = ({ setWalletBalance, walletBalance, onRedeemComplete }) => {
+const GiveawayDialog = ({ setWalletBalance, walletBalance, onRedeemComplete, redeemCooldown, onRedeemSuccess }) => {
     const { profile } = useAuth();
     const { toast } = useToast();
     const isClanMaster = profile?.role === 'clan_master' || profile?.role === 'admin';
@@ -232,6 +232,7 @@ const GiveawayDialog = ({ setWalletBalance, walletBalance, onRedeemComplete }) =
 
             setRedeemCode('');
             setWalletBalance(data.new_balance);
+            onRedeemSuccess?.();
             setOpen(false);
             onRedeemComplete?.();
         } catch (error: any) {
@@ -277,11 +278,13 @@ const GiveawayDialog = ({ setWalletBalance, walletBalance, onRedeemComplete }) =
 
             <Button 
                 onClick={handleRedeemCode}
-                disabled={isRedeeming || !redeemCode.trim()}
+                disabled={isRedeeming || !redeemCode.trim() || redeemCooldown > 0}
                 className="w-full"
             >
                 {isRedeeming && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Redeem Code
+                {redeemCooldown > 0 
+                  ? `Wait ${Math.floor(redeemCooldown / 60)}m ${redeemCooldown % 60}s` 
+                  : 'Redeem Code'}
             </Button>
         </div>
     );
@@ -501,7 +504,7 @@ const GiveawayDialog = ({ setWalletBalance, walletBalance, onRedeemComplete }) =
     );
 };
 
-const WithdrawDialog = ({ setWalletBalance, walletBalance, banks, onWithdrawalComplete, isWithdrawalServiceAvailable = true }) => {
+const WithdrawDialog = ({ setWalletBalance, walletBalance, banks, onWithdrawalComplete, isWithdrawalServiceAvailable = true, cooldown = 0 }) => {
     const { profile } = useAuth();
     const [amount, setAmount] = useState(0);
     const [accountNumber, setAccountNumber] = useState('');
@@ -658,9 +661,13 @@ const WithdrawDialog = ({ setWalletBalance, walletBalance, banks, onWithdrawalCo
         <Dialog open={open} onOpenChange={setOpen}>
             {isWithdrawalServiceAvailable ? (
                 <DialogTrigger asChild>
-                    <Button variant="outline" className="w-full h-24 flex flex-col items-center justify-center">
+                    <Button 
+                        variant="outline" 
+                        className="w-full h-24 flex flex-col items-center justify-center"
+                        disabled={cooldown > 0}
+                    >
                         <ArrowDown className="h-8 w-8 mb-2" />
-                        Withdraw
+                        {cooldown > 0 ? `Wait ${cooldown}s` : 'Withdraw'}
                     </Button>
                 </DialogTrigger>
             ) : (
@@ -996,6 +1003,8 @@ const Wallet: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [transactionsPerPage] = useState(10);
   const [totalTransactions, setTotalTransactions] = useState(0);
+  const [withdrawCooldown, setWithdrawCooldown] = useState(0);
+  const [redeemCooldown, setRedeemCooldown] = useState(0);
 
   const fetchWalletData = async (page = 1) => {
     if (!user?.id) return;
@@ -1088,6 +1097,7 @@ const Wallet: React.FC = () => {
 
   useEffect(() => {
     fetchWalletData(currentPage);
+    checkCooldowns();
   }, [user?.id, currentPage]);
 
   useEffect(() => {
@@ -1099,6 +1109,52 @@ const Wallet: React.FC = () => {
     };
     fetchBanks();
   }, []);
+
+  useEffect(() => {
+    if (withdrawCooldown > 0) {
+      const timer = setInterval(() => {
+        setWithdrawCooldown(prev => Math.max(0, prev - 1));
+      }, 1000);
+      return () => clearInterval(timer);
+    }
+  }, [withdrawCooldown]);
+
+  useEffect(() => {
+    if (redeemCooldown > 0) {
+      const timer = setInterval(() => {
+        setRedeemCooldown(prev => Math.max(0, prev - 1));
+      }, 1000);
+      return () => clearInterval(timer);
+    }
+  }, [redeemCooldown]);
+
+  const checkCooldowns = () => {
+    const lastWithdraw = localStorage.getItem('lastWithdrawTime');
+    if (lastWithdraw) {
+      const elapsed = Math.floor((Date.now() - parseInt(lastWithdraw)) / 1000);
+      if (elapsed < 30) {
+        setWithdrawCooldown(30 - elapsed);
+      }
+    }
+
+    const lastRedeem = localStorage.getItem('lastRedeemTime');
+    if (lastRedeem) {
+      const elapsed = Math.floor((Date.now() - parseInt(lastRedeem)) / 1000);
+      if (elapsed < 600) {
+        setRedeemCooldown(600 - elapsed);
+      }
+    }
+  };
+
+  const startWithdrawCooldown = () => {
+    localStorage.setItem('lastWithdrawTime', Date.now().toString());
+    setWithdrawCooldown(30);
+  };
+
+  const startRedeemCooldown = () => {
+    localStorage.setItem('lastRedeemTime', Date.now().toString());
+    setRedeemCooldown(600);
+  };
 
   return (
     <div className="container mx-auto p-4 md:p-6 lg:p-8">
@@ -1116,9 +1172,25 @@ const Wallet: React.FC = () => {
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
                 <FundWalletDialog />
-        <WithdrawDialog setWalletBalance={setWalletBalance} walletBalance={walletBalance} banks={banks} onWithdrawalComplete={fetchWalletData} isWithdrawalServiceAvailable={true} />
+        <WithdrawDialog 
+          setWalletBalance={setWalletBalance} 
+          walletBalance={walletBalance} 
+          banks={banks} 
+          onWithdrawalComplete={() => {
+            fetchWalletData();
+            startWithdrawCooldown();
+          }} 
+          isWithdrawalServiceAvailable={true}
+          cooldown={withdrawCooldown}
+        />
         <TransferDialog walletBalance={walletBalance} onTransferComplete={fetchWalletData} />
-        <GiveawayDialog setWalletBalance={setWalletBalance} walletBalance={walletBalance} onRedeemComplete={fetchWalletData} />
+        <GiveawayDialog 
+          setWalletBalance={setWalletBalance} 
+          walletBalance={walletBalance} 
+          onRedeemComplete={fetchWalletData}
+          redeemCooldown={redeemCooldown}
+          onRedeemSuccess={startRedeemCooldown}
+        />
       </div>
 
       <Card className="bg-transparent shadow-none">
