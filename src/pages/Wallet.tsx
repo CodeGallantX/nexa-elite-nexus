@@ -69,7 +69,7 @@ const renderTransactionIcon = (type: string) => {
   }
 };
 
-const GiveawayDialog = ({ setWalletBalance, walletBalance }) => {
+const GiveawayDialog = ({ setWalletBalance, walletBalance, onRedeemComplete }) => {
     const { profile } = useAuth();
     const { toast } = useToast();
     const isClanMaster = profile?.role === 'clan_master' || profile?.role === 'admin';
@@ -233,13 +233,22 @@ const GiveawayDialog = ({ setWalletBalance, walletBalance }) => {
             setRedeemCode('');
             setWalletBalance(data.new_balance);
             setOpen(false);
+            onRedeemComplete?.();
         } catch (error: any) {
             console.error('Error redeeming code:', error);
-            toast({
-                title: "Error",
-                description: error.message || "Failed to redeem code",
-                variant: "destructive",
-            });
+            if (error.context && error.context.json && error.context.json.message) {
+                toast({
+                    title: "Redemption Failed",
+                    description: error.context.json.message,
+                    variant: "destructive",
+                });
+            } else {
+                toast({
+                    title: "Error",
+                    description: error.message || "Failed to redeem code",
+                    variant: "destructive",
+                });
+            }
         } finally {
             setIsRedeeming(false);
         }
@@ -1065,7 +1074,7 @@ const Wallet: React.FC = () => {
                 <FundWalletDialog />
         <WithdrawDialog setWalletBalance={setWalletBalance} walletBalance={walletBalance} banks={banks} onWithdrawalComplete={fetchWalletData} />
         <TransferDialog walletBalance={walletBalance} onTransferComplete={fetchWalletData} />
-        <GiveawayDialog setWalletBalance={setWalletBalance} walletBalance={walletBalance} />
+        <GiveawayDialog setWalletBalance={setWalletBalance} walletBalance={walletBalance} onRedeemComplete={fetchWalletData} />
       </div>
 
       <Card className="bg-transparent shadow-none">
@@ -1119,7 +1128,20 @@ const Wallet: React.FC = () => {
                 ))}
             </TabsContent>
             <TabsContent value="redeems">
-              {/* No redeem transactions yet */}
+              {(() => {
+                const redeemTransactions = transactions.filter(
+                  (tx) => tx.type === 'Giveaway Redeemed'
+                );
+                return redeemTransactions.length > 0 ? (
+                  redeemTransactions.map((tx) => (
+                    <TransactionItem key={tx.id} transaction={tx} />
+                  ))
+                ) : (
+                  <p className="text-center text-muted-foreground py-8">
+                    No redeem transactions yet.
+                  </p>
+                );
+              })()}
             </TabsContent>
           </Tabs>
         </CardContent>
