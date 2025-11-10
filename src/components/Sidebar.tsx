@@ -77,25 +77,27 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const playerMenuItems = [
     { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
     { icon: User, label: 'Profile', path: '/profile' },
+    // Move Wallet to come immediately after Profile for easier access
+    { icon: Wallet, label: 'Wallet', path: '/wallet' },
     { icon: Crosshair, label: 'Scrims', path: '/scrims' },
     { icon: Package, label: 'My Loadouts', path: '/loadouts' },
     { icon: Sword, label: 'Weapon Layouts', path: '/weapon-layouts' },
     { icon: Megaphone, label: 'Announcements', path: '/announcements' },
     { icon: BarChart3, label: 'Statistics', path: '/statistics' },
-    { icon: Wallet, label: 'Wallet', path: '/wallet' },
     { icon: Settings, label: 'Settings', path: '/settings' },
   ];
 
   const moderatorMenuItems = [
     { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
     { icon: User, label: 'Profile', path: '/profile' },
+    // Wallet moved after Profile
+    { icon: Wallet, label: 'Wallet', path: '/wallet' },
     { icon: Crosshair, label: 'Scrims', path: '/scrims' },
     { icon: Package, label: 'My Loadouts', path: '/loadouts' },
     { icon: Sword, label: 'Weapon Layouts', path: '/weapon-layouts' },
     { icon: Clock, label: 'Attendance', path: '/admin/attendance' },
     { icon: Megaphone, label: 'Announcements', path: '/announcements' },
     { icon: BarChart3, label: 'Statistics', path: '/statistics' },
-    { icon: Wallet, label: 'Wallet', path: '/wallet' },
     { icon: Settings, label: 'Settings', path: '/settings' },
   ];
 
@@ -105,6 +107,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
     { icon: BarChart3, label: 'Statistics', path: '/statistics' },
     { icon: UserCog, label: 'Profiles', path: '/admin/profiles' },
+  // Wallet placed right after Profiles for admins as well
+  { icon: Wallet, label: 'Wallet', path: '/wallet' },
     { icon: Package, label: 'My Loadouts', path: '/loadouts' },
     { icon: Codesandbox, label: 'Loadouts', path: '/admin/loadouts' },
     { icon: Sword, label: 'My Weapon Layouts', path: '/weapon-layouts' },
