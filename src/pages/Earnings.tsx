@@ -5,7 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -17,6 +17,11 @@ const Earnings = () => {
     const { earnings, loading: earningsLoading } = useEarnings();
     const { taxAmount, loading: taxLoading, isUpdating, updateTaxAmount } = useTaxSettings();
     const [newTaxAmount, setNewTaxAmount] = useState<number>(taxAmount || 0);
+
+    // Keep the tax input synced with the latest value set by the clan master
+    useEffect(() => {
+        setNewTaxAmount(taxAmount || 0);
+    }, [taxAmount]);
 
     const isClanMaster = profile?.role === 'clan_master' || profile?.role === 'admin';
 
@@ -139,14 +144,14 @@ const Earnings = () => {
                 </CardHeader>
                 <CardContent>
                     <ResponsiveContainer width="100%" height={300}>
-                        <BarChart data={chartData}>
+                        <LineChart data={chartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
                             <CartesianGrid strokeDasharray="3 3" />
                             <XAxis dataKey="date" />
                             <YAxis />
                             <Tooltip />
                             <Legend />
-                            <Bar dataKey="amount" fill="#8884d8" />
-                        </BarChart>
+                            <Line type="monotone" dataKey="amount" stroke="#8884d8" strokeWidth={2} dot={{ r: 2 }} />
+                        </LineChart>
                     </ResponsiveContainer>
                 </CardContent>
             </Card>
