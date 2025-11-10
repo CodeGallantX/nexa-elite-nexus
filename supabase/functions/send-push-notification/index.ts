@@ -1,5 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-import webpush from 'https://deno.land/x/webpush@v1.0.1/mod.ts';
+// Use the npm 'web-push' package via esm.sh for Deno compatibility
+import * as webpush from 'https://esm.sh/web-push@3.5.0';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
