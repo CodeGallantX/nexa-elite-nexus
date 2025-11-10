@@ -37,7 +37,7 @@ BEGIN
     VALUES (
         p_wallet_id,
         p_transaction_amount,
-        p_transaction_type,
+        p_transaction_type::transaction_type,
         p_transaction_status,
         p_transaction_reference
     )

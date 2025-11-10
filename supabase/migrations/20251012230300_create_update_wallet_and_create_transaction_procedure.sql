@@ -11,6 +11,6 @@ RETURNS void AS $$
 BEGIN
     UPDATE wallets SET balance = new_balance WHERE id = wallet_id;
     INSERT INTO transactions (wallet_id, amount, type, status, reference, currency)
-    VALUES (wallet_id, transaction_amount, transaction_type, transaction_status, transaction_reference, transaction_currency);
+    VALUES (wallet_id, transaction_amount, transaction_type::transaction_type, transaction_status, transaction_reference, transaction_currency);
 END;
 $$ LANGUAGE plpgsql;

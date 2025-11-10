@@ -13,7 +13,7 @@ DECLARE
 BEGIN
     UPDATE wallets SET balance = p_new_balance WHERE id = p_wallet_id;
     INSERT INTO transactions (wallet_id, amount, type, status, reference)
-    VALUES (p_wallet_id, p_transaction_amount, p_transaction_type, p_transaction_status, p_transaction_reference)
+    VALUES (p_wallet_id, p_transaction_amount, p_transaction_type::transaction_type, p_transaction_status, p_transaction_reference)
     RETURNING id INTO new_transaction_id;
     RETURN new_transaction_id;
 END;
