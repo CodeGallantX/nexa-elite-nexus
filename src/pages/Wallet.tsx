@@ -929,7 +929,16 @@ const TransferDialog = ({ walletBalance, onTransferComplete }) => {
                         <Coins className="h-4 w-4" />
                         <AlertTitle>Transaction Fee</AlertTitle>
                         <AlertDescription>
-                            A fee of ₦50 will be deducted for this transaction.
+                            {amount > 0 ? (
+                                <>
+                                    A fee of ₦{(amount * 0.04).toFixed(2).toLocaleString()} (4%) will be deducted.
+                                    <div className="text-sm text-muted-foreground mt-1">
+                                        You will receive ₦{(Math.max(0, amount - amount * 0.04)).toFixed(2).toLocaleString()} after fees.
+                                    </div>
+                                </>
+                            ) : (
+                                'A fee of 4% will be deducted for this transaction.'
+                            )}
                         </AlertDescription>
                     </Alert>
                 </div>
@@ -1022,7 +1031,24 @@ const FundWalletDialog = () => {
                                                 <Coins className="h-4 w-4" />
                                                 <AlertTitle>Transaction Fee</AlertTitle>
                                                 <AlertDescription>
-                                                    A fee of ₦50 will be deducted for this transaction.
+                                                    {amount > 0 ? (
+                                                        <>
+                                                            {(() => {
+                                                                const fee = Number((amount * 0.04).toFixed(2));
+                                                                const net = Number((amount - fee).toFixed(2));
+                                                                return (
+                                                                    <>
+                                                                        A fee of ₦{fee.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} (4%) will be deducted.
+                                                                        <div className="text-sm text-muted-foreground mt-1">
+                                                                            You will receive ₦{net.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} after fees.
+                                                                        </div>
+                                                                    </>
+                                                                );
+                                                            })()}
+                                                        </>
+                                                    ) : (
+                                                        'A fee of 4% will be deducted for this transaction.'
+                                                    )}
                                                 </AlertDescription>
                                             </Alert>
                                         </div>

@@ -76,27 +76,47 @@ serve(async (req) => {
       wallet = newWallet;
     }
 
-    const newBalance = wallet.balance + amount / 100;
+    // amount is in kobo from Paystack; convert to naira
+    const amountNaira = Number(amount) / 100;
+    const fee = Number((amountNaira * 0.04).toFixed(2)); // 4% fee
+    const netAmount = Number((amountNaira - fee).toFixed(2));
 
-    const { error: transactionError } = await supabaseAdmin.rpc(
+    const newBalance = Number((Number(wallet.balance) + netAmount).toFixed(2));
+
+    // Update wallet and create transaction for the net deposit
+    const { data: transactionId, error: transactionError } = await supabaseAdmin.rpc(
       "update_wallet_and_create_transaction",
       {
-        wallet_id: wallet.id,
-        new_balance: newBalance,
-        transaction_amount: amount / 100,
-        transaction_type: "deposit",
-        transaction_status: "success",
-        transaction_reference: reference,
-        transaction_currency: currency,
+        p_wallet_id: wallet.id,
+        p_new_balance: newBalance,
+        p_transaction_amount: netAmount,
+        p_transaction_type: "deposit",
+        p_transaction_status: "success",
+        p_transaction_reference: reference,
       }
     );
 
     if (transactionError) {
-      console.error("Error processing transaction:", transactionError);
-      return new Response("Error processing transaction", { status: 500 });
+      console.error("Error processing transaction (RPC):", transactionError);
+      return new Response(JSON.stringify({ error: 'failed_update_wallet', details: transactionError.message || transactionError }), { status: 500 });
     }
 
-    return new Response("Wallet updated successfully", { status: 200 });
+    // Log the fee as earnings (platform revenue)
+    try {
+      const txId = transactionId || null;
+      const { error: feeError } = await supabaseAdmin
+        .from('earnings')
+        .insert({ transaction_id: txId, amount: fee, source: 'deposit_fee' });
+
+      if (feeError) {
+        console.error('Error logging deposit fee to earnings:', feeError);
+        // don't fail the webhook for logging issues
+      }
+    } catch (err) {
+      console.error('Unexpected error logging fee:', err);
+    }
+
+    return new Response(JSON.stringify({ success: true, credited: netAmount, fee }), { status: 200 });
   }
 
   return new Response("Event not handled", { status: 200 });
