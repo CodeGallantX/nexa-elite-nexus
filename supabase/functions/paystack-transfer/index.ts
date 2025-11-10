@@ -28,6 +28,48 @@ serve(async (req) => {
 
   const { endpoint, name, account_number, bank_code, amount, recipient_code } = await req.json();
 
+  // Allow clients to check whether withdrawals are allowed for their region (server-side) without initiating a transfer
+  if (endpoint === 'check-withdrawal-availability') {
+    try {
+      const { data: profileData } = await supabaseAdmin
+        .from('profiles')
+        .select('id, timezone, country')
+        .eq('id', user.id)
+        .maybeSingle();
+
+      const tzFromProfile = profileData?.timezone;
+      const country = (profileData?.country || '').toString();
+      const DEFAULT_TZ = Deno.env.get('DEFAULT_USER_TIMEZONE') || 'Africa/Lagos';
+      const countryTzMap: Record<string, string> = {
+        NG: 'Africa/Lagos',
+        GH: 'Africa/Accra',
+        KE: 'Africa/Nairobi',
+        ZA: 'Africa/Johannesburg',
+        US: 'America/New_York',
+        GB: 'Europe/London',
+      };
+      const resolvedTz = tzFromProfile || countryTzMap[country.toUpperCase()] || DEFAULT_TZ;
+
+      let weekday = 'Unknown';
+      try {
+        weekday = new Intl.DateTimeFormat('en-US', { timeZone: resolvedTz, weekday: 'long' }).format(new Date());
+      } catch (e) {
+        weekday = new Intl.DateTimeFormat('en-US', { weekday: 'long' }).format(new Date());
+      }
+
+      return new Response(JSON.stringify({ allowed: weekday !== 'Sunday', weekday, timezone: resolvedTz }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200,
+      });
+    } catch (err) {
+      console.error('Error checking withdrawal availability:', err);
+      return new Response(JSON.stringify({ allowed: true, error: err?.message || String(err) }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200,
+      });
+    }
+  }
+
   if (endpoint === "create-transfer-recipient") {
     try {
       const paystackUrl = "https://api.paystack.co/transferrecipient";
@@ -66,6 +108,46 @@ serve(async (req) => {
     console.log(`Initiating transfer for user ${user.id} of amount ${amount}`);
 
     try {
+      // Determine user's timezone from profile when possible so we can enforce regional rules
+      // Fallback to DEFAULT_USER_TIMEZONE env or 'Africa/Lagos' if not available
+      const { data: profileData } = await supabaseAdmin
+        .from('profiles')
+        .select('id, timezone, country')
+        .eq('id', user.id)
+        .maybeSingle();
+
+      const tzFromProfile = profileData?.timezone;
+      const country = (profileData?.country || '').toString();
+      const DEFAULT_TZ = Deno.env.get('DEFAULT_USER_TIMEZONE') || 'Africa/Lagos';
+
+      // Map a couple of common country codes to timezones as a fallback
+      const countryTzMap: Record<string, string> = {
+        NG: 'Africa/Lagos',
+        GH: 'Africa/Accra',
+        KE: 'Africa/Nairobi',
+        ZA: 'Africa/Johannesburg',
+        US: 'America/New_York',
+        GB: 'Europe/London',
+      };
+
+      const resolvedTz = tzFromProfile || countryTzMap[country.toUpperCase()] || DEFAULT_TZ;
+
+      // Compute the weekday in the user's timezone (server-side) and block Sundays
+      let weekday = 'Unknown';
+      try {
+        weekday = new Intl.DateTimeFormat('en-US', { timeZone: resolvedTz, weekday: 'long' }).format(new Date());
+      } catch (e) {
+        console.warn('Failed to resolve timezone, falling back to server locale', e);
+        weekday = new Intl.DateTimeFormat('en-US', { weekday: 'long' }).format(new Date());
+      }
+
+      if (weekday === 'Sunday') {
+        return new Response(JSON.stringify({ error: 'withdrawals_disabled_today', message: 'Withdrawals are not allowed on Sundays in your region.' }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 403,
+        });
+      }
+
       // Validate min/max withdrawal amounts
       if (amount < 500) {
         return new Response(JSON.stringify({ error: "Minimum withdrawal amount is ₦500" }), {
@@ -168,9 +250,22 @@ serve(async (req) => {
       );
 
       if (updateError) {
-        console.error("Error updating wallet:", updateError);
-        // Potentially reverse Paystack transfer here if possible, or flag for manual review
-        return new Response(JSON.stringify({ error: `Failed to update wallet`, details: updateError.message || updateError }), {
+        // Log details for observability and return a structured error so the client can show a helpful message
+        console.error('Error updating wallet (RPC failure):', updateError);
+
+        // Return structured failure including the RPC error code/message where possible
+        const errorPayload: any = {
+          error: 'failed_to_update_wallet',
+          message: 'Failed to update wallet after successful transfer. This has been recorded for manual review.',
+          rpc_error: updateError?.message || updateError,
+        };
+
+        // Suggest attaching transaction reference for easier reconciliation
+        if (txReference) errorPayload.transfer_reference = txReference;
+
+        // At this stage the Paystack transfer may have gone through; do NOT automatically expose raw RPC details to end users,
+        // but include them in logs/monitoring. We still return a machine-friendly payload so the frontend can detect and display a safe message.
+        return new Response(JSON.stringify(errorPayload), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
           status: 500,
         });

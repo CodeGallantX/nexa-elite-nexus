@@ -131,7 +131,7 @@ const Earnings = () => {
                 </Card>
                 <Card>
                     <CardHeader>
-                        <CardTitle>Monthly Tax (₦50)</CardTitle>
+                        <CardTitle>Monthly Tax</CardTitle>
                     </CardHeader>
                     <CardContent>
                         <div className="text-3xl font-bold">₦{(earningsBySource['tax_fee'] || 0).toLocaleString()}</div>

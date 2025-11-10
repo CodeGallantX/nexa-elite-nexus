@@ -559,6 +559,7 @@ const WithdrawDialog = ({ setWalletBalance, walletBalance, banks, onWithdrawalCo
     const [bankName, setBankName] = useState('');
     const [notes, setNotes] = useState('');
     const [open, setOpen] = useState(false);
+    const [withdrawalAllowed, setWithdrawalAllowed] = useState<boolean | null>(null);
     const { toast } = useToast();
 
     useEffect(() => {
@@ -569,6 +570,35 @@ const WithdrawDialog = ({ setWalletBalance, walletBalance, banks, onWithdrawalCo
             setBankName(profile.banking_info.bank_name || '');
         }
     }, [profile]);
+
+    // Check with server whether withdrawals are allowed today for the user's region
+    useEffect(() => {
+        let mounted = true;
+        const check = async () => {
+            try {
+                const { data: { session } } = await supabase.auth.getSession();
+                const { data, error } = await supabase.functions.invoke('paystack-transfer', {
+                    headers: { Authorization: `Bearer ${session?.access_token}` },
+                    body: { endpoint: 'check-withdrawal-availability' },
+                });
+
+                if (!mounted) return;
+                if (error) {
+                    console.warn('Could not check withdrawal availability, defaulting to allowed', error);
+                    setWithdrawalAllowed(true);
+                    return;
+                }
+
+                // data may be { allowed: boolean, weekday, timezone }
+                setWithdrawalAllowed(Boolean(data?.allowed));
+            } catch (err) {
+                console.warn('Error checking withdrawal availability:', err);
+                setWithdrawalAllowed(true);
+            }
+        };
+        check();
+        return () => { mounted = false; };
+    }, [profile?.id]);
 
     const handleWithdraw = async () => {
         console.log("Withdrawal process started.");
@@ -676,13 +706,28 @@ const WithdrawDialog = ({ setWalletBalance, walletBalance, banks, onWithdrawalCo
         if (transferError || !transferData.status) {
             console.error("Error initiating transfer:", transferError || transferData);
             
-            const errorMessage = transferData?.message || transferData?.error || transferError?.message || "An unexpected error occurred";
-            
-            if (transferData?.error === "insufficient_paystack_balance") {
+            // Try to extract structured JSON returned by the edge function (it may be in transferError.context.json)
+            let payload: any = transferData ?? null;
+            try {
+                if (transferError?.context?.json) payload = transferError.context.json;
+            } catch (e) {
+                // ignore
+            }
+
+            const errorCode = payload?.error;
+            const errorMessage = payload?.message || transferError?.message || 'An unexpected error occurred';
+
+            if (errorCode === 'insufficient_paystack_balance') {
                 toast({
                     title: "Withdrawal Service Unavailable",
                     description: "We are currently unable to process withdrawals. Please try again later. Our team has been notified.",
                     variant: "destructive",
+                });
+            } else if (errorCode === 'failed_to_update_wallet') {
+                // Edge case: the transfer likely succeeded with Paystack but DB update failed
+                toast({
+                    title: "Withdrawal Processing",
+                    description: "Your withdrawal was processed but we couldn't update your wallet immediately. Our team has been notified and will reconcile this shortly.",
                 });
             } else {
                 toast({
@@ -714,7 +759,7 @@ const WithdrawDialog = ({ setWalletBalance, walletBalance, banks, onWithdrawalCo
 
     return (
         <Dialog open={open} onOpenChange={setOpen}>
-            {isWithdrawalServiceAvailable ? (
+            {isWithdrawalServiceAvailable && withdrawalAllowed !== false ? (
                 <DialogTrigger asChild>
                     <Button 
                         variant="outline" 
@@ -737,7 +782,7 @@ const WithdrawDialog = ({ setWalletBalance, walletBalance, banks, onWithdrawalCo
                             </Button>
                         </TooltipTrigger>
                         <TooltipContent>
-                            <p>Withdrawal service is not available at the moment.</p>
+                            <p>{withdrawalAllowed === false ? 'Withdrawals are not allowed on Sundays in your region.' : 'Withdrawal service is not available at the moment.'}</p>
                         </TooltipContent>
                     </Tooltip>
                 </TooltipProvider>
