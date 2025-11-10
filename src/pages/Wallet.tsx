@@ -72,7 +72,8 @@ const renderTransactionIcon = (type: string) => {
 const GiveawayDialog = ({ setWalletBalance, walletBalance, onRedeemComplete, redeemCooldown, onRedeemSuccess }) => {
     const { profile } = useAuth();
     const { toast } = useToast();
-    const isClanMaster = profile?.role === 'clan_master' || profile?.role === 'admin';
+    // Allow any authenticated player to create/redeem giveaways
+    const isAuthenticated = Boolean(profile?.id);
   
     const [codeValue, setCodeValue] = useState('500');
     const [totalCodes, setTotalCodes] = useState('10');
@@ -92,10 +93,10 @@ const GiveawayDialog = ({ setWalletBalance, walletBalance, onRedeemComplete, red
     const [showCodesDialog, setShowCodesDialog] = useState(false);
 
     useEffect(() => {
-        if (open && isClanMaster) {
+        if (open && isAuthenticated) {
             fetchMyGiveaways();
         }
-    }, [open, isClanMaster]);
+    }, [open, isAuthenticated]);
 
     const fetchMyGiveaways = async () => {
         try {
@@ -152,8 +153,15 @@ const GiveawayDialog = ({ setWalletBalance, walletBalance, onRedeemComplete, red
                 },
             });
 
-            if (error) throw error;
+            // Handle non-2xx responses from the edge function gracefully
+            if (error) {
+                console.error('Create giveaway error (edge function):', error);
+                const friendly = error?.message || 'Failed to create giveaway';
+                toast({ title: 'Error', description: friendly, variant: 'destructive' });
+                return;
+            }
 
+            // edge function returns success payload
             toast({
                 title: "🎁 Giveaway Created!",
                 description: `${totalCodes} codes worth ₦${codeValue} each have been generated and shared with your clan!`,
@@ -176,7 +184,7 @@ const GiveawayDialog = ({ setWalletBalance, walletBalance, onRedeemComplete, red
             console.error('Error creating giveaway:', error);
             toast({
                 title: "Error",
-                description: error.message || "Failed to create giveaway",
+                description: error?.message || "Failed to create giveaway",
                 variant: "destructive",
             });
         } finally {
@@ -206,9 +214,16 @@ const GiveawayDialog = ({ setWalletBalance, walletBalance, onRedeemComplete, red
                 },
             });
 
-            if (error) throw error;
+            // If the edge function returned a transport-level error, show it
+            if (error) {
+                console.error('Redeem edge function error:', error);
+                // Try to extract a friendly message
+                const msg = error?.message || 'Failed to redeem code';
+                toast({ title: 'Redemption Failed', description: msg, variant: 'destructive' });
+                return;
+            }
 
-            // Map server-side messages to friendlier client-side messages
+            // Server returns { success: boolean, message?, amount?, new_balance? }
             const mapRedeemMessage = (msg: string) => {
                 switch ((msg || '').toString()) {
                     case 'Invalid code':
@@ -222,12 +237,8 @@ const GiveawayDialog = ({ setWalletBalance, walletBalance, onRedeemComplete, red
                 }
             };
 
-            if (!data.success) {
-                toast({
-                    title: "Redemption Failed",
-                    description: mapRedeemMessage(data.message),
-                    variant: "destructive",
-                });
+            if (!data?.success) {
+                toast({ title: 'Redemption Failed', description: mapRedeemMessage(data?.message), variant: 'destructive' });
                 return;
             }
 
@@ -251,19 +262,7 @@ const GiveawayDialog = ({ setWalletBalance, walletBalance, onRedeemComplete, red
             onRedeemComplete?.();
         } catch (error: any) {
             console.error('Error redeeming code:', error);
-            if (error.context && error.context.json && error.context.json.message) {
-                toast({
-                    title: "Redemption Failed",
-                    description: error.context.json.message,
-                    variant: "destructive",
-                });
-            } else {
-                toast({
-                    title: "Error",
-                    description: error.message || "Failed to redeem code",
-                    variant: "destructive",
-                });
-            }
+            toast({ title: 'Error', description: error?.message || 'Failed to redeem code', variant: 'destructive' });
         } finally {
             setIsRedeeming(false);
         }
@@ -980,6 +979,17 @@ const FundWalletDialog = () => {
     }
 
     const handlePayment = () => {
+        // Guard: ensure public key is configured
+        const publicKey = import.meta.env.VITE_PAYSTACK_PUBLIC_KEY || '';
+        if (!publicKey) {
+            toast({
+                title: 'Payment Unavailable',
+                description: 'Paystack is not configured. Please contact support or try again later.',
+                variant: 'destructive',
+            });
+            return;
+        }
+
         setIsLoading(true);
         initializePayment({ onSuccess, onClose } as any);
     }
@@ -1017,7 +1027,7 @@ const FundWalletDialog = () => {
                                             </Alert>
                                         </div>
                                         <DialogFooter>
-                                            <Button onClick={handlePayment} disabled={!user || !profile || amount <= 0 || isLoading || !import.meta.env.VITE_PAYSTACK_PUBLIC_KEY}>
+                                            <Button onClick={handlePayment} disabled={!user || !profile || amount <= 0 || isLoading}>
                                                 {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                                                 Fund with Paystack
                                             </Button>

@@ -128,27 +128,49 @@ serve(async (req) => {
       const result = await response.json();
       console.log("Paystack transfer response:", result);
 
-      if (!response.ok || !result.status) {
-        // ... (error handling remains the same)
+      if (!response.ok || result.status === false) {
+        // Translate common Paystack errors to friendly machine-readable codes
+        const msg = result.message || JSON.stringify(result);
+        console.warn('Paystack transfer failed:', msg);
+
+        if ((msg || '').toLowerCase().includes('insufficient balance')) {
+          return new Response(JSON.stringify({ error: 'insufficient_paystack_balance', message: msg }), {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+            status: 400,
+          });
+        }
+
+        return new Response(JSON.stringify({ error: 'paystack_transfer_failed', message: msg, details: result }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 400,
+        });
       }
 
       // 3. Deduct from wallet and create transaction record
+      // 3. Deduct from wallet and create transaction record
+      // Ensure numeric types and fixed decimals to avoid type mismatches
+      const newBalance = Number((Number(wallet.balance) - Number(totalDeduction)).toFixed(2));
+      const txAmount = Number(Number(amount).toFixed(2));
+      const txReference = result?.data?.reference || result?.reference || '';
+
+      console.log('Updating wallet with:', { wallet_id: wallet.id, newBalance, txAmount, txReference });
+
       const { data: transactionData, error: updateError } = await supabaseAdmin.rpc(
         'update_wallet_and_create_transaction',
         {
           p_wallet_id: wallet.id,
-          p_new_balance: wallet.balance - totalDeduction,
-          p_transaction_amount: amount,
+          p_new_balance: newBalance,
+          p_transaction_amount: txAmount,
           p_transaction_type: 'withdrawal',
           p_transaction_status: 'success',
-          p_transaction_reference: result.data.reference,
+          p_transaction_reference: txReference,
         }
       );
 
       if (updateError) {
         console.error("Error updating wallet:", updateError);
         // Potentially reverse Paystack transfer here if possible, or flag for manual review
-        return new Response(JSON.stringify({ error: `Failed to update wallet: ${updateError.message}` }), {
+        return new Response(JSON.stringify({ error: `Failed to update wallet`, details: updateError.message || updateError }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
           status: 500,
         });
