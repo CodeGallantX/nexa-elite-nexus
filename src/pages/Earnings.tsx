@@ -9,7 +9,7 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsi
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { Loader2 } from 'lucide-react';
+import { Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
 
 const Earnings = () => {
     const { profile } = useAuth();
@@ -231,8 +231,12 @@ const Earnings = () => {
                                             <div className="flex justify-between items-center">
                                                 <div>Page {currentPage} of {totalPages}</div>
                                                 <div className="flex gap-2">
-                                                    <Button onClick={() => setCurrentPage((p) => Math.max(1, p - 1))} disabled={currentPage === 1}>Previous</Button>
-                                                    <Button onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages}>Next</Button>
+                                                    <Button aria-label="Previous page" onClick={() => setCurrentPage((p) => Math.max(1, p - 1))} disabled={currentPage === 1}>
+                                                        <ChevronLeft className="h-4 w-4" />
+                                                    </Button>
+                                                    <Button aria-label="Next page" onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages}>
+                                                        <ChevronRight className="h-4 w-4" />
+                                                    </Button>
                                                 </div>
                                             </div>
                                         </TableCell>
