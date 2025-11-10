@@ -204,17 +204,47 @@ const GiveawayDialog = ({ setWalletBalance, walletBalance, onRedeemComplete, red
 
         setIsRedeeming(true);
         try {
-            // Map server-side messages to friendlier client-side messages
-            const mapRedeemMessage = (msg: string) => {
-                switch ((msg || '').toString()) {
+            // Map server-side messages or structured error payloads to friendlier, specific client messages
+            const mapRedeemResult = (input: any) => {
+                // input may be a string, an object like { message } or { error }, or a structured payload
+                let msg = '';
+                if (typeof input === 'string') msg = input;
+                else if (input?.message) msg = input.message;
+                else if (input?.error) msg = input.error;
+                else msg = String(input || '');
+
+                const base = (msg || '').toString();
+
+                switch (base) {
                     case 'Invalid code':
-                        return 'The code you entered is invalid. Please check and try again.';
-                    case 'Code already redeemed':
-                        return 'This code has already been used.';
+                        return {
+                            title: 'Invalid Code',
+                            description: 'The code you entered is invalid. Please check and try again.',
+                            variant: 'destructive',
+                        };
+                    case 'Code already redeemed': {
+                        // Include extra context when available
+                        const redeemedBy = input?.redeemed_by || input?.redeemedBy;
+                        const redeemedAt = input?.redeemed_at || input?.redeemedAt;
+                        const extra = redeemedBy ? ` It was redeemed${redeemedAt ? ` on ${new Date(redeemedAt).toLocaleString()}` : ''} by ${redeemedBy}.` : '';
+                        return {
+                            title: 'Code Already Used',
+                            description: `This code has already been redeemed.${extra} If you believe this is a mistake, contact support.`,
+                            variant: 'warning',
+                        };
+                    }
                     case 'Code expired':
-                        return 'This code has expired.';
+                        return {
+                            title: 'Code Expired',
+                            description: 'This code has expired and can no longer be redeemed.',
+                            variant: 'warning',
+                        };
                     default:
-                        return msg || 'Redemption failed. Please try again.';
+                        return {
+                            title: 'Redemption Failed',
+                            description: msg || 'Redemption failed. Please try again.',
+                            variant: 'destructive',
+                        };
                 }
             };
             const { data: { session } } = await supabase.auth.getSession();
@@ -232,38 +262,16 @@ const GiveawayDialog = ({ setWalletBalance, walletBalance, onRedeemComplete, red
                 console.error('Redeem edge function error:', error);
                 // Supabase FunctionsHttpError often contains the function response under error.context.json
                 const errJson = error?.context?.json;
-                let friendlyMsg = error?.message || 'Failed to redeem code';
-                try {
-                    if (errJson) {
-                        // errJson may be an object like { success: false, message: 'Code already redeemed' }
-                        if (typeof errJson === 'string') {
-                            friendlyMsg = errJson;
-                        } else if (errJson.message) {
-                            friendlyMsg = errJson.message;
-                        } else if (errJson.error) {
-                            friendlyMsg = errJson.error;
-                        } else {
-                            friendlyMsg = JSON.stringify(errJson);
-                        }
-                    }
-                } catch (e) {
-                    console.warn('Failed to parse error context JSON from redeem function', e);
-                }
-                // Map server message to a friendlier client string
-                try {
-                    friendlyMsg = mapRedeemMessage(friendlyMsg);
-                } catch (e) {
-                    // ignore mapping errors
-                }
-
-                toast({ title: 'Redemption Failed', description: friendlyMsg, variant: 'destructive' });
+                const mapped = mapRedeemResult(errJson ?? error?.message ?? error);
+                toast({ title: mapped.title, description: mapped.description, variant: mapped.variant as any });
                 return;
             }
 
             // Server returns { success: boolean, message?, amount?, new_balance? }
 
             if (!data?.success) {
-                toast({ title: 'Redemption Failed', description: mapRedeemMessage(data?.message), variant: 'destructive' });
+                const mapped = mapRedeemResult(data);
+                toast({ title: mapped.title, description: mapped.description, variant: mapped.variant as any });
                 return;
             }
 
