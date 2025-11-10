@@ -214,12 +214,30 @@ const GiveawayDialog = ({ setWalletBalance, walletBalance, onRedeemComplete, red
                 },
             });
 
-            // If the edge function returned a transport-level error, show it
+            // If the edge function returned a transport-level error (non-2xx), try to extract friendly message
             if (error) {
                 console.error('Redeem edge function error:', error);
-                // Try to extract a friendly message
-                const msg = error?.message || 'Failed to redeem code';
-                toast({ title: 'Redemption Failed', description: msg, variant: 'destructive' });
+                // Supabase FunctionsHttpError often contains the function response under error.context.json
+                const errJson = error?.context?.json;
+                let friendlyMsg = error?.message || 'Failed to redeem code';
+                try {
+                    if (errJson) {
+                        // errJson may be an object like { success: false, message: 'Code already redeemed' }
+                        if (typeof errJson === 'string') {
+                            friendlyMsg = errJson;
+                        } else if (errJson.message) {
+                            friendlyMsg = errJson.message;
+                        } else if (errJson.error) {
+                            friendlyMsg = errJson.error;
+                        } else {
+                            friendlyMsg = JSON.stringify(errJson);
+                        }
+                    }
+                } catch (e) {
+                    console.warn('Failed to parse error context JSON from redeem function', e);
+                }
+
+                toast({ title: 'Redemption Failed', description: friendlyMsg, variant: 'destructive' });
                 return;
             }
 
