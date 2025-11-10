@@ -44,10 +44,27 @@ serve(async (req) => {
     }
 
     if (!result.success) {
-      return new Response(JSON.stringify({ 
-        success: false, 
-        message: result.message 
-      }), {
+      // Enrich common failure responses with extra context when possible
+      const payload: any = { success: false, message: result.message };
+
+      if (result.message === 'Code already redeemed') {
+        try {
+          const { data: codeRow } = await supabaseClient
+            .from('giveaway_codes')
+            .select('redeemed_by, redeemed_at')
+            .eq('code', code.trim().toUpperCase())
+            .maybeSingle();
+
+          if (codeRow) {
+            payload.redeemed_by = codeRow.redeemed_by;
+            payload.redeemed_at = codeRow.redeemed_at;
+          }
+        } catch (e) {
+          console.warn('Failed to fetch code redemption context:', e);
+        }
+      }
+
+      return new Response(JSON.stringify(payload), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 400,
       });

@@ -261,7 +261,17 @@ const GiveawayDialog = ({ setWalletBalance, walletBalance, onRedeemComplete, red
             if (error) {
                 console.error('Redeem edge function error:', error);
                 // Supabase FunctionsHttpError often contains the function response under error.context.json
-                const errJson = error?.context?.json;
+                let errJson: any = error?.context?.json;
+                // In some clients this may be a function (Response.json), so call it to get the parsed body
+                if (typeof errJson === 'function') {
+                    try {
+                        errJson = await errJson();
+                    } catch (e) {
+                        console.warn('Failed to call error.context.json()', e);
+                        errJson = null;
+                    }
+                }
+
                 const mapped = mapRedeemResult(errJson ?? error?.message ?? error);
                 toast({ title: mapped.title, description: mapped.description, variant: mapped.variant as any });
                 return;
