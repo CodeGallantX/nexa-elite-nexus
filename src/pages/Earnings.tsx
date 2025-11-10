@@ -32,6 +32,13 @@ const Earnings = () => {
 
     const totalEarnings = earnings.reduce((acc, earning) => acc + earning.amount, 0);
 
+    // Calculate earnings by source
+    const earningsBySource = earnings.reduce((acc, earning) => {
+        const source = earning.source || 'other';
+        acc[source] = (acc[source] || 0) + earning.amount;
+        return acc;
+    }, {} as Record<string, number>);
+
     const chartData = earnings.reduce((acc, earning) => {
         const date = new Date(earning.created_at).toLocaleDateString();
         const existing = acc.find((item) => item.date === date);
@@ -53,7 +60,7 @@ const Earnings = () => {
         <div className="container mx-auto p-4 md:p-6 lg:p-8">
             <h1 className="text-3xl font-bold mb-6">Earnings</h1>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
                 <Card>
                     <CardHeader>
                         <CardTitle>Total Earnings</CardTitle>
@@ -62,10 +69,42 @@ const Earnings = () => {
                         <div className="text-4xl font-bold">₦{totalEarnings.toLocaleString()}</div>
                     </CardContent>
                 </Card>
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Withdrawal Fees (4%)</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-3xl font-bold">₦{(earningsBySource['withdrawal_fee'] || 0).toLocaleString()}</div>
+                    </CardContent>
+                </Card>
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Deposit Fees (4%)</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-3xl font-bold">₦{(earningsBySource['deposit_fee'] || 0).toLocaleString()}</div>
+                    </CardContent>
+                </Card>
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Transfer Fees (₦50)</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-3xl font-bold">₦{(earningsBySource['transfer_fee'] || 0).toLocaleString()}</div>
+                    </CardContent>
+                </Card>
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Monthly Tax (₦50)</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-3xl font-bold">₦{(earningsBySource['tax_fee'] || 0).toLocaleString()}</div>
+                    </CardContent>
+                </Card>
                 {isClanMaster && (
-                    <Card className="col-span-1 md:col-span-2">
+                    <Card className="col-span-1 md:col-span-2 lg:col-span-4">
                         <CardHeader>
-                            <CardTitle>Monthly Tax</CardTitle>
+                            <CardTitle>Monthly Tax Settings</CardTitle>
                         </CardHeader>
                         <CardContent>
                             {taxLoading ? (
@@ -121,6 +160,7 @@ const Earnings = () => {
                         <TableHeader>
                             <TableRow>
                                 <TableHead>Transaction ID</TableHead>
+                                <TableHead>Source</TableHead>
                                 <TableHead>Amount</TableHead>
                                 <TableHead>Date</TableHead>
                             </TableRow>
@@ -128,7 +168,7 @@ const Earnings = () => {
                         <TableBody>
                             {earningsLoading ? (
                                 <TableRow>
-                                    <TableCell colSpan={3} className="text-center">
+                                    <TableCell colSpan={4} className="text-center">
                                         Loading...
                                     </TableCell>
                                 </TableRow>
@@ -136,6 +176,7 @@ const Earnings = () => {
                                 earnings.map((earning) => (
                                     <TableRow key={earning.id}>
                                         <TableCell>{earning.transaction_id}</TableCell>
+                                        <TableCell className="capitalize">{earning.source?.replace('_', ' ') || 'Other'}</TableCell>
                                         <TableCell>₦{earning.amount.toLocaleString()}</TableCell>
                                         <TableCell>{new Date(earning.created_at).toLocaleString()}</TableCell>
                                     </TableRow>

@@ -66,7 +66,22 @@ serve(async (req) => {
     console.log(`Initiating transfer for user ${user.id} of amount ${amount}`);
 
     try {
-      const fee = 50;
+      // Validate min/max withdrawal amounts
+      if (amount < 500) {
+        return new Response(JSON.stringify({ error: "Minimum withdrawal amount is ₦500" }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 400,
+        });
+      }
+
+      if (amount > 30000) {
+        return new Response(JSON.stringify({ error: "Maximum withdrawal amount is ₦30,000" }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 400,
+        });
+      }
+
+      const fee = amount * 0.04; // 4% fee
       const totalDeduction = amount + fee;
 
       // 1. Verify user's wallet balance
@@ -127,7 +142,6 @@ serve(async (req) => {
           p_transaction_type: 'withdrawal',
           p_transaction_status: 'success',
           p_transaction_reference: result.data.reference,
-          p_transaction_currency: 'NGN',
         }
       );
 
@@ -140,12 +154,12 @@ serve(async (req) => {
         });
       }
       
-      // 4. Log the fee in the earnings table
+      // 4. Log the fee in the earnings table with source
       const transactionId = transactionData; // The RPC should return the new transaction's ID
       if (transactionId) {
         const { error: feeError } = await supabaseAdmin
           .from('earnings')
-          .insert({ transaction_id: transactionId, amount: fee });
+          .insert({ transaction_id: transactionId, amount: fee, source: 'withdrawal_fee' });
 
         if (feeError) {
           console.error("Error logging transaction fee:", feeError);

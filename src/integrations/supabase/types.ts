@@ -320,18 +320,21 @@ export type Database = {
           amount: number
           created_at: string
           id: string
+          source: string | null
           transaction_id: string | null
         }
         Insert: {
           amount: number
           created_at?: string
           id?: string
+          source?: string | null
           transaction_id?: string | null
         }
         Update: {
           amount?: number
           created_at?: string
           id?: string
+          source?: string | null
           transaction_id?: string | null
         }
         Relationships: [

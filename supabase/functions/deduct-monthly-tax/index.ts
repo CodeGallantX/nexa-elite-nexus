@@ -34,11 +34,10 @@ serve(async (req) => {
 
     const taxAmount = taxData.amount;
 
-    // Get all wallets with balance >= tax amount
+    // Get all wallets (deduct from all, allow negative balances)
     const { data: wallets, error: walletsError } = await supabaseAdmin
       .from('wallets')
-      .select('id, balance, user_id')
-      .gte('balance', taxAmount);
+      .select('id, balance, user_id');
 
     if (walletsError) {
       throw walletsError;
@@ -46,7 +45,7 @@ serve(async (req) => {
 
     if (!wallets || wallets.length === 0) {
       return new Response(
-        JSON.stringify({ message: 'No wallets with sufficient balance for tax deduction', deducted: 0 }),
+        JSON.stringify({ message: 'No wallets found', deducted: 0 }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
       );
     }
@@ -86,12 +85,13 @@ serve(async (req) => {
           continue;
         }
 
-        // Log as earnings
+        // Log as earnings with source
         await supabaseAdmin
           .from('earnings')
           .insert({
             transaction_id: transactionData.id,
-            amount: taxAmount
+            amount: taxAmount,
+            source: 'tax_fee'
           });
 
         deductedCount++;

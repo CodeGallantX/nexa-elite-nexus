@@ -551,11 +551,20 @@ const WithdrawDialog = ({ setWalletBalance, walletBalance, banks, onWithdrawalCo
             });
             return;
         }
-        if (amount < 100) {
-            console.error("Validation failed: Amount less than 100.");
+        if (amount < 500) {
+            console.error("Validation failed: Amount less than 500.");
             toast({
-                title: "Invalid Amount",
-                description: "Minimum withdrawal amount is ₦100",
+                title: "Minimum Withdrawal",
+                description: "Minimum withdrawal amount is ₦500",
+                variant: "destructive",
+            });
+            return;
+        }
+        if (amount > 30000) {
+            console.error("Validation failed: Amount greater than 30000.");
+            toast({
+                title: "Maximum Withdrawal",
+                description: "Maximum withdrawal amount is ₦30,000",
                 variant: "destructive",
             });
             return;
@@ -678,12 +687,12 @@ const WithdrawDialog = ({ setWalletBalance, walletBalance, banks, onWithdrawalCo
                     <Button 
                         variant="outline" 
                         className="w-full h-24 flex flex-col items-center justify-center"
-                        // Temporarily disable withdrawals app-wide until service is re-enabled
-                        disabled={true}
+                        disabled={cooldown > 0}
                     >
                         <ArrowDown className="h-8 w-8 mb-2" />
-                        {/* Provide clear label so users know why it's disabled */}
-                        {'Withdraw (Unavailable)'}
+                        {cooldown > 0 
+                            ? `Cooldown: ${Math.floor(cooldown / 3600)}h ${Math.floor((cooldown % 3600) / 60)}m`
+                            : 'Withdraw'}
                     </Button>
                 </DialogTrigger>
             ) : (
@@ -776,7 +785,7 @@ const WithdrawDialog = ({ setWalletBalance, walletBalance, banks, onWithdrawalCo
                         <Coins className="h-4 w-4" />
                         <AlertTitle>Transaction Fee</AlertTitle>
                         <AlertDescription>
-                            A fee of ₦50 will be deducted for this transaction.
+                            A fee of 4% will be deducted for this transaction.
                         </AlertDescription>
                     </Alert>
                     <div className="grid gap-2">
@@ -790,7 +799,14 @@ const WithdrawDialog = ({ setWalletBalance, walletBalance, banks, onWithdrawalCo
                     </div>
                 </div>
                 <DialogFooter>
-                    <Button onClick={handleWithdraw}>Submit Withdrawal</Button>
+                    <Button 
+                        onClick={handleWithdraw}
+                        disabled={cooldown > 0}
+                    >
+                        {cooldown > 0 
+                            ? `Wait ${Math.floor(cooldown / 3600)}h ${Math.floor((cooldown % 3600) / 60)}m ${cooldown % 60}s`
+                            : 'Submit Withdrawal'}
+                    </Button>
                 </DialogFooter>
             </DialogContent>
         </Dialog>
@@ -1021,6 +1037,9 @@ const Wallet: React.FC = () => {
   const [totalTransactions, setTotalTransactions] = useState(0);
   const [withdrawCooldown, setWithdrawCooldown] = useState(0);
   const [redeemCooldown, setRedeemCooldown] = useState(0);
+  
+  const WITHDRAW_COOLDOWN_SECONDS = 43200; // 12 hours
+  const REDEEM_COOLDOWN_SECONDS = 600; // 10 minutes
 
   const fetchWalletData = async (page = 1) => {
     if (!user?.id) return;
@@ -1145,31 +1164,33 @@ const Wallet: React.FC = () => {
   }, [redeemCooldown]);
 
   const checkCooldowns = () => {
-    const lastWithdraw = localStorage.getItem('lastWithdrawTime');
-    if (lastWithdraw) {
-      const elapsed = Math.floor((Date.now() - parseInt(lastWithdraw)) / 1000);
-      if (elapsed < 30) {
-        setWithdrawCooldown(30 - elapsed);
+    const withdrawCooldownEnd = localStorage.getItem('withdrawCooldownEnd');
+    if (withdrawCooldownEnd) {
+      const remaining = Math.floor((parseInt(withdrawCooldownEnd) - Date.now()) / 1000);
+      if (remaining > 0) {
+        setWithdrawCooldown(remaining);
       }
     }
 
-    const lastRedeem = localStorage.getItem('lastRedeemTime');
-    if (lastRedeem) {
-      const elapsed = Math.floor((Date.now() - parseInt(lastRedeem)) / 1000);
-      if (elapsed < 600) {
-        setRedeemCooldown(600 - elapsed);
+    const redeemCooldownEnd = localStorage.getItem('redeemCooldownEnd');
+    if (redeemCooldownEnd) {
+      const remaining = Math.floor((parseInt(redeemCooldownEnd) - Date.now()) / 1000);
+      if (remaining > 0) {
+        setRedeemCooldown(remaining);
       }
     }
   };
 
   const startWithdrawCooldown = () => {
-    localStorage.setItem('lastWithdrawTime', Date.now().toString());
-    setWithdrawCooldown(30);
+    const cooldownEnd = Date.now() + (WITHDRAW_COOLDOWN_SECONDS * 1000);
+    localStorage.setItem('withdrawCooldownEnd', cooldownEnd.toString());
+    setWithdrawCooldown(WITHDRAW_COOLDOWN_SECONDS);
   };
 
   const startRedeemCooldown = () => {
-    localStorage.setItem('lastRedeemTime', Date.now().toString());
-    setRedeemCooldown(600);
+    const cooldownEnd = Date.now() + (REDEEM_COOLDOWN_SECONDS * 1000);
+    localStorage.setItem('redeemCooldownEnd', cooldownEnd.toString());
+    setRedeemCooldown(REDEEM_COOLDOWN_SECONDS);
   };
 
   return (
