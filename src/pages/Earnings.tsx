@@ -43,23 +43,54 @@ const Earnings = () => {
         acc[source] = (acc[source] || 0) + earning.amount;
         return acc;
     }, {} as Record<string, number>);
+    // Build multi-series chart data: one line per earnings source across dates
+    const buildChartData = () => {
+        // map date -> source -> sum
+        const dateMap: Record<string, Record<string, number>> = {};
+        const sourcesSet = new Set<string>();
 
-    const chartData = earnings.reduce((acc, earning) => {
-        const date = new Date(earning.created_at).toLocaleDateString();
-        const existing = acc.find((item) => item.date === date);
-        if (existing) {
-            existing.amount += earning.amount;
-        } else {
-            acc.push({ date, amount: earning.amount });
-        }
-        return acc;
-    }, []);
+        earnings.forEach((earning) => {
+            const date = new Date(earning.created_at).toLocaleDateString();
+            const source = earning.source || 'other';
+            sourcesSet.add(source);
+            dateMap[date] = dateMap[date] || {};
+            dateMap[date][source] = (dateMap[date][source] || 0) + earning.amount;
+        });
+
+        const dates = Object.keys(dateMap).sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
+
+        const sources = Array.from(sourcesSet);
+
+        const data = dates.map((date) => {
+            const row: Record<string, any> = { date };
+            sources.forEach((s) => {
+                row[s] = dateMap[date][s] || 0;
+            });
+            return row;
+        });
+
+        return { data, sources };
+    };
+
+    const { data: multiChartData, sources: chartSources } = buildChartData();
 
     const handleUpdateTax = () => {
         if (newTaxAmount >= 0) {
             updateTaxAmount(newTaxAmount);
         }
     };
+
+    // Pagination for recent transactions
+    const [currentPage, setCurrentPage] = useState(1);
+    const pageSize = 10;
+    const totalPages = Math.max(1, Math.ceil(earnings.length / pageSize));
+
+    useEffect(() => {
+        if (currentPage > totalPages) setCurrentPage(totalPages);
+    }, [earnings.length, totalPages]);
+
+    const startIdx = (currentPage - 1) * pageSize;
+    const pageItems = earnings.slice(startIdx, startIdx + pageSize);
 
     return (
         <div className="container mx-auto p-4 md:p-6 lg:p-8">
@@ -142,18 +173,25 @@ const Earnings = () => {
                 <CardHeader>
                     <CardTitle>Earnings Over Time</CardTitle>
                 </CardHeader>
-                <CardContent>
-                    <ResponsiveContainer width="100%" height={300}>
-                        <LineChart data={chartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
-                            <CartesianGrid strokeDasharray="3 3" />
-                            <XAxis dataKey="date" />
-                            <YAxis />
-                            <Tooltip />
-                            <Legend />
-                            <Line type="monotone" dataKey="amount" stroke="#8884d8" strokeWidth={2} dot={{ r: 2 }} />
-                        </LineChart>
-                    </ResponsiveContainer>
-                </CardContent>
+                    <CardContent>
+                        <ResponsiveContainer width="100%" height={300}>
+                            <LineChart data={multiChartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                                <CartesianGrid strokeDasharray="3 3" />
+                                <XAxis dataKey="date" />
+                                <YAxis />
+                                <Tooltip />
+                                <Legend />
+                                {chartSources.map((s, idx) => {
+                                    // some readable color palette
+                                    const colors = ['#8884d8', '#82ca9d', '#ffc658', '#ff7300', '#0088FE', '#00C49F', '#FFBB28'];
+                                    const color = colors[idx % colors.length];
+                                    return (
+                                        <Line key={s} type="monotone" dataKey={s} stroke={color} strokeWidth={2} dot={false} name={s.replace('_', ' ')} />
+                                    );
+                                })}
+                            </LineChart>
+                        </ResponsiveContainer>
+                    </CardContent>
             </Card>
 
             <Card>
@@ -178,14 +216,28 @@ const Earnings = () => {
                                     </TableCell>
                                 </TableRow>
                             ) : (
-                                earnings.map((earning) => (
-                                    <TableRow key={earning.id}>
-                                        <TableCell>{earning.transaction_id}</TableCell>
-                                        <TableCell className="capitalize">{earning.source?.replace('_', ' ') || 'Other'}</TableCell>
-                                        <TableCell>₦{earning.amount.toLocaleString()}</TableCell>
-                                        <TableCell>{new Date(earning.created_at).toLocaleString()}</TableCell>
+                                <>
+                                    {pageItems.map((earning) => (
+                                        <TableRow key={earning.id}>
+                                            <TableCell>{earning.transaction_id}</TableCell>
+                                            <TableCell className="capitalize">{earning.source?.replace('_', ' ') || 'Other'}</TableCell>
+                                            <TableCell>₦{earning.amount.toLocaleString()}</TableCell>
+                                            <TableCell>{new Date(earning.created_at).toLocaleString()}</TableCell>
+                                        </TableRow>
+                                    ))}
+
+                                    <TableRow>
+                                        <TableCell colSpan={4}>
+                                            <div className="flex justify-between items-center">
+                                                <div>Page {currentPage} of {totalPages}</div>
+                                                <div className="flex gap-2">
+                                                    <Button onClick={() => setCurrentPage((p) => Math.max(1, p - 1))} disabled={currentPage === 1}>Previous</Button>
+                                                    <Button onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages}>Next</Button>
+                                                </div>
+                                            </div>
+                                        </TableCell>
                                     </TableRow>
-                                ))
+                                </>
                             )}
                         </TableBody>
                     </Table>
