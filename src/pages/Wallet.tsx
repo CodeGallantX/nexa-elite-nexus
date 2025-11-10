@@ -720,6 +720,9 @@ const WithdrawDialog = ({ setWalletBalance, walletBalance, banks, onWithdrawalCo
             let payload: any = transferData ?? null;
             try {
                 if (transferError?.context?.json) payload = transferError.context.json;
+                if (typeof payload === 'function') {
+                    try { payload = await payload(); } catch (e) { console.warn('Failed to parse transferError.context.json()', e); payload = null; }
+                }
             } catch (e) {
                 // ignore
             }
