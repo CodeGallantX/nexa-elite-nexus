@@ -315,13 +315,13 @@ const GiveawayDialog = ({ setWalletBalance, walletBalance, onRedeemComplete, red
                     <DialogHeader>
                         <DialogTitle>🎁 Giveaway</DialogTitle>
                         <DialogDescription>
-                            {isClanMaster 
+                            {isAuthenticated 
                                 ? 'Create, view, or redeem giveaway codes.' 
                                 : 'Enter a code to instantly credit your wallet.'}
                         </DialogDescription>
                     </DialogHeader>
 
-                    {isClanMaster ? (
+                    {isAuthenticated ? (
                         <Tabs defaultValue="create" className="w-full">
                             <TabsList className="grid w-full grid-cols-3">
                                 <TabsTrigger value="create">Create New</TabsTrigger>
