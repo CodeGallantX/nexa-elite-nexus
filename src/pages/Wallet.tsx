@@ -204,6 +204,19 @@ const GiveawayDialog = ({ setWalletBalance, walletBalance, onRedeemComplete, red
 
         setIsRedeeming(true);
         try {
+            // Map server-side messages to friendlier client-side messages
+            const mapRedeemMessage = (msg: string) => {
+                switch ((msg || '').toString()) {
+                    case 'Invalid code':
+                        return 'The code you entered is invalid. Please check and try again.';
+                    case 'Code already redeemed':
+                        return 'This code has already been used.';
+                    case 'Code expired':
+                        return 'This code has expired.';
+                    default:
+                        return msg || 'Redemption failed. Please try again.';
+                }
+            };
             const { data: { session } } = await supabase.auth.getSession();
             const { data, error } = await supabase.functions.invoke('redeem-giveaway', {
                 headers: {
@@ -236,24 +249,18 @@ const GiveawayDialog = ({ setWalletBalance, walletBalance, onRedeemComplete, red
                 } catch (e) {
                     console.warn('Failed to parse error context JSON from redeem function', e);
                 }
+                // Map server message to a friendlier client string
+                try {
+                    friendlyMsg = mapRedeemMessage(friendlyMsg);
+                } catch (e) {
+                    // ignore mapping errors
+                }
 
                 toast({ title: 'Redemption Failed', description: friendlyMsg, variant: 'destructive' });
                 return;
             }
 
             // Server returns { success: boolean, message?, amount?, new_balance? }
-            const mapRedeemMessage = (msg: string) => {
-                switch ((msg || '').toString()) {
-                    case 'Invalid code':
-                        return 'The code you entered is invalid. Please check and try again.';
-                    case 'Code already redeemed':
-                        return 'This code has already been redeemed.';
-                    case 'Code expired':
-                        return 'This code has expired.';
-                    default:
-                        return msg || 'Redemption failed. Please try again.';
-                }
-            };
 
             if (!data?.success) {
                 toast({ title: 'Redemption Failed', description: mapRedeemMessage(data?.message), variant: 'destructive' });
