@@ -795,7 +795,7 @@ const WithdrawDialog = ({ setWalletBalance, walletBalance, banks, onWithdrawalCo
                             </Button>
                         </TooltipTrigger>
                         <TooltipContent>
-                            <p>{withdrawalAllowed === false ? 'Withdrawals are not allowed on Sundays in your region.' : 'Withdrawal service is not available at the moment.'}</p>
+                            <p>Withdrawals are currently unavailable.</p>
                         </TooltipContent>
                     </Tooltip>
                 </TooltipProvider>
@@ -1336,17 +1336,17 @@ const Wallet: React.FC = () => {
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
                 <FundWalletDialog />
-        <WithdrawDialog 
-          setWalletBalance={setWalletBalance} 
-          walletBalance={walletBalance} 
-          banks={banks} 
-          onWithdrawalComplete={() => {
-            fetchWalletData();
-            startWithdrawCooldown();
-          }} 
-          isWithdrawalServiceAvailable={true}
-          cooldown={withdrawCooldown}
-        />
+                <WithdrawDialog 
+                    setWalletBalance={setWalletBalance} 
+                    walletBalance={walletBalance} 
+                    banks={banks} 
+                    onWithdrawalComplete={() => {
+                        fetchWalletData();
+                        startWithdrawCooldown();
+                    }} 
+                    isWithdrawalServiceAvailable={false}
+                    cooldown={withdrawCooldown}
+                />
         <TransferDialog walletBalance={walletBalance} onTransferComplete={fetchWalletData} />
         <GiveawayDialog 
           setWalletBalance={setWalletBalance} 
