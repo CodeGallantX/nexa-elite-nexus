@@ -1022,13 +1022,13 @@ const TransferDialog = ({ walletBalance, onTransferComplete }) => {
                         <AlertDescription>
                             {amount > 0 ? (
                                 <>
-                                    A fee of ₦{(amount * 0.04).toFixed(2).toLocaleString()} (4%) will be deducted.
+                                    A flat fee of ₦50 will be deducted from transfers.
                                     <div className="text-sm text-muted-foreground mt-1">
-                                        You will receive ₦{(Math.max(0, amount - amount * 0.04)).toFixed(2).toLocaleString()} after fees.
+                                        You will receive ₦{(Math.max(0, amount - 50)).toFixed(2).toLocaleString()} after fees.
                                     </div>
                                 </>
                             ) : (
-                                'A fee of 4% will be deducted for this transaction.'
+                                'A flat fee of ₦50 will be deducted for this transaction.'
                             )}
                         </AlertDescription>
                     </Alert>
