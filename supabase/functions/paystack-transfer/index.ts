@@ -164,7 +164,8 @@ serve(async (req) => {
       }
 
       const fee = amount * 0.04; // 4% fee
-      const totalDeduction = amount + fee;
+      const netAmount = amount - fee; // User receives this amount
+      const totalDeduction = amount; // Deduct only the requested amount from wallet
 
       // 1. Verify user's wallet balance
       const { data: wallet, error: walletError } = await supabaseAdmin
@@ -189,8 +190,8 @@ serve(async (req) => {
         });
       }
 
-      // 2. Proceed with Paystack transfer (convert amount to kobo)
-      const amountInKobo = amount * 100;
+      // 2. Proceed with Paystack transfer for net amount (convert to kobo)
+      const amountInKobo = Math.floor(netAmount * 100);
       const paystackUrl = "https://api.paystack.co/transfer";
       
       const response = await fetch(paystackUrl, {
@@ -229,10 +230,9 @@ serve(async (req) => {
       }
 
       // 3. Deduct from wallet and create transaction record
-      // 3. Deduct from wallet and create transaction record
       // Ensure numeric types and fixed decimals to avoid type mismatches
       const newBalance = Number((Number(wallet.balance) - Number(totalDeduction)).toFixed(2));
-      const txAmount = Number(Number(amount).toFixed(2));
+      const txAmount = Number(Number(totalDeduction).toFixed(2));
       const txReference = result?.data?.reference || result?.reference || '';
 
       console.log('Updating wallet with:', { wallet_id: wallet.id, newBalance, txAmount, txReference });
