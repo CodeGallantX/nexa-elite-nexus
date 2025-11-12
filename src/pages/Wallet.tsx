@@ -875,7 +875,16 @@ const WithdrawDialog = ({ setWalletBalance, walletBalance, banks, onWithdrawalCo
                         <Coins className="h-4 w-4" />
                         <AlertTitle>Transaction Fee</AlertTitle>
                         <AlertDescription>
-                            A fee of 4% will be deducted for this transaction.
+                            {amount > 0 ? (
+                                <>
+                                    A fee of ₦{(amount * 0.04).toFixed(2)} (4%) will be deducted from the withdrawal.
+                                    <div className="text-sm text-muted-foreground mt-1">
+                                        You will receive ₦{(amount * 0.96).toFixed(2)} after fees.
+                                    </div>
+                                </>
+                            ) : (
+                                'A fee of 4% will be deducted for this transaction.'
+                            )}
                         </AlertDescription>
                     </Alert>
                     <div className="grid gap-2">
@@ -1024,7 +1033,7 @@ const TransferDialog = ({ walletBalance, onTransferComplete }) => {
                                 <>
                                     A flat fee of ₦50 will be deducted from transfers.
                                     <div className="text-sm text-muted-foreground mt-1">
-                                        You will receive ₦{(Math.max(0, amount - 50)).toFixed(2).toLocaleString()} after fees.
+                                        Recipient will receive ₦{(Math.max(0, amount - 50)).toFixed(2)} after fees.
                                     </div>
                                 </>
                             ) : (
