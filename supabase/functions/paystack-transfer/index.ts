@@ -243,7 +243,7 @@ serve(async (req) => {
           p_wallet_id: wallet.id,
           p_new_balance: newBalance,
           p_transaction_amount: txAmount,
-          p_transaction_type: 'withdrawal',
+          p_transaction_type: 'withdrawal' as any,
           p_transaction_status: 'success',
           p_transaction_reference: txReference,
         }
