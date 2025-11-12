@@ -208,7 +208,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
           try {
             await sendPushNotification([userId], {
               title: "Welcome Soldier!",
-              message: "You have successfully logged in to NeXa Elite Nexus.",
+              message: "Great to have you back",
             });
           } catch (err) {
             console.error("Welcome push error:", err);
