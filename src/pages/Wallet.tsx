@@ -569,8 +569,48 @@ const WithdrawDialog = ({ setWalletBalance, walletBalance, banks, onWithdrawalCo
     const [bankName, setBankName] = useState('');
     const [notes, setNotes] = useState('');
     const [open, setOpen] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
     const [withdrawalAllowed, setWithdrawalAllowed] = useState<boolean | null>(null);
     const { toast } = useToast();
+
+    const IDEMP_PREFIX = 'withdraw_idempotency_';
+
+    const getPersistedIdempotency = (userId: string | undefined) => {
+        try {
+            const key = `${IDEMP_PREFIX}${userId || 'anon'}`;
+            const raw = localStorage.getItem(key);
+            if (!raw) return null;
+            const parsed = JSON.parse(raw);
+            if (!parsed?.key || !parsed?.ts) return null;
+            // Accept persisted key for up to 12 hours
+            if (Date.now() - parsed.ts > 12 * 60 * 60 * 1000) {
+                localStorage.removeItem(key);
+                return null;
+            }
+            return parsed.key as string;
+        } catch (e) {
+            console.warn('Failed to read persisted idempotency key', e);
+            return null;
+        }
+    };
+
+    const persistIdempotency = (userId: string | undefined, keyValue: string) => {
+        try {
+            const key = `${IDEMP_PREFIX}${userId || 'anon'}`;
+            localStorage.setItem(key, JSON.stringify({ key: keyValue, ts: Date.now() }));
+        } catch (e) {
+            console.warn('Failed to persist idempotency key', e);
+        }
+    };
+
+    const removePersistedIdempotency = (userId: string | undefined) => {
+        try {
+            const key = `${IDEMP_PREFIX}${userId || 'anon'}`;
+            localStorage.removeItem(key);
+        } catch (e) {
+            console.warn('Failed to remove persisted idempotency key', e);
+        }
+    };
 
     useEffect(() => {
         if (profile?.banking_info) {
@@ -661,6 +701,16 @@ const WithdrawDialog = ({ setWalletBalance, walletBalance, banks, onWithdrawalCo
         }
 
         console.log("Validation passed. Creating transfer recipient...");
+        // Prevent duplicate submissions from multiple clicks
+        if (isSubmitting) {
+            console.warn('Withdraw already in progress, ignoring duplicate submit');
+            return;
+        }
+        setIsSubmitting(true);
+        // Close dialog immediately so the UI responds to the user's click
+        setOpen(false);
+
+        try {
         const recipientPayload = {
             endpoint: 'create-transfer-recipient',
             name: accountName,
@@ -699,10 +749,18 @@ const WithdrawDialog = ({ setWalletBalance, walletBalance, banks, onWithdrawalCo
 
         console.log("Transfer recipient created successfully:", recipientData);
         console.log("Initiating transfer...");
+        // Try to reuse a recent persisted idempotency key (helps survive reloads/retries)
+        let idempotencyKey = getPersistedIdempotency(profile?.id);
+        if (!idempotencyKey) {
+            idempotencyKey = `withdraw-${profile?.id || 'anon'}-${Date.now()}-${Math.random().toString(36).slice(2,9)}`;
+            persistIdempotency(profile?.id, idempotencyKey);
+        }
+
         const transferPayload = {
             endpoint: 'initiate-transfer',
             amount,
             recipient_code: recipientData.data.recipient_code,
+            idempotency_key: idempotencyKey,
         };
         console.log("Transfer payload:", transferPayload);
 
@@ -754,10 +812,10 @@ const WithdrawDialog = ({ setWalletBalance, walletBalance, banks, onWithdrawalCo
 
         console.log("Transfer initiated successfully:", transferData);
         
-        // Reset form and close dialog
+        // Reset form
         setAmount(0);
         setNotes('');
-        setOpen(false);
+        // Note: dialog already closed earlier
         
         // Show success message
         toast({
@@ -767,7 +825,15 @@ const WithdrawDialog = ({ setWalletBalance, walletBalance, banks, onWithdrawalCo
         
         // Refresh wallet data from database
         onWithdrawalComplete?.();
+        // Successful transfer: remove persisted idempotency key so retries generate a fresh key
+        removePersistedIdempotency(profile?.id);
         console.log("Withdrawal process finished.");
+        } catch (err: any) {
+            console.error('Withdrawal error:', err);
+            toast({ title: 'Withdrawal Failed', description: err?.message || 'An unexpected error occurred', variant: 'destructive' });
+        } finally {
+            setIsSubmitting(false);
+        }
     }
 
     return (
@@ -900,11 +966,12 @@ const WithdrawDialog = ({ setWalletBalance, walletBalance, banks, onWithdrawalCo
                 <DialogFooter>
                     <Button 
                         onClick={handleWithdraw}
-                        disabled={cooldown > 0}
+                        disabled={cooldown > 0 || isSubmitting}
                     >
+                        {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                         {cooldown > 0 
                             ? `Wait ${Math.floor(cooldown / 3600)}h ${Math.floor((cooldown % 3600) / 60)}m ${cooldown % 60}s`
-                            : 'Submit Withdrawal'}
+                            : (isSubmitting ? 'Processing...' : 'Submit Withdrawal')}
                     </Button>
                 </DialogFooter>
             </DialogContent>
