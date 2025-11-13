@@ -1242,7 +1242,7 @@ const Wallet: React.FC = () => {
   const [redeemCooldown, setRedeemCooldown] = useState(0);
   
   const WITHDRAW_COOLDOWN_SECONDS = 43200; // 12 hours
-  const REDEEM_COOLDOWN_SECONDS = 600; // 10 minutes
+    const REDEEM_COOLDOWN_SECONDS = 60; // 60 seconds
 
   const fetchWalletData = async (page = 1) => {
     if (!user?.id) return;
