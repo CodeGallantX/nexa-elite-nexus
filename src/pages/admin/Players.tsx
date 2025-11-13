@@ -61,7 +61,13 @@ export const AdminPlayers: React.FC = () => {
 
   const handleDeletePlayer = async (playerId: string) => {
     if (confirm('Are you sure you want to delete this player? This action cannot be undone.')) {
-      await deletePlayer.mutateAsync(playerId);
+      try {
+        await deletePlayer.mutateAsync(playerId);
+      } catch (err) {
+        // swallow here because useDeletePlayer.onError already shows a toast
+        // but ensure we don't leave an uncaught promise rejection in the UI
+        console.error('Delete player failed (caught):', err);
+      }
     }
   };
 
