@@ -174,7 +174,7 @@ CREATE OR REPLACE FUNCTION public.create_giveaway_with_codes(
     p_message TEXT,
     p_code_value DECIMAL,
     p_total_codes INTEGER,
-    p_expires_in_hours INTEGER
+    p_expires_in_hours NUMERIC
 )
 RETURNS UUID
 LANGUAGE plpgsql

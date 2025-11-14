@@ -27,7 +27,7 @@ CREATE OR REPLACE FUNCTION public.create_giveaway_with_codes(
     p_message text, 
     p_code_value numeric, 
     p_total_codes integer, 
-    p_expires_in_hours integer
+    p_expires_in_hours numeric
 )
 RETURNS uuid
 LANGUAGE plpgsql

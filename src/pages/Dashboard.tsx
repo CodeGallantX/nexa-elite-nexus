@@ -101,8 +101,9 @@ export const Dashboard: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* Welcome Header */}
-      <div className="flex items-center justify-between">
+      {/* Welcome Header (sticky/persistent) */}
+      <div className="sticky top-14 z-30 bg-background/60 backdrop-blur-sm py-4 border-b border-border">
+        <div className="flex items-center justify-between px-0">
         <div>
           <h1 className="text-3xl font-bold text-white mb-2">
             Welcome back,{" "}
