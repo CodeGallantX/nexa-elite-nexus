@@ -23,7 +23,7 @@ export const Header: React.FC<HeaderProps> = ({ onSidebarToggle }) => {
   };
 
   return (
-    <header className="h-14 border-b border-border flex items-center justify-between px-4 bg-card/50">
+    <header className="fixed top-0 left-0 right-0 h-14 border-b border-border flex items-center justify-between px-4 bg-card/50 z-50">
       {/* Left side - Sidebar toggle */}
       <div className="flex items-center">
         {onSidebarToggle && (

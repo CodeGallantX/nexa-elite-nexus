@@ -64,8 +64,8 @@ export default function AdminDashboard() {
   ];
 
   return (
-    <div className="space-y-8">
-      <div className="sticky top-14 z-30 bg-background/60 backdrop-blur-sm py-4 border-b border-border px-0">
+    <div className="space-y-4">
+      <div>
         <div className="px-0">
           <h1 className="text-3xl font-bold text-white mb-2">Admin Dashboard</h1>
           <p className="text-gray-400">Overview of NeXa Esports clan management</p>

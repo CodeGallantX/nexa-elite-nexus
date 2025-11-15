@@ -270,10 +270,21 @@ DECLARE
     v_code_record RECORD;
     v_wallet_id UUID;
     v_new_balance DECIMAL(10, 2);
+    v_last_redeemed_at TIMESTAMP WITH TIME ZONE;
+    v_cooldown_minutes INTEGER := 3; -- 3 minutes cooldown
 BEGIN
     v_user_id := auth.uid();
     IF v_user_id IS NULL THEN
         RAISE EXCEPTION 'Unauthorized';
+    END IF;
+
+    -- Check user's last giveaway redemption time
+    SELECT last_giveaway_redeemed_at INTO v_last_redeemed_at
+    FROM profiles
+    WHERE id = v_user_id;
+
+    IF v_last_redeemed_at IS NOT NULL AND v_last_redeemed_at > NOW() - (v_cooldown_minutes || ' minutes')::INTERVAL THEN
+        RETURN jsonb_build_object('success', false, 'message', 'Giveaway cooldown active. Please wait before redeeming another code.');
     END IF;
 
     -- Get code details with lock
@@ -287,7 +298,7 @@ BEGIN
     END IF;
 
     IF v_code_record.is_redeemed THEN
-        RETURN jsonb_build_object('success', false, 'message', 'Code already redeemed');
+        RETURN jsonb_build_object('success', false, 'message', 'Code already used');
     END IF;
 
     IF v_code_record.expires_at < NOW() THEN
@@ -321,6 +332,11 @@ BEGIN
         redeemed_amount = redeemed_amount + v_code_record.value,
         updated_at = NOW()
     WHERE id = v_code_record.giveaway_id;
+
+    -- Update last giveaway redeemed time for the user
+    UPDATE profiles
+    SET last_giveaway_redeemed_at = NOW()
+    WHERE id = v_user_id;
 
     RETURN jsonb_build_object(
         'success', true,
