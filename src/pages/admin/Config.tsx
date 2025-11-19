@@ -88,7 +88,7 @@ export const AdminConfig: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-3xl font-bold text-white">Superadmin Configuration</h1>
+      <h1 className="text-3xl font-bold" style={{ color: '#C1B66D' }}>Clan Master Configuration</h1>
 
       <Card className="bg-white/5 border-white/10 backdrop-blur-sm">
         <CardHeader>
