@@ -96,18 +96,19 @@ const ReceiptDialog: React.FC<ReceiptDialogProps> = ({ transaction, onClose }) =
   return (
     <div className="fixed inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-slide-up">
       <div 
-        ref={receiptRef}
-        className="bg-card rounded-xl shadow-2xl max-w-sm w-full border border-border"
+        className="bg-card rounded-xl shadow-2xl max-w-sm w-full border border-border relative overflow-hidden"
         style={{ boxShadow: '0 0 40px rgba(var(--primary-rgb), 0.1)' }}
       >
         <div 
+          ref={receiptRef}
           className="p-6 overflow-y-auto"
           style={{ maxHeight: 'calc(100vh - 200px)' }} // Adjust max height as needed
         >
+          <Watermark text="NeXa Esports" />
           <div className="text-center mb-6">
             <img src="/nexa-logo.jpg" alt="Nexa Elite Logo" className="w-20 h-20 mx-auto rounded-full mb-4 border-2 border-primary" />
             <h2 className="text-2xl font-bold text-primary font-orbitron">Transaction Receipt</h2>
-            <p className="text-sm text-muted-foreground">Nexa Elite Nexus</p>
+            <p className="text-sm text-muted-foreground">NeXa Esports</p>
           </div>
 
           <div className="text-center pt-2 pb-6">
@@ -146,6 +147,31 @@ const ReceiptDialog: React.FC<ReceiptDialogProps> = ({ transaction, onClose }) =
     </div>
   );
 };
+
+const Watermark = ({ text, opacity = 0.05, placement = 'center' }) => {
+  const positionClasses = {
+    center: 'top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2',
+    'top-left': 'top-8 left-8',
+    'top-right': 'top-8 right-8',
+    'bottom-left': 'bottom-8 left-8',
+    'bottom-right': 'bottom-8 right-8',
+  };
+
+  return (
+    <div
+      className={`absolute ${positionClasses[placement]} pointer-events-none z-0`}
+      style={{ opacity }}
+    >
+      <p
+        className="text-7xl font-black text-foreground whitespace-nowrap"
+        style={{ transform: 'rotate(-45deg)' }}
+      >
+        {text}
+      </p>
+    </div>
+  );
+};
+
 
 const ActionButton: React.FC<{
   onClick: () => void;
