@@ -38,7 +38,7 @@ serve(async (req) => {
       });
     }
 
-    const { data: giveawayId, error } = await supabaseClient.rpc('create_giveaway_with_codes', {
+    const { data: transaction, error } = await supabaseClient.rpc('create_giveaway_with_codes', {
       p_title: title,
       p_message: message || null,
       p_code_value: code_value,
@@ -54,6 +54,8 @@ serve(async (req) => {
       });
     }
 
+    const giveawayId = transaction?.giveaway_id; // The giveaway_id is now part of the returned transaction object, assuming it is. This is a guess.
+
     // Fetch the created giveaway with codes
     const { data: giveaway, error: fetchError } = await supabaseClient
       .from('giveaways')
@@ -64,6 +66,7 @@ serve(async (req) => {
     if (fetchError) {
       console.error("Error fetching giveaway:", fetchError);
     }
+
 
     // Send notification to all clan members
     const { data: profiles } = await supabaseClient
@@ -113,7 +116,8 @@ serve(async (req) => {
     return new Response(JSON.stringify({ 
       success: true, 
       giveaway_id: giveawayId,
-      giveaway 
+      giveaway,
+      transaction
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200,

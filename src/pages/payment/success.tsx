@@ -1,15 +1,16 @@
-
 import React, { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { CheckCircle, XCircle, Loader } from 'lucide-react';
-
+import ReceiptDialog from '@/components/ReceiptDialog';
 import { useAuth } from '@/contexts/AuthContext';
 
 const PaymentSuccess: React.FC = () => {
     const [status, setStatus] = useState('verifying');
     const [message, setMessage] = useState('Verifying your payment...');
+    const [showReceipt, setShowReceipt] = useState(false);
+    const [transaction, setTransaction] = useState(null);
     const location = useLocation();
     const navigate = useNavigate();
     const { updateProfile } = useAuth();
@@ -26,16 +27,7 @@ const PaymentSuccess: React.FC = () => {
         }
     }, [location]);
 
-    useEffect(() => {
-        if (status === 'success') {
-            const timer = setTimeout(() => {
-                navigate('/wallet');
-            }, 3000);
-            return () => clearTimeout(timer);
-        }
-    }, [status, navigate]);
-
-      const verifyPayment = async (reference: string) => {
+    const verifyPayment = async (reference: string) => {
         const { data, error } = await supabase.functions.invoke('verify-payment', {
           body: {
             reference,
@@ -47,14 +39,21 @@ const PaymentSuccess: React.FC = () => {
             return;
         }
 
-        if (data.message === 'Transaction already processed' || data.data.status === 'success') {
+        if ((data.message === 'Transaction already processed' || data.data.status === 'success') && data.transaction) {
             setStatus('success');
             setMessage('Payment successful! Your wallet has been credited.');
+            setTransaction(data.transaction);
+            setShowReceipt(true);
             await updateProfile({}); // Re-fetch profile
         } else {
             setStatus('error');
             setMessage(`Payment failed: ${data.data.gateway_response}`);
         }
+    };
+
+    const handleCloseReceipt = () => {
+        setShowReceipt(false);
+        navigate('/wallet');
     };
 
     const renderIcon = () => {
@@ -68,6 +67,10 @@ const PaymentSuccess: React.FC = () => {
         }
     }
 
+    if (showReceipt && transaction) {
+        return <ReceiptDialog transaction={transaction} onClose={handleCloseReceipt} />;
+    }
+
     return (
         <div className="container mx-auto p-4 md:p-6 lg:p-8 flex justify-center items-center h-screen">
             <Card className="w-full max-w-md">
@@ -79,7 +82,6 @@ const PaymentSuccess: React.FC = () => {
                     <p className={`text-lg font-semibold ${status === 'success' ? 'text-green-500' : status === 'error' ? 'text-red-500' : ''}`}>
                         {message}
                     </p>
-                    {status === 'success' && <p className="text-sm text-gray-500 mt-2">Redirecting to your wallet...</p>}
                 </CardContent>
             </Card>
         </div>

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import ReceiptDialog from '@/components/ReceiptDialog';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -20,10 +21,17 @@ import { usePaystackPayment } from 'react-paystack';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
 
-const TransactionItem = ({ transaction }) => (
-  <div className="flex items-center justify-between p-4 bg-background/80 backdrop-blur-sm rounded-lg mb-2">
+const TransactionItem = ({ transaction, onClick, isFetching }) => (
+  <div 
+    className={`flex items-center justify-between p-4 bg-background/80 backdrop-blur-sm rounded-lg mb-2 ${isFetching ? 'cursor-wait' : 'cursor-pointer'}`}
+    onClick={!isFetching ? onClick : undefined}
+  >
     <div className="flex items-center gap-4">
-      {renderTransactionIcon(transaction.type)}
+      {isFetching ? (
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      ) : (
+        renderTransactionIcon(transaction.type)
+      )}
       <div>
         <p className="font-semibold">{transaction.description}</p>
         <p className="text-sm text-muted-foreground">{transaction.date}</p>
@@ -69,7 +77,7 @@ const renderTransactionIcon = (type: string) => {
   }
 };
 
-const GiveawayDialog = ({ setWalletBalance, walletBalance, onRedeemComplete, redeemCooldown, onRedeemSuccess }) => {
+const GiveawayDialog = ({ setWalletBalance, walletBalance, onRedeemComplete, redeemCooldown, onRedeemSuccess, onGiveawayComplete }) => {
     const { profile } = useAuth();
     const { toast } = useToast();
     // Allow any authenticated player to create/redeem giveaways
@@ -128,7 +136,7 @@ const GiveawayDialog = ({ setWalletBalance, walletBalance, onRedeemComplete, red
             return;
         }
 
-        if (totalCost > walletBalance) {
+        if (totalCost > Number(walletBalance)) {
             toast({
                 title: "Insufficient funds",
                 description: `You need ₦${totalCost.toLocaleString()} but only have ₦${walletBalance.toLocaleString()}`,
@@ -177,9 +185,10 @@ const GiveawayDialog = ({ setWalletBalance, walletBalance, onRedeemComplete, red
             setCodeValue('500');
             setTotalCodes('10');
             
-            // Refresh wallet balance
-            setWalletBalance(prev => prev - totalCost);
+            // Refresh wallet balance and show receipt
+            setWalletBalance(prev => (Number(prev) - totalCost).toFixed(2));
             await fetchMyGiveaways();
+            onGiveawayComplete?.(data.transaction);
         } catch (error: any) {
             console.error('Error creating giveaway:', error);
             toast({
@@ -299,7 +308,7 @@ const GiveawayDialog = ({ setWalletBalance, walletBalance, onRedeemComplete, red
             });
 
             setRedeemCode('');
-            setWalletBalance(data.new_balance);
+            setWalletBalance(Number(data.new_balance).toFixed(2));
             onRedeemSuccess?.();
             setOpen(false);
             onRedeemComplete?.();
@@ -453,7 +462,7 @@ const GiveawayDialog = ({ setWalletBalance, walletBalance, onRedeemComplete, red
                                                 </span>
                                             </div>
                                             <div className="text-sm text-muted-foreground mt-2">
-                                                Your balance: ₦{walletBalance.toLocaleString()}
+                                                Your balance: ₦{Number(walletBalance).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                             </div>
                                         </AlertDescription>
                                     </Alert>
@@ -823,8 +832,8 @@ const WithdrawDialog = ({ setWalletBalance, walletBalance, banks, onWithdrawalCo
             description: `Your request to withdraw ₦${amount.toLocaleString()} has been submitted successfully. Funds will be sent to your account shortly.`,
         });
         
-        // Refresh wallet data from database
-        onWithdrawalComplete?.();
+        // Refresh wallet data from database and show receipt
+        onWithdrawalComplete?.(transferData.transaction);
         // Successful transfer: remove persisted idempotency key so retries generate a fresh key
         removePersistedIdempotency(profile?.id);
         console.log("Withdrawal process finished.");
@@ -1016,7 +1025,7 @@ const TransferDialog = ({ walletBalance, onTransferComplete }) => {
                 return;
             }
 
-            const { error } = await supabase.functions.invoke('transfer-funds', {
+            const { data, error } = await supabase.functions.invoke('transfer-funds', {
                 headers: {
                     'Authorization': `Bearer ${session.access_token}`,
                 },
@@ -1040,8 +1049,8 @@ const TransferDialog = ({ walletBalance, onTransferComplete }) => {
             setRecipient('');
             setOpen(false);
             
-            // Trigger wallet refresh via callback
-            onTransferComplete?.();
+            // Trigger wallet refresh and show receipt
+            onTransferComplete?.(data.transaction);
         } catch (err) {
             toast({
                 title: "Transfer Failed",
@@ -1240,6 +1249,9 @@ const Wallet: React.FC = () => {
   const [totalTransactions, setTotalTransactions] = useState(0);
   const [withdrawCooldown, setWithdrawCooldown] = useState(0);
   const [redeemCooldown, setRedeemCooldown] = useState(0);
+  const [showReceiptDialog, setShowReceiptDialog] = useState(false);
+  const [selectedTransaction, setSelectedTransaction] = useState(null);
+  const [fetchingTransactionId, setFetchingTransactionId] = useState<string | null>(null);
   
   const WITHDRAW_COOLDOWN_SECONDS = 43200; // 12 hours
     const REDEEM_COOLDOWN_SECONDS = 60; // 60 seconds
@@ -1258,8 +1270,7 @@ const Wallet: React.FC = () => {
       if (walletError) {
         console.error('Error fetching wallet:', walletError);
       } else if (walletData) {
-        setWalletBalance(Number(walletData.balance) || 0);
-      }
+                  setWalletBalance(Math.round(Number(walletData.balance) * 100) / 100 || 0);      }
 
       // Fetch transactions
       const { data: walletIdData } = await supabase
@@ -1316,11 +1327,12 @@ const Wallet: React.FC = () => {
             }
             
             return {
-              id: tx.id,
+              id: tx.id, // This is the transaction ID from the database
               description: `${description} - ${tx.status}`,
               date: new Date(tx.created_at).toLocaleDateString(),
               amount: isDebit ? -Number(tx.amount) : Number(tx.amount),
-              type: typeMapping[tx.type] || 'Other'
+              type: typeMapping[tx.type] || 'Other',
+              originalTx: tx // Keep the original transaction for receipt generation
             };
           }));
           
@@ -1396,6 +1408,42 @@ const Wallet: React.FC = () => {
     setRedeemCooldown(REDEEM_COOLDOWN_SECONDS);
   };
 
+  const [isFetchingReceipt, setIsFetchingReceipt] = useState(false);
+
+  const handleViewReceipt = async (transactionId: string) => {
+    setFetchingTransactionId(transactionId);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        toast({ title: "Error", description: "Authentication required to view receipt.", variant: "destructive" });
+        return;
+      }
+
+      const { data, error } = await supabase.functions.invoke('generate-receipt', {
+        headers: { 'Authorization': `Bearer ${session.access_token}` },
+        body: { transaction_id: transactionId },
+      });
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      // Supabase edge function returns the receipt data directly
+      if (data) {
+        setSelectedTransaction(data);
+        setShowReceiptDialog(true);
+      } else {
+        toast({ title: "Error", description: "Failed to retrieve receipt.", variant: "destructive" });
+      }
+
+    } catch (err: any) {
+      console.error('Error fetching receipt:', err);
+      toast({ title: "Error", description: err.message || "An error occurred while fetching the receipt.", variant: "destructive" });
+    } finally {
+      setFetchingTransactionId(null);
+    }
+  };
+
   return (
     <div className="container mx-auto p-4 md:p-6 lg:p-8">
 
@@ -1405,7 +1453,7 @@ const Wallet: React.FC = () => {
           <CardTitle className="text-2xl font-bold">Your Wallet</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="text-5xl font-bold text-[#C1B66D]">₦{walletBalance}</div>
+          <div className="text-5xl font-bold text-primary">₦{Number(walletBalance).toFixed(2)}</div>
           <p className="text-xs text-muted-foreground">Available Balance</p>
         </CardContent>
       </Card>
@@ -1416,20 +1464,34 @@ const Wallet: React.FC = () => {
                     setWalletBalance={setWalletBalance} 
                     walletBalance={walletBalance} 
                     banks={banks} 
-                    onWithdrawalComplete={() => {
+                    onWithdrawalComplete={(transaction) => {
                         fetchWalletData();
                         startWithdrawCooldown();
+                        if (transaction) {
+                            handleViewReceipt(transaction.id);
+                        }
                     }} 
                     isWithdrawalServiceAvailable={true}
                     cooldown={withdrawCooldown}
                 />
-        <TransferDialog walletBalance={walletBalance} onTransferComplete={fetchWalletData} />
+        <TransferDialog walletBalance={walletBalance} onTransferComplete={(transaction) => {
+            fetchWalletData();
+            if (transaction) {
+                handleViewReceipt(transaction.id);
+            }
+        }} />
         <GiveawayDialog 
           setWalletBalance={setWalletBalance} 
           walletBalance={walletBalance} 
           onRedeemComplete={fetchWalletData}
           redeemCooldown={redeemCooldown}
           onRedeemSuccess={startRedeemCooldown}
+          onGiveawayComplete={(transaction) => {
+            fetchWalletData();
+            if (transaction) {
+                handleViewReceipt(transaction.id);
+            }
+          }}
         />
       </div>
 
@@ -1448,7 +1510,12 @@ const Wallet: React.FC = () => {
             <TabsContent value="all">
               {transactions.length > 0 ? (
                 transactions.map((tx) => (
-                  <TransactionItem key={tx.id} transaction={tx} />
+                  <TransactionItem 
+                    key={tx.id} 
+                    transaction={tx} 
+                    onClick={() => handleViewReceipt(tx.originalTx.id)} 
+                    isFetching={fetchingTransactionId === tx.originalTx.id}
+                  />
                 ))
               ) : (
                 <p className="text-center text-muted-foreground py-8">No transactions yet.</p>
@@ -1456,14 +1523,14 @@ const Wallet: React.FC = () => {
               <div className="flex justify-center items-center gap-4 mt-4">
                 <Button 
                   onClick={() => setCurrentPage(prev => prev - 1)} 
-                  disabled={currentPage === 1}
+                  disabled={currentPage === 1 || !!fetchingTransactionId}
                 >
                   Previous
                 </Button>
                 <span>Page {currentPage} of {Math.ceil(totalTransactions / transactionsPerPage)}</span>
                 <Button 
                   onClick={() => setCurrentPage(prev => prev + 1)} 
-                  disabled={currentPage === Math.ceil(totalTransactions / transactionsPerPage)}
+                  disabled={currentPage === Math.ceil(totalTransactions / transactionsPerPage) || !!fetchingTransactionId}
                 >
                   Next
                 </Button>
@@ -1473,14 +1540,24 @@ const Wallet: React.FC = () => {
               {transactions
                 .filter((tx) => tx.type === 'Deposit' || tx.type === 'Transfer In')
                 .map((tx) => (
-                  <TransactionItem key={tx.id} transaction={tx} />
+                  <TransactionItem 
+                    key={tx.id} 
+                    transaction={tx} 
+                    onClick={() => handleViewReceipt(tx.originalTx.id)} 
+                    isFetching={fetchingTransactionId === tx.originalTx.id}
+                  />
                 ))}
             </TabsContent>
             <TabsContent value="withdrawals">
               {transactions
                 .filter((tx) => tx.type === 'Withdrawal' || tx.type === 'Transfer Out')
                 .map((tx) => (
-                  <TransactionItem key={tx.id} transaction={tx} />
+                  <TransactionItem 
+                    key={tx.id} 
+                    transaction={tx} 
+                    onClick={() => handleViewReceipt(tx.originalTx.id)} 
+                    isFetching={fetchingTransactionId === tx.originalTx.id}
+                  />
                 ))}
             </TabsContent>
             <TabsContent value="redeems">
@@ -1490,7 +1567,12 @@ const Wallet: React.FC = () => {
                 );
                 return redeemTransactions.length > 0 ? (
                   redeemTransactions.map((tx) => (
-                    <TransactionItem key={tx.id} transaction={tx} />
+                    <TransactionItem 
+                      key={tx.id} 
+                      transaction={tx} 
+                      onClick={() => handleViewReceipt(tx.originalTx.id)} 
+                      isFetching={fetchingTransactionId === tx.originalTx.id}
+                    />
                   ))
                 ) : (
                   <p className="text-center text-muted-foreground py-8">
@@ -1502,6 +1584,13 @@ const Wallet: React.FC = () => {
           </Tabs>
         </CardContent>
       </Card>
+
+      {showReceiptDialog && selectedTransaction && (
+        <ReceiptDialog
+          transaction={selectedTransaction}
+          onClose={() => setShowReceiptDialog(false)}
+        />
+      )}
     </div>
   );
 };

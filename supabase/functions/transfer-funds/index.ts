@@ -33,7 +33,7 @@ serve(async (req) => {
       });
     }
 
-    const { error } = await supabaseAdmin.rpc('execute_user_transfer', {
+    const { data: transaction, error } = await supabaseAdmin.rpc('execute_user_transfer', {
       sender_id: user.id,
       recipient_ign,
       amount,
@@ -47,7 +47,7 @@ serve(async (req) => {
       });
     }
 
-    return new Response(JSON.stringify({ message: "Transfer successful" }), {
+    return new Response(JSON.stringify({ message: "Transfer successful", transaction }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200,
     });

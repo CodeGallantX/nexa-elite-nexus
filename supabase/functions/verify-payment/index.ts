@@ -78,9 +78,25 @@ serve(async (req) => {
       });
     }
 
+    // Fetch the transaction to return to the client
+    const { data: newTransaction, error: newTransactionError } = await supabaseAdmin
+      .from('transactions')
+      .select('*')
+      .eq('reference', reference)
+      .single();
+
+    if (newTransactionError) {
+      console.error('Error fetching new transaction:', newTransactionError);
+      // Even if we can't fetch the transaction, the payment was successful, so don't throw an error.
+      // Return the original paystack data.
+      return new Response(JSON.stringify(paystackData), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     console.log('New balance:', newBalance);
 
-    return new Response(JSON.stringify(paystackData), {
+    return new Response(JSON.stringify({ ...paystackData, transaction: newTransaction }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
 
