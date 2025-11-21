@@ -1164,6 +1164,16 @@ const FundWalletDialog = () => {
     }
 
     const handlePayment = () => {
+        // Validate minimum amount
+        if (amount < 500) {
+            toast({
+                title: 'Minimum Deposit',
+                description: 'Minimum deposit amount is ₦500',
+                variant: 'destructive',
+            });
+            return;
+        }
+
         // Guard: ensure public key is configured
         const publicKey = import.meta.env.VITE_PAYSTACK_PUBLIC_KEY || '';
         if (!publicKey) {
@@ -1194,13 +1204,14 @@ const FundWalletDialog = () => {
                 </DialogHeader>
                 <div className="py-4 grid gap-4">
                     <div className="grid gap-2">
-                        <Label htmlFor="amount">Amount</Label>
+                        <Label htmlFor="amount">Amount (Minimum: ₦500)</Label>
                                                 <Input
                                                     id="amount"
                                                     type="number"
-                                                    placeholder="₦0.00"
+                                                    placeholder="₦500.00"
                                                     value={amount}
                                                     onChange={(e) => setAmount(Number(e.target.value))}
+                                                    min="500"
                                                 />
                                             </div>
                                             <Alert>
@@ -1223,13 +1234,13 @@ const FundWalletDialog = () => {
                                                             })()}
                                                         </>
                                                     ) : (
-                                                        'A fee of 4% will be deducted for this transaction.'
+                                                        'A fee of 4% will be deducted for this transaction. Minimum deposit is ₦500.'
                                                     )}
                                                 </AlertDescription>
                                             </Alert>
                                         </div>
                                         <DialogFooter>
-                                            <Button onClick={handlePayment} disabled={!user || !profile || amount <= 0 || isLoading}>
+                                            <Button onClick={handlePayment} disabled={!user || !profile || amount < 500 || isLoading}>
                                                 {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                                                 Fund with Paystack
                                             </Button>

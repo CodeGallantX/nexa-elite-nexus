@@ -28,9 +28,13 @@ export const NotificationBell: React.FC = () => {
     setSelectedNotification(notification);
   };
 
-  const handleMarkAllRead = () => {
-    markAllAsRead();
-    setIsOpen(false);
+  const handleMarkAllRead = async () => {
+    try {
+      await markAllAsRead();
+      setIsOpen(false);
+    } catch (error) {
+      console.error("Failed to mark all as read:", error);
+    }
   };
 
   return (
