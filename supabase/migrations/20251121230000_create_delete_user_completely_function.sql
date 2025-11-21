@@ -15,7 +15,6 @@ BEGIN
 EXCEPTION
   WHEN OTHERS THEN
     RAISE EXCEPTION 'Failed to delete user: %', SQLERRM;
-    RETURN FALSE;
 END;
 $$;
 

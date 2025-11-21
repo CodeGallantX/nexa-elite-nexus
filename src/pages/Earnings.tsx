@@ -15,6 +15,10 @@ import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { supabase } from '@/integrations/supabase/client';
 
+// Constants for fee calculations
+const CASHOUT_FEE_PERCENTAGE = 0.04;
+const CASHOUT_FEE_MULTIPLIER = 1 - CASHOUT_FEE_PERCENTAGE;
+
 const Earnings = () => {
     const { profile } = useAuth();
     const navigate = useNavigate();
@@ -235,13 +239,13 @@ const Earnings = () => {
                                 <AlertDescription>
                                     {cashOutAmount > 0 ? (
                                         <>
-                                            A fee of ₦{(cashOutAmount * 0.04).toFixed(2)} (4%) will be deducted.
+                                            A fee of ₦{(cashOutAmount * CASHOUT_FEE_PERCENTAGE).toFixed(2)} ({(CASHOUT_FEE_PERCENTAGE * 100)}%) will be deducted.
                                             <div className="text-sm text-muted-foreground mt-1">
-                                                You will receive ₦{(cashOutAmount * 0.96).toFixed(2)} after fees.
+                                                You will receive ₦{(cashOutAmount * CASHOUT_FEE_MULTIPLIER).toFixed(2)} after fees.
                                             </div>
                                         </>
                                     ) : (
-                                        'A fee of 4% will be deducted for this transaction.'
+                                        `A fee of ${(CASHOUT_FEE_PERCENTAGE * 100)}% will be deducted for this transaction.`
                                     )}
                                 </AlertDescription>
                             </Alert>

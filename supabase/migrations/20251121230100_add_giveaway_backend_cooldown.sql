@@ -149,5 +149,6 @@ BEGIN
 END;
 $$;
 
+-- Grant execute to authenticated users only for their own redemptions (function checks auth.uid())
 GRANT EXECUTE ON FUNCTION public.can_redeem_giveaway(UUID) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.redeem_giveaway_code(TEXT) TO authenticated;

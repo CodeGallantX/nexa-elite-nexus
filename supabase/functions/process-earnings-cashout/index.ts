@@ -2,6 +2,13 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { corsHeaders } from "../_shared/cors.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
+interface BankingInfo {
+  account_name: string;
+  account_number: string;
+  bank_code: string;
+  bank_name?: string;
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -69,7 +76,8 @@ serve(async (req) => {
       });
     }
 
-    // Get total earnings
+    // Get total earnings - Since this is for clan masters, they manage all clan finances
+    // The earnings table is a global table tracking all clan revenue
     const { data: earnings, error: earningsError } = await supabaseClient
       .from('earnings')
       .select('amount');
@@ -92,7 +100,7 @@ serve(async (req) => {
     }
 
     // Process the withdrawal via Paystack
-    const bankingInfo = profile.banking_info as any;
+    const bankingInfo = profile.banking_info as BankingInfo;
     
     // Create transfer recipient
     const recipientPayload = {
