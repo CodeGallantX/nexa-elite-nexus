@@ -79,7 +79,7 @@ const renderTransactionIcon = (type: string) => {
   }
 };
 
-const GiveawayDialog = ({ setWalletBalance, walletBalance, onRedeemComplete, redeemCooldown, onRedeemSuccess, onGiveawayComplete }) => {
+const GiveawayDialog = ({ setWalletBalance, walletBalance, onRedeemComplete, onGiveawayComplete }) => {
     const { profile } = useAuth();
     const { toast } = useToast();
     // Allow any authenticated player to create/redeem giveaways
@@ -250,6 +250,12 @@ const GiveawayDialog = ({ setWalletBalance, walletBalance, onRedeemComplete, red
                             description: 'This code has expired and can no longer be redeemed.',
                             variant: 'warning',
                         };
+                    case 'Cooldown active':
+                        return {
+                            title: 'Please Wait',
+                            description: `You can redeem another giveaway in ${input?.cooldown_seconds || 0} seconds.`,
+                            variant: 'warning',
+                        };
                     default:
                         return {
                             title: 'Redemption Failed',
@@ -288,7 +294,7 @@ const GiveawayDialog = ({ setWalletBalance, walletBalance, onRedeemComplete, red
                 return;
             }
 
-            // Server returns { success: boolean, message?, amount?, new_balance? }
+            // Server returns { success: boolean, message?, amount?, new_balance?, cooldown_seconds? }
 
             if (!data?.success) {
                 const mapped = mapRedeemResult(data);
@@ -311,7 +317,6 @@ const GiveawayDialog = ({ setWalletBalance, walletBalance, onRedeemComplete, red
 
             setRedeemCode('');
             setWalletBalance(Number(data.new_balance).toFixed(2));
-            onRedeemSuccess?.();
             setOpen(false);
             onRedeemComplete?.();
         } catch (error: any) {
@@ -345,13 +350,11 @@ const GiveawayDialog = ({ setWalletBalance, walletBalance, onRedeemComplete, red
 
             <Button 
                 onClick={handleRedeemCode}
-                disabled={isRedeeming || !redeemCode.trim() || redeemCooldown > 0}
+                disabled={isRedeeming || !redeemCode.trim()}
                 className="w-full"
             >
                 {isRedeeming && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {redeemCooldown > 0 
-                  ? `Wait ${Math.floor(redeemCooldown / 60)}m ${redeemCooldown % 60}s` 
-                  : 'Redeem Code'}
+                Redeem Code
             </Button>
         </div>
     );
@@ -1264,13 +1267,11 @@ const Wallet: React.FC = () => {
   const [transactionsPerPage] = useState(10);
   const [totalTransactions, setTotalTransactions] = useState(0);
   const [withdrawCooldown, setWithdrawCooldown] = useState(0);
-  const [redeemCooldown, setRedeemCooldown] = useState(0);
   const [showReceiptDialog, setShowReceiptDialog] = useState(false);
   const [selectedTransaction, setSelectedTransaction] = useState(null);
   const [fetchingTransactionId, setFetchingTransactionId] = useState<string | null>(null);
   
   const WITHDRAW_COOLDOWN_SECONDS = 43200; // 12 hours
-    const REDEEM_COOLDOWN_SECONDS = 60; // 60 seconds
 
   const fetchWalletData = async (page = 1) => {
     if (!user?.id) return;
@@ -1385,15 +1386,6 @@ const Wallet: React.FC = () => {
     }
   }, [withdrawCooldown]);
 
-  useEffect(() => {
-    if (redeemCooldown > 0) {
-      const timer = setInterval(() => {
-        setRedeemCooldown(prev => Math.max(0, prev - 1));
-      }, 1000);
-      return () => clearInterval(timer);
-    }
-  }, [redeemCooldown]);
-
   const checkCooldowns = () => {
     const withdrawCooldownEnd = localStorage.getItem('withdrawCooldownEnd');
     if (withdrawCooldownEnd) {
@@ -1402,26 +1394,12 @@ const Wallet: React.FC = () => {
         setWithdrawCooldown(remaining);
       }
     }
-
-    const redeemCooldownEnd = localStorage.getItem('redeemCooldownEnd');
-    if (redeemCooldownEnd) {
-      const remaining = Math.floor((parseInt(redeemCooldownEnd) - Date.now()) / 1000);
-      if (remaining > 0) {
-        setRedeemCooldown(remaining);
-      }
-    }
   };
 
   const startWithdrawCooldown = () => {
     const cooldownEnd = Date.now() + (WITHDRAW_COOLDOWN_SECONDS * 1000);
     localStorage.setItem('withdrawCooldownEnd', cooldownEnd.toString());
     setWithdrawCooldown(WITHDRAW_COOLDOWN_SECONDS);
-  };
-
-  const startRedeemCooldown = () => {
-    const cooldownEnd = Date.now() + (REDEEM_COOLDOWN_SECONDS * 1000);
-    localStorage.setItem('redeemCooldownEnd', cooldownEnd.toString());
-    setRedeemCooldown(REDEEM_COOLDOWN_SECONDS);
   };
 
   const [isFetchingReceipt, setIsFetchingReceipt] = useState(false);
@@ -1500,8 +1478,6 @@ const Wallet: React.FC = () => {
           setWalletBalance={setWalletBalance} 
           walletBalance={walletBalance} 
           onRedeemComplete={fetchWalletData}
-          redeemCooldown={redeemCooldown}
-          onRedeemSuccess={startRedeemCooldown}
           onGiveawayComplete={(transaction) => {
             fetchWalletData();
             if (transaction) {

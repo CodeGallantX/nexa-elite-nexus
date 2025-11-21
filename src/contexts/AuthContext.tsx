@@ -176,6 +176,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       }
 
       const registration = await navigator.serviceWorker.ready;
+      
+      // Check if user has already granted permission
+      let permission = Notification.permission;
+      
+      // If not determined yet, request permission
+      if (permission === "default") {
+        permission = await Notification.requestPermission();
+      }
+      
+      // Only proceed if permission is granted
+      if (permission !== "granted") {
+        console.log("Push notification permission not granted");
+        return;
+      }
+      
       const existingSubscription = await registration.pushManager.getSubscription();
       
       if (existingSubscription) {
@@ -208,7 +223,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
           try {
             await sendPushNotification([userId], {
               title: "Welcome Soldier!",
-              message: "Great to have you back",
+              message: "Gear Up! We're heading for the frontline.",
             });
           } catch (err) {
             console.error("Welcome push error:", err);

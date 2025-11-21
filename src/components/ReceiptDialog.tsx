@@ -31,10 +31,17 @@ const ReceiptDialog: React.FC<ReceiptDialogProps> = ({ transaction, onClose }) =
     const originalShadow = receiptRef.current.style.boxShadow;
     receiptRef.current.style.boxShadow = 'none';
     
+    // Get the computed background color, fallback to white if transparent
+    const computedBg = window.getComputedStyle(receiptRef.current).backgroundColor;
+    const backgroundColor = computedBg === 'rgba(0, 0, 0, 0)' || computedBg === 'transparent' 
+      ? '#ffffff' 
+      : computedBg;
+    
     const canvas = await html2canvas(receiptRef.current, {
         useCORS: true,
-        backgroundColor: window.getComputedStyle(receiptRef.current).backgroundColor,
+        backgroundColor: backgroundColor,
         scale: 2, // Higher resolution
+        logging: false,
     });
 
     // Restore box shadow
