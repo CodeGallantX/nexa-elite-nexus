@@ -77,7 +77,7 @@ serve(async (req) => {
       // Extract error message and provide user-friendly response
       const errorMessage = creditWalletError.message || 'Error crediting wallet';
       
-      // Check for specific validation errors
+      // Check for specific validation errors (these are client errors - invalid input)
       if (errorMessage.includes('Deposit amount must be at least')) {
         return new Response(JSON.stringify({ 
           error: `Minimum deposit is ${MINIMUM_DEPOSIT}` 
@@ -87,10 +87,22 @@ serve(async (req) => {
         });
       }
       
+      // Other validation errors from credit_wallet procedure (max deposit, daily limit, etc.)
+      // These are also client errors (invalid input), so return 400
+      if (errorMessage.includes('limit') || errorMessage.includes('cannot exceed')) {
+        return new Response(JSON.stringify({ 
+          error: errorMessage 
+        }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      
+      // Unexpected database errors should return 500
       return new Response(JSON.stringify({ 
-        error: errorMessage 
+        error: 'An error occurred while processing your deposit. Please try again later.' 
       }), {
-        status: 400,
+        status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
