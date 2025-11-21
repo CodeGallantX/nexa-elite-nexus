@@ -33,6 +33,9 @@ END;
 $$;
 
 -- Update the redeem_giveaway_code function to include cooldown check
+-- Drop the function first to allow changing return type from JSONB to JSON
+DROP FUNCTION IF EXISTS public.redeem_giveaway_code(TEXT);
+
 CREATE OR REPLACE FUNCTION public.redeem_giveaway_code(p_code TEXT)
 RETURNS JSON
 LANGUAGE plpgsql
