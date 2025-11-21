@@ -9,14 +9,22 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsi
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Loader2, ChevronLeft, ChevronRight, DollarSign } from 'lucide-react';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { useToast } from '@/hooks/use-toast';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { supabase } from '@/integrations/supabase/client';
 
 const Earnings = () => {
     const { profile } = useAuth();
     const navigate = useNavigate();
+    const { toast } = useToast();
     const { earnings, loading: earningsLoading } = useEarnings();
     const { taxAmount, loading: taxLoading, isUpdating, updateTaxAmount } = useTaxSettings();
     const [newTaxAmount, setNewTaxAmount] = useState<number>(taxAmount || 0);
+    const [isCashingOut, setIsCashingOut] = useState(false);
+    const [cashOutDialogOpen, setCashOutDialogOpen] = useState(false);
+    const [cashOutAmount, setCashOutAmount] = useState(0);
 
     // Keep the tax input synced with the latest value set by the clan master
     useEffect(() => {
@@ -43,6 +51,82 @@ const Earnings = () => {
         acc[source] = (acc[source] || 0) + earning.amount;
         return acc;
     }, {} as Record<string, number>);
+    
+    const handleCashOut = async () => {
+        if (!profile?.banking_info) {
+            toast({
+                title: "Banking Information Required",
+                description: "Please add your banking information in Settings before cashing out.",
+                variant: "destructive",
+            });
+            setCashOutDialogOpen(false);
+            navigate('/settings');
+            return;
+        }
+
+        if (cashOutAmount <= 0) {
+            toast({
+                title: "Invalid Amount",
+                description: "Please enter a valid amount to cash out.",
+                variant: "destructive",
+            });
+            return;
+        }
+
+        if (cashOutAmount > totalEarnings) {
+            toast({
+                title: "Insufficient Earnings",
+                description: `You can only cash out up to ₦${totalEarnings.toLocaleString()}`,
+                variant: "destructive",
+            });
+            return;
+        }
+
+        setIsCashingOut(true);
+        try {
+            const { data: { session } } = await supabase.auth.getSession();
+            
+            if (!session?.access_token) {
+                toast({
+                    title: "Authentication Error",
+                    description: "Your session has expired. Please log out and log back in.",
+                    variant: "destructive",
+                });
+                return;
+            }
+
+            // Call the edge function to process the cash out
+            const { data, error } = await supabase.functions.invoke('process-earnings-cashout', {
+                headers: {
+                    'Authorization': `Bearer ${session.access_token}`,
+                },
+                body: {
+                    amount: cashOutAmount,
+                },
+            });
+
+            if (error) {
+                throw error;
+            }
+
+            toast({
+                title: "Cash Out Initiated",
+                description: `Your request to cash out ₦${cashOutAmount.toLocaleString()} has been submitted. Funds will be sent to your account shortly.`,
+            });
+
+            setCashOutAmount(0);
+            setCashOutDialogOpen(false);
+        } catch (err: any) {
+            console.error('Cash out error:', err);
+            toast({
+                title: "Cash Out Failed",
+                description: err?.message || "Failed to process cash out. Please try again.",
+                variant: "destructive",
+            });
+        } finally {
+            setIsCashingOut(false);
+        }
+    };
     // Build multi-series chart data: one line per earnings source across dates
     const buildChartData = () => {
         // map date -> source -> sum
@@ -94,7 +178,86 @@ const Earnings = () => {
 
     return (
         <div className="container mx-auto p-4 md:p-6 lg:p-8">
-            <h1 className="text-3xl font-bold mb-6">Earnings</h1>
+            <div className="flex justify-between items-center mb-6">
+                <h1 className="text-3xl font-bold">Earnings</h1>
+                
+                <Dialog open={cashOutDialogOpen} onOpenChange={setCashOutDialogOpen}>
+                    <DialogTrigger asChild>
+                        <Button variant="default" size="lg">
+                            <DollarSign className="h-5 w-5 mr-2" />
+                            Cash Out
+                        </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                        <DialogHeader>
+                            <DialogTitle>Cash Out Earnings</DialogTitle>
+                            <DialogDescription>
+                                Transfer your earnings to your bank account
+                            </DialogDescription>
+                        </DialogHeader>
+                        <div className="space-y-4 py-4">
+                            <Alert>
+                                <AlertTitle>Available Earnings</AlertTitle>
+                                <AlertDescription>
+                                    <div className="text-2xl font-bold text-primary">
+                                        ₦{totalEarnings.toLocaleString()}
+                                    </div>
+                                </AlertDescription>
+                            </Alert>
+                            
+                            {profile?.banking_info && (
+                                <div className="space-y-2">
+                                    <Label>Bank Account</Label>
+                                    <div className="p-3 bg-muted rounded-lg">
+                                        <div className="font-medium">{profile.banking_info.bank_name}</div>
+                                        <div className="text-sm text-muted-foreground">
+                                            {profile.banking_info.account_number} - {profile.banking_info.account_name}
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                            
+                            <div className="space-y-2">
+                                <Label htmlFor="cashOutAmount">Amount to Cash Out</Label>
+                                <Input
+                                    id="cashOutAmount"
+                                    type="number"
+                                    placeholder="Enter amount"
+                                    value={cashOutAmount || ''}
+                                    onChange={(e) => setCashOutAmount(Number(e.target.value))}
+                                    max={totalEarnings}
+                                    min={0}
+                                />
+                            </div>
+                            
+                            <Alert>
+                                <AlertTitle>Processing Fee</AlertTitle>
+                                <AlertDescription>
+                                    {cashOutAmount > 0 ? (
+                                        <>
+                                            A fee of ₦{(cashOutAmount * 0.04).toFixed(2)} (4%) will be deducted.
+                                            <div className="text-sm text-muted-foreground mt-1">
+                                                You will receive ₦{(cashOutAmount * 0.96).toFixed(2)} after fees.
+                                            </div>
+                                        </>
+                                    ) : (
+                                        'A fee of 4% will be deducted for this transaction.'
+                                    )}
+                                </AlertDescription>
+                            </Alert>
+                        </div>
+                        <DialogFooter>
+                            <Button
+                                onClick={handleCashOut}
+                                disabled={isCashingOut || cashOutAmount <= 0}
+                            >
+                                {isCashingOut && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                {isCashingOut ? "Processing..." : "Confirm Cash Out"}
+                            </Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
+            </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
                 <Card>
