@@ -24,12 +24,14 @@ BEGIN
   END IF;
   
   -- Create the giveaway
-  INSERT INTO giveaways (title, message, value_per_code, total_codes, expires_at)
+  INSERT INTO giveaways (created_by, title, message, code_value, total_codes, total_amount, expires_at)
   VALUES (
+    auth.uid(),
     p_title,
     p_message,
     p_code_value,
     p_total_codes,
+    p_code_value * p_total_codes,
     NOW() + (p_expires_in_hours * INTERVAL '1 hour')
   )
   RETURNING id INTO new_giveaway_id;
