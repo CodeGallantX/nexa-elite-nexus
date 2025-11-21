@@ -72,8 +72,26 @@ serve(async (req) => {
 
     if (creditWalletError) {
       console.error('Error crediting wallet:', creditWalletError);
-      return new Response(JSON.stringify({ error: 'Error crediting wallet' }), {
-        status: 500,
+      
+      // Extract error message and provide user-friendly response
+      const errorMessage = creditWalletError.message || 'Error crediting wallet';
+      
+      // Check for specific validation errors
+      if (errorMessage.includes('Deposit amount must be at least')) {
+        return new Response(JSON.stringify({ 
+          error: 'Minimum deposit is 500',
+          message: 'Minimum deposit is 500' 
+        }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      
+      return new Response(JSON.stringify({ 
+        error: errorMessage,
+        message: errorMessage 
+      }), {
+        status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }

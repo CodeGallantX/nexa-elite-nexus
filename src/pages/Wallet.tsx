@@ -1134,7 +1134,10 @@ const FundWalletDialog = () => {
     const { user, profile } = useAuth();
     const [amount, setAmount] = useState(0);
     const [isLoading, setIsLoading] = useState(false);
+    const [amountError, setAmountError] = useState<string>('');
     const { toast } = useToast();
+
+    const MINIMUM_DEPOSIT = 500;
 
     const config = {
         reference: (new Date()).getTime().toString(),
@@ -1163,7 +1166,32 @@ const FundWalletDialog = () => {
         setIsLoading(false);
     }
 
+    const handleAmountChange = (value: number) => {
+        setAmount(value);
+        // Clear error when user starts typing
+        if (amountError && value >= MINIMUM_DEPOSIT) {
+            setAmountError('');
+        }
+        // Show error if amount is below minimum
+        if (value > 0 && value < MINIMUM_DEPOSIT) {
+            setAmountError(`Minimum deposit is ₦${MINIMUM_DEPOSIT}`);
+        } else {
+            setAmountError('');
+        }
+    };
+
     const handlePayment = () => {
+        // Validate minimum deposit
+        if (amount < MINIMUM_DEPOSIT) {
+            toast({
+                title: 'Invalid Amount',
+                description: `Minimum deposit is ₦${MINIMUM_DEPOSIT}`,
+                variant: 'destructive',
+            });
+            setAmountError(`Minimum deposit is ₦${MINIMUM_DEPOSIT}`);
+            return;
+        }
+
         // Guard: ensure public key is configured
         const publicKey = import.meta.env.VITE_PAYSTACK_PUBLIC_KEY || '';
         if (!publicKey) {
@@ -1200,8 +1228,12 @@ const FundWalletDialog = () => {
                                                     type="number"
                                                     placeholder="₦0.00"
                                                     value={amount}
-                                                    onChange={(e) => setAmount(Number(e.target.value))}
+                                                    onChange={(e) => handleAmountChange(Number(e.target.value))}
+                                                    className={amountError ? 'border-destructive' : ''}
                                                 />
+                                                {amountError && (
+                                                    <p className="text-sm text-destructive">{amountError}</p>
+                                                )}
                                             </div>
                                             <Alert>
                                                 <Coins className="h-4 w-4" />
@@ -1229,7 +1261,7 @@ const FundWalletDialog = () => {
                                             </Alert>
                                         </div>
                                         <DialogFooter>
-                                            <Button onClick={handlePayment} disabled={!user || !profile || amount <= 0 || isLoading}>
+                                            <Button onClick={handlePayment} disabled={!user || !profile || amount < 500 || isLoading || !!amountError}>
                                                 {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                                                 Fund with Paystack
                                             </Button>
