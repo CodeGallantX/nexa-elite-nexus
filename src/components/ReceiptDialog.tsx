@@ -33,7 +33,7 @@ const ReceiptDialog: React.FC<ReceiptDialogProps> = ({ transaction, onClose }) =
     
     const canvas = await html2canvas(receiptRef.current, {
         useCORS: true,
-        backgroundColor: null, // Make background transparent
+        backgroundColor: window.getComputedStyle(receiptRef.current).backgroundColor,
         scale: 2, // Higher resolution
     });
 
