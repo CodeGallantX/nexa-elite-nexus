@@ -21,6 +21,8 @@ import { usePaystackPayment } from 'react-paystack';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
 
+const MIN_DEPOSIT_AMOUNT = 500;
+
 const TransactionItem = ({ transaction, onClick, isFetching }) => (
   <div 
     className={`flex items-center justify-between p-4 bg-background/80 backdrop-blur-sm rounded-lg mb-2 ${isFetching ? 'cursor-wait' : 'cursor-pointer'}`}
@@ -1136,8 +1138,6 @@ const FundWalletDialog = () => {
     const [isLoading, setIsLoading] = useState(false);
     const { toast } = useToast();
 
-    const MIN_DEPOSIT_AMOUNT = 500;
-
     const config = {
         reference: (new Date()).getTime().toString(),
         email: user?.email || '',
@@ -1166,8 +1166,8 @@ const FundWalletDialog = () => {
     }
 
     const handlePayment = () => {
-        // Validate minimum amount
-        if (amount < MIN_DEPOSIT_AMOUNT) {
+        // Validate amount is a valid number
+        if (isNaN(amount) || amount < MIN_DEPOSIT_AMOUNT) {
             toast({
                 title: 'Minimum Deposit',
                 description: `Minimum deposit amount is ₦${MIN_DEPOSIT_AMOUNT}`,
@@ -1211,8 +1211,11 @@ const FundWalletDialog = () => {
                                                     id="amount"
                                                     type="number"
                                                     placeholder={`₦${MIN_DEPOSIT_AMOUNT}.00`}
-                                                    value={amount}
-                                                    onChange={(e) => setAmount(Number(e.target.value))}
+                                                    value={amount || ''}
+                                                    onChange={(e) => {
+                                                        const value = parseFloat(e.target.value);
+                                                        setAmount(isNaN(value) ? 0 : value);
+                                                    }}
                                                     min={MIN_DEPOSIT_AMOUNT}
                                                 />
                                             </div>
@@ -1242,7 +1245,7 @@ const FundWalletDialog = () => {
                                             </Alert>
                                         </div>
                                         <DialogFooter>
-                                            <Button onClick={handlePayment} disabled={!user || !profile || amount < MIN_DEPOSIT_AMOUNT || isLoading}>
+                                            <Button onClick={handlePayment} disabled={!user || !profile || isNaN(amount) || amount < MIN_DEPOSIT_AMOUNT || isLoading}>
                                                 {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                                                 Fund with Paystack
                                             </Button>
