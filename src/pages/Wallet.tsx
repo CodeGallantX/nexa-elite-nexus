@@ -1211,9 +1211,9 @@ const FundWalletDialog = () => {
                                                     id="amount"
                                                     type="number"
                                                     placeholder={`₦${MIN_DEPOSIT_AMOUNT}.00`}
-                                                    value={amount || ''}
+                                                    value={amount === 0 ? '' : amount}
                                                     onChange={(e) => {
-                                                        const value = parseFloat(e.target.value);
+                                                        const value = e.target.value === '' ? 0 : parseFloat(e.target.value);
                                                         setAmount(isNaN(value) ? 0 : value);
                                                     }}
                                                     min={MIN_DEPOSIT_AMOUNT}
