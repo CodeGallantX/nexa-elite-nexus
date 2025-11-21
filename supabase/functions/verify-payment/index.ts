@@ -3,6 +3,7 @@ import { corsHeaders } from "../_shared/cors.ts";
 import { supabaseAdmin } from "../_shared/supabaseAdmin.ts";
 
 const PAYSTACK_SECRET_KEY = Deno.env.get("PAYSTACK_SECRET_KEY");
+const MINIMUM_DEPOSIT = 500;
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -79,8 +80,7 @@ serve(async (req) => {
       // Check for specific validation errors
       if (errorMessage.includes('Deposit amount must be at least')) {
         return new Response(JSON.stringify({ 
-          error: 'Minimum deposit is 500',
-          message: 'Minimum deposit is 500' 
+          error: `Minimum deposit is ${MINIMUM_DEPOSIT}` 
         }), {
           status: 400,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -88,8 +88,7 @@ serve(async (req) => {
       }
       
       return new Response(JSON.stringify({ 
-        error: errorMessage,
-        message: errorMessage 
+        error: errorMessage 
       }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
