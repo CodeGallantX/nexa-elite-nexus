@@ -1136,6 +1136,8 @@ const FundWalletDialog = () => {
     const [isLoading, setIsLoading] = useState(false);
     const { toast } = useToast();
 
+    const MIN_DEPOSIT_AMOUNT = 500;
+
     const config = {
         reference: (new Date()).getTime().toString(),
         email: user?.email || '',
@@ -1165,10 +1167,10 @@ const FundWalletDialog = () => {
 
     const handlePayment = () => {
         // Validate minimum amount
-        if (amount < 500) {
+        if (amount < MIN_DEPOSIT_AMOUNT) {
             toast({
                 title: 'Minimum Deposit',
-                description: 'Minimum deposit amount is ₦500',
+                description: `Minimum deposit amount is ₦${MIN_DEPOSIT_AMOUNT}`,
                 variant: 'destructive',
             });
             return;
@@ -1204,14 +1206,14 @@ const FundWalletDialog = () => {
                 </DialogHeader>
                 <div className="py-4 grid gap-4">
                     <div className="grid gap-2">
-                        <Label htmlFor="amount">Amount (Minimum: ₦500)</Label>
+                        <Label htmlFor="amount">Amount (Minimum: ₦{MIN_DEPOSIT_AMOUNT})</Label>
                                                 <Input
                                                     id="amount"
                                                     type="number"
-                                                    placeholder="₦500.00"
+                                                    placeholder={`₦${MIN_DEPOSIT_AMOUNT}.00`}
                                                     value={amount}
                                                     onChange={(e) => setAmount(Number(e.target.value))}
-                                                    min="500"
+                                                    min={MIN_DEPOSIT_AMOUNT}
                                                 />
                                             </div>
                                             <Alert>
@@ -1234,13 +1236,13 @@ const FundWalletDialog = () => {
                                                             })()}
                                                         </>
                                                     ) : (
-                                                        'A fee of 4% will be deducted for this transaction. Minimum deposit is ₦500.'
+                                                        `A fee of 4% will be deducted for this transaction. Minimum deposit is ₦${MIN_DEPOSIT_AMOUNT}.`
                                                     )}
                                                 </AlertDescription>
                                             </Alert>
                                         </div>
                                         <DialogFooter>
-                                            <Button onClick={handlePayment} disabled={!user || !profile || amount < 500 || isLoading}>
+                                            <Button onClick={handlePayment} disabled={!user || !profile || amount < MIN_DEPOSIT_AMOUNT || isLoading}>
                                                 {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                                                 Fund with Paystack
                                             </Button>
