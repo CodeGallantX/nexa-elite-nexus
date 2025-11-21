@@ -10,12 +10,14 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useNotifications } from "@/hooks/useNotifications";
+import { useToast } from "@/hooks/use-toast";
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 export const NotificationBell: React.FC = () => {
   const { notifications, unreadCount, markAsRead, markAllAsRead } =
     useNotifications();
+  const { toast } = useToast();
   const [isOpen, setIsOpen] = useState(false);
   const [selectedNotification, setSelectedNotification] = useState<any>(null);
 
@@ -28,9 +30,18 @@ export const NotificationBell: React.FC = () => {
     setSelectedNotification(notification);
   };
 
-  const handleMarkAllRead = () => {
-    markAllAsRead();
-    setIsOpen(false);
+  const handleMarkAllRead = async () => {
+    try {
+      await markAllAsRead();
+      setIsOpen(false);
+    } catch (error) {
+      console.error("Failed to mark all as read:", error);
+      toast({
+        title: "Error",
+        description: "Failed to mark all notifications as read. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
