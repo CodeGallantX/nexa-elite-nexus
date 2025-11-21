@@ -387,7 +387,7 @@ export const useNotifications = () => {
     notifications,
     unreadCount,
     markAsRead: markAsReadMutation.mutate,
-    markAllAsRead: markAllAsReadMutation.mutate,
+    markAllAsRead: markAllAsReadMutation.mutateAsync,
     isMarkingAllAsRead: markAllAsReadMutation.isPending,
     sendNotification: sendNotificationMutation.mutate,
     isLoading: false,

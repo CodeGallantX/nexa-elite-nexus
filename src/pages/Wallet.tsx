@@ -1138,6 +1138,7 @@ const FundWalletDialog = () => {
     const { toast } = useToast();
 
     const MINIMUM_DEPOSIT = 500;
+    const MINIMUM_DEPOSIT_ERROR = `Minimum deposit is ₦${MINIMUM_DEPOSIT}`;
 
     const config = {
         reference: (new Date()).getTime().toString(),
@@ -1168,13 +1169,9 @@ const FundWalletDialog = () => {
 
     const handleAmountChange = (value: number) => {
         setAmount(value);
-        // Clear error when user starts typing
-        if (amountError && value >= MINIMUM_DEPOSIT) {
-            setAmountError('');
-        }
         // Show error if amount is below minimum
         if (value > 0 && value < MINIMUM_DEPOSIT) {
-            setAmountError(`Minimum deposit is ₦${MINIMUM_DEPOSIT}`);
+            setAmountError(MINIMUM_DEPOSIT_ERROR);
         } else {
             setAmountError('');
         }
@@ -1185,10 +1182,10 @@ const FundWalletDialog = () => {
         if (amount < MINIMUM_DEPOSIT) {
             toast({
                 title: 'Invalid Amount',
-                description: `Minimum deposit is ₦${MINIMUM_DEPOSIT}`,
+                description: MINIMUM_DEPOSIT_ERROR,
                 variant: 'destructive',
             });
-            setAmountError(`Minimum deposit is ₦${MINIMUM_DEPOSIT}`);
+            setAmountError(MINIMUM_DEPOSIT_ERROR);
             return;
         }
 
@@ -1261,7 +1258,7 @@ const FundWalletDialog = () => {
                                             </Alert>
                                         </div>
                                         <DialogFooter>
-                                            <Button onClick={handlePayment} disabled={!user || !profile || amount < 500 || isLoading || !!amountError}>
+                                            <Button onClick={handlePayment} disabled={!user || !profile || amount < MINIMUM_DEPOSIT || isLoading || !!amountError}>
                                                 {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                                                 Fund with Paystack
                                             </Button>
