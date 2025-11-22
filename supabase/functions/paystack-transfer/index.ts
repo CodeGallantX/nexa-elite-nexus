@@ -63,7 +63,7 @@ serve(async (req) => {
       });
     } catch (err) {
       console.error('Error checking withdrawal availability:', err);
-      return new Response(JSON.stringify({ allowed: true, error: err?.message || String(err) }), {
+      return new Response(JSON.stringify({ allowed: true, error: err instanceof Error ? err.message : String(err) }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 200,
       });
@@ -97,7 +97,7 @@ serve(async (req) => {
       });
     } catch (error) {
       console.error("Error creating transfer recipient:", error);
-      return new Response(JSON.stringify({ error: error.message }), {
+      return new Response(JSON.stringify({ error: error instanceof Error ? error.message : String(error) }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 500,
       });
@@ -290,7 +290,7 @@ serve(async (req) => {
       });
     } catch (error) {
       console.error("Error initiating transfer:", error);
-      return new Response(JSON.stringify({ error: error.message }), {
+      return new Response(JSON.stringify({ error: error instanceof Error ? error.message : String(error) }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 500,
       });

@@ -54,7 +54,7 @@ serve(async (req) => {
 
   } catch (err) {
     console.error("Unexpected error in transfer-funds:", err);
-    return new Response(JSON.stringify({ error: err.message }), {
+    return new Response(JSON.stringify({ error: err instanceof Error ? err.message : String(err) }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 500,
     });
