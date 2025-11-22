@@ -1374,6 +1374,36 @@ const Wallet: React.FC = () => {
     setReceiptOpen(true);
   };
 
+  // Parse transfer info from transaction reference
+  const getTransferInfo = (transaction: any) => {
+    if (!transaction?.reference) return null;
+    
+    const ref = transaction.reference;
+    const type = transaction.raw_type;
+    
+    // For transfer_out: reference is "transfer_to_{recipient_ign}_{timestamp}"
+    if (type === 'transfer_out' && ref.startsWith('transfer_to_')) {
+      const parts = ref.split('_');
+      if (parts.length >= 3) {
+        // Extract IGN between 'transfer_to_' and the timestamp
+        const recipient = parts.slice(2, -1).join('_');
+        return { recipient };
+      }
+    }
+    
+    // For transfer_in: reference is "transfer_from_{sender_ign}_{timestamp}"
+    if (type === 'transfer_in' && ref.startsWith('transfer_from_')) {
+      const parts = ref.split('_');
+      if (parts.length >= 3) {
+        // Extract IGN between 'transfer_from_' and the timestamp
+        const sender = parts.slice(2, -1).join('_');
+        return { sender };
+      }
+    }
+    
+    return null;
+  };
+
   return (
     <div className="container mx-auto p-4 md:p-6 lg:p-8">
 
@@ -1499,6 +1529,7 @@ const Wallet: React.FC = () => {
             username: profile?.username,
             player_type: profile?.status === 'beta' ? 'beta' : 'main',
           }}
+          transferInfo={getTransferInfo(selectedTransaction)}
         />
       )}
     </div>

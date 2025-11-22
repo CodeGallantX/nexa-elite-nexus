@@ -24,6 +24,10 @@ interface TransactionReceiptProps {
     username?: string;
     player_type?: string;
   };
+  transferInfo?: {
+    sender?: string;
+    recipient?: string;
+  };
 }
 
 export const TransactionReceipt: React.FC<TransactionReceiptProps> = ({
@@ -31,6 +35,7 @@ export const TransactionReceipt: React.FC<TransactionReceiptProps> = ({
   open,
   onOpenChange,
   userInfo,
+  transferInfo,
 }) => {
   const receiptRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
@@ -294,6 +299,22 @@ export const TransactionReceipt: React.FC<TransactionReceiptProps> = ({
                       <div className="flex justify-between">
                         <span className="font-semibold">Username:</span>
                         <span>{userInfo.username}</span>
+                      </div>
+                    )}
+                  </>
+                )}
+                {transferInfo && (
+                  <>
+                    {transferInfo.sender && (
+                      <div className="flex justify-between">
+                        <span className="font-semibold">Sender:</span>
+                        <span className="font-mono text-sm">{transferInfo.sender}</span>
+                      </div>
+                    )}
+                    {transferInfo.recipient && (
+                      <div className="flex justify-between">
+                        <span className="font-semibold">Recipient:</span>
+                        <span className="font-mono text-sm">{transferInfo.recipient}</span>
                       </div>
                     )}
                   </>
