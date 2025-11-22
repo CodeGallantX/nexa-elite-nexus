@@ -86,20 +86,13 @@ export const useDeletePlayer = () => {
         .eq('id', playerId)
         .single();
 
-      // Delete user data from database
-      const { data, error } = await supabase.rpc('delete_user_completely', {
-        user_id_to_delete: playerId
+      // Call edge function to delete user completely
+      const { data, error } = await supabase.functions.invoke('delete-user', {
+        body: { userId: playerId }
       });
 
       if (error) throw error;
-      if (data === false) throw new Error('Failed to delete user data');
-
-      // Delete auth user via admin API
-      const { error: authError } = await supabase.auth.admin.deleteUser(playerId);
-      if (authError) {
-        console.error('Failed to delete auth user:', authError);
-        // Continue anyway since profile data is deleted
-      }
+      if (!data?.success) throw new Error('Failed to delete user');
 
       // Log the activity
       if (player) {
