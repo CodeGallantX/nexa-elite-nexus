@@ -3,6 +3,7 @@ import { corsHeaders } from "../_shared/cors.ts";
 import { supabaseAdmin } from "../_shared/supabaseAdmin.ts";
 
 const PAYSTACK_SECRET_KEY = Deno.env.get("PAYSTACK_SECRET_KEY");
+const MINIMUM_DEPOSIT = 500;
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -72,15 +73,59 @@ serve(async (req) => {
 
     if (creditWalletError) {
       console.error('Error crediting wallet:', creditWalletError);
-      return new Response(JSON.stringify({ error: 'Error crediting wallet' }), {
+      
+      // Extract error message and provide user-friendly response
+      const errorMessage = creditWalletError.message || 'Error crediting wallet';
+      
+      // Check for specific validation errors (these are client errors - invalid input)
+      if (errorMessage.includes('Deposit amount must be at least')) {
+        return new Response(JSON.stringify({ 
+          error: `Minimum deposit is ${MINIMUM_DEPOSIT}` 
+        }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      
+      // Other validation errors from credit_wallet procedure (max deposit, daily limit, etc.)
+      // These are also client errors (invalid input), so return 400
+      if (errorMessage.includes('limit') || errorMessage.includes('cannot exceed')) {
+        return new Response(JSON.stringify({ 
+          error: errorMessage 
+        }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      
+      // Unexpected database errors should return 500
+      return new Response(JSON.stringify({ 
+        error: 'An error occurred while processing your deposit. Please try again later.' 
+      }), {
         status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Fetch the transaction to return to the client
+    const { data: newTransaction, error: newTransactionError } = await supabaseAdmin
+      .from('transactions')
+      .select('*')
+      .eq('reference', reference)
+      .single();
+
+    if (newTransactionError) {
+      console.error('Error fetching new transaction:', newTransactionError);
+      // Even if we can't fetch the transaction, the payment was successful, so don't throw an error.
+      // Return the original paystack data.
+      return new Response(JSON.stringify(paystackData), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
     console.log('New balance:', newBalance);
 
-    return new Response(JSON.stringify(paystackData), {
+    return new Response(JSON.stringify({ ...paystackData, transaction: newTransaction }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
 

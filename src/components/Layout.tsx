@@ -77,7 +77,7 @@ export const Layout: React.FC<LayoutProps> = ({
         }
       `}>
         <Header onSidebarToggle={handleSidebarToggle} />
-        <main className="p-6 overflow-auto">{children}</main>
+        <main className="p-6 overflow-auto pt-20">{children}</main>
         <ReportBugButton />
       </div>
     </div>

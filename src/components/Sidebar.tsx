@@ -144,13 +144,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
       {/* Overlay for mobile when sidebar is open */}
       {!isCollapsed && isMobile && (
         <div 
-          className="fixed inset-0 bg-black/50 z-40 md:hidden"
+          className="fixed inset-0 bg-black/50 z-50 md:hidden"
           onClick={() => setIsCollapsed(true)}
         />
       )}
       
       <div className={`
-        fixed left-0 top-0 h-full bg-card border-r border-border z-50
+        fixed left-0 top-0 h-full bg-card border-r border-border z-[999]
         transition-all duration-300 overflow-y-auto flex flex-col
         ${isMobile 
           ? (isCollapsed ? '-translate-x-full' : 'w-64 translate-x-0')

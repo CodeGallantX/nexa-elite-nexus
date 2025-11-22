@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Bell } from "lucide-react";
+import { Bell, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -10,12 +10,14 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useNotifications } from "@/hooks/useNotifications";
+import { useToast } from "@/hooks/use-toast";
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 export const NotificationBell: React.FC = () => {
-  const { notifications, unreadCount, markAsRead, markAllAsRead } =
+  const { notifications, unreadCount, markAsRead, markAllAsRead, isMarkingAllAsRead } =
     useNotifications();
+  const { toast } = useToast();
   const [isOpen, setIsOpen] = useState(false);
   const [selectedNotification, setSelectedNotification] = useState<any>(null);
 
@@ -28,9 +30,22 @@ export const NotificationBell: React.FC = () => {
     setSelectedNotification(notification);
   };
 
-  const handleMarkAllRead = () => {
-    markAllAsRead();
-    setIsOpen(false);
+  const handleMarkAllRead = async () => {
+    try {
+      await markAllAsRead();
+      toast({
+        title: "Success",
+        description: "All notifications marked as read",
+      });
+      setIsOpen(false);
+    } catch (error) {
+      console.error("Error marking all as read:", error);
+      toast({
+        title: "Error",
+        description: "Failed to mark all notifications as read. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
@@ -65,7 +80,11 @@ export const NotificationBell: React.FC = () => {
                 size="sm"
                 className="text-xs h-6 px-2"
                 onClick={handleMarkAllRead}
+                disabled={isMarkingAllAsRead}
               >
+                {isMarkingAllAsRead && (
+                  <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+                )}
                 Mark all read
               </Button>
             )}

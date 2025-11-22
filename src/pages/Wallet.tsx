@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import ReceiptDialog from '@/components/ReceiptDialog';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -20,10 +21,17 @@ import { usePaystackPayment } from 'react-paystack';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
 
-const TransactionItem = ({ transaction }) => (
-  <div className="flex items-center justify-between p-4 bg-background/80 backdrop-blur-sm rounded-lg mb-2">
+const TransactionItem = ({ transaction, onClick, isFetching }) => (
+  <div 
+    className={`flex items-center justify-between p-4 bg-background/80 backdrop-blur-sm rounded-lg mb-2 ${isFetching ? 'cursor-wait' : 'cursor-pointer'}`}
+    onClick={!isFetching ? onClick : undefined}
+  >
     <div className="flex items-center gap-4">
-      {renderTransactionIcon(transaction.type)}
+      {isFetching ? (
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      ) : (
+        renderTransactionIcon(transaction.type)
+      )}
       <div>
         <p className="font-semibold">{transaction.description}</p>
         <p className="text-sm text-muted-foreground">{transaction.date}</p>
@@ -69,7 +77,7 @@ const renderTransactionIcon = (type: string) => {
   }
 };
 
-const GiveawayDialog = ({ setWalletBalance, walletBalance, onRedeemComplete, redeemCooldown, onRedeemSuccess }) => {
+const GiveawayDialog = ({ setWalletBalance, walletBalance, onRedeemComplete, redeemCooldown, onRedeemSuccess, onGiveawayComplete }) => {
     const { profile } = useAuth();
     const { toast } = useToast();
     // Allow any authenticated player to create/redeem giveaways
@@ -128,7 +136,7 @@ const GiveawayDialog = ({ setWalletBalance, walletBalance, onRedeemComplete, red
             return;
         }
 
-        if (totalCost > walletBalance) {
+        if (totalCost > Number(walletBalance)) {
             toast({
                 title: "Insufficient funds",
                 description: `You need ₦${totalCost.toLocaleString()} but only have ₦${walletBalance.toLocaleString()}`,
@@ -177,9 +185,10 @@ const GiveawayDialog = ({ setWalletBalance, walletBalance, onRedeemComplete, red
             setCodeValue('500');
             setTotalCodes('10');
             
-            // Refresh wallet balance
-            setWalletBalance(prev => prev - totalCost);
+            // Refresh wallet balance and show receipt
+            setWalletBalance(prev => (Number(prev) - totalCost).toFixed(2));
             await fetchMyGiveaways();
+            onGiveawayComplete?.(data.transaction);
         } catch (error: any) {
             console.error('Error creating giveaway:', error);
             toast({
@@ -299,7 +308,7 @@ const GiveawayDialog = ({ setWalletBalance, walletBalance, onRedeemComplete, red
             });
 
             setRedeemCode('');
-            setWalletBalance(data.new_balance);
+            setWalletBalance(Number(data.new_balance).toFixed(2));
             onRedeemSuccess?.();
             setOpen(false);
             onRedeemComplete?.();
@@ -453,7 +462,7 @@ const GiveawayDialog = ({ setWalletBalance, walletBalance, onRedeemComplete, red
                                                 </span>
                                             </div>
                                             <div className="text-sm text-muted-foreground mt-2">
-                                                Your balance: ₦{walletBalance.toLocaleString()}
+                                                Your balance: ₦{Number(walletBalance).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                             </div>
                                         </AlertDescription>
                                     </Alert>
@@ -569,8 +578,48 @@ const WithdrawDialog = ({ setWalletBalance, walletBalance, banks, onWithdrawalCo
     const [bankName, setBankName] = useState('');
     const [notes, setNotes] = useState('');
     const [open, setOpen] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
     const [withdrawalAllowed, setWithdrawalAllowed] = useState<boolean | null>(null);
     const { toast } = useToast();
+
+    const IDEMP_PREFIX = 'withdraw_idempotency_';
+
+    const getPersistedIdempotency = (userId: string | undefined) => {
+        try {
+            const key = `${IDEMP_PREFIX}${userId || 'anon'}`;
+            const raw = localStorage.getItem(key);
+            if (!raw) return null;
+            const parsed = JSON.parse(raw);
+            if (!parsed?.key || !parsed?.ts) return null;
+            // Accept persisted key for up to 12 hours
+            if (Date.now() - parsed.ts > 12 * 60 * 60 * 1000) {
+                localStorage.removeItem(key);
+                return null;
+            }
+            return parsed.key as string;
+        } catch (e) {
+            console.warn('Failed to read persisted idempotency key', e);
+            return null;
+        }
+    };
+
+    const persistIdempotency = (userId: string | undefined, keyValue: string) => {
+        try {
+            const key = `${IDEMP_PREFIX}${userId || 'anon'}`;
+            localStorage.setItem(key, JSON.stringify({ key: keyValue, ts: Date.now() }));
+        } catch (e) {
+            console.warn('Failed to persist idempotency key', e);
+        }
+    };
+
+    const removePersistedIdempotency = (userId: string | undefined) => {
+        try {
+            const key = `${IDEMP_PREFIX}${userId || 'anon'}`;
+            localStorage.removeItem(key);
+        } catch (e) {
+            console.warn('Failed to remove persisted idempotency key', e);
+        }
+    };
 
     useEffect(() => {
         if (profile?.banking_info) {
@@ -661,6 +710,16 @@ const WithdrawDialog = ({ setWalletBalance, walletBalance, banks, onWithdrawalCo
         }
 
         console.log("Validation passed. Creating transfer recipient...");
+        // Prevent duplicate submissions from multiple clicks
+        if (isSubmitting) {
+            console.warn('Withdraw already in progress, ignoring duplicate submit');
+            return;
+        }
+        setIsSubmitting(true);
+        // Close dialog immediately so the UI responds to the user's click
+        setOpen(false);
+
+        try {
         const recipientPayload = {
             endpoint: 'create-transfer-recipient',
             name: accountName,
@@ -699,10 +758,18 @@ const WithdrawDialog = ({ setWalletBalance, walletBalance, banks, onWithdrawalCo
 
         console.log("Transfer recipient created successfully:", recipientData);
         console.log("Initiating transfer...");
+        // Try to reuse a recent persisted idempotency key (helps survive reloads/retries)
+        let idempotencyKey = getPersistedIdempotency(profile?.id);
+        if (!idempotencyKey) {
+            idempotencyKey = `withdraw-${profile?.id || 'anon'}-${Date.now()}-${Math.random().toString(36).slice(2,9)}`;
+            persistIdempotency(profile?.id, idempotencyKey);
+        }
+
         const transferPayload = {
             endpoint: 'initiate-transfer',
             amount,
             recipient_code: recipientData.data.recipient_code,
+            idempotency_key: idempotencyKey,
         };
         console.log("Transfer payload:", transferPayload);
 
@@ -754,10 +821,10 @@ const WithdrawDialog = ({ setWalletBalance, walletBalance, banks, onWithdrawalCo
 
         console.log("Transfer initiated successfully:", transferData);
         
-        // Reset form and close dialog
+        // Reset form
         setAmount(0);
         setNotes('');
-        setOpen(false);
+        // Note: dialog already closed earlier
         
         // Show success message
         toast({
@@ -765,9 +832,17 @@ const WithdrawDialog = ({ setWalletBalance, walletBalance, banks, onWithdrawalCo
             description: `Your request to withdraw ₦${amount.toLocaleString()} has been submitted successfully. Funds will be sent to your account shortly.`,
         });
         
-        // Refresh wallet data from database
-        onWithdrawalComplete?.();
+        // Refresh wallet data from database and show receipt
+        onWithdrawalComplete?.(transferData.transaction);
+        // Successful transfer: remove persisted idempotency key so retries generate a fresh key
+        removePersistedIdempotency(profile?.id);
         console.log("Withdrawal process finished.");
+        } catch (err: any) {
+            console.error('Withdrawal error:', err);
+            toast({ title: 'Withdrawal Failed', description: err?.message || 'An unexpected error occurred', variant: 'destructive' });
+        } finally {
+            setIsSubmitting(false);
+        }
     }
 
     return (
@@ -900,11 +975,12 @@ const WithdrawDialog = ({ setWalletBalance, walletBalance, banks, onWithdrawalCo
                 <DialogFooter>
                     <Button 
                         onClick={handleWithdraw}
-                        disabled={cooldown > 0}
+                        disabled={cooldown > 0 || isSubmitting}
                     >
+                        {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                         {cooldown > 0 
                             ? `Wait ${Math.floor(cooldown / 3600)}h ${Math.floor((cooldown % 3600) / 60)}m ${cooldown % 60}s`
-                            : 'Submit Withdrawal'}
+                            : (isSubmitting ? 'Processing...' : 'Submit Withdrawal')}
                     </Button>
                 </DialogFooter>
             </DialogContent>
@@ -949,7 +1025,7 @@ const TransferDialog = ({ walletBalance, onTransferComplete }) => {
                 return;
             }
 
-            const { error } = await supabase.functions.invoke('transfer-funds', {
+            const { data, error } = await supabase.functions.invoke('transfer-funds', {
                 headers: {
                     'Authorization': `Bearer ${session.access_token}`,
                 },
@@ -973,8 +1049,8 @@ const TransferDialog = ({ walletBalance, onTransferComplete }) => {
             setRecipient('');
             setOpen(false);
             
-            // Trigger wallet refresh via callback
-            onTransferComplete?.();
+            // Trigger wallet refresh and show receipt
+            onTransferComplete?.(data.transaction);
         } catch (err) {
             toast({
                 title: "Transfer Failed",
@@ -1058,7 +1134,11 @@ const FundWalletDialog = () => {
     const { user, profile } = useAuth();
     const [amount, setAmount] = useState(0);
     const [isLoading, setIsLoading] = useState(false);
+    const [amountError, setAmountError] = useState<string>('');
     const { toast } = useToast();
+
+    const MINIMUM_DEPOSIT = 500;
+    const MINIMUM_DEPOSIT_ERROR = `Minimum deposit is ₦${MINIMUM_DEPOSIT}`;
 
     const config = {
         reference: (new Date()).getTime().toString(),
@@ -1087,7 +1167,28 @@ const FundWalletDialog = () => {
         setIsLoading(false);
     }
 
+    const handleAmountChange = (value: number) => {
+        setAmount(value);
+        // Show error if amount is below minimum
+        if (value > 0 && value < MINIMUM_DEPOSIT) {
+            setAmountError(MINIMUM_DEPOSIT_ERROR);
+        } else {
+            setAmountError('');
+        }
+    };
+
     const handlePayment = () => {
+        // Validate minimum deposit
+        if (amount < MINIMUM_DEPOSIT) {
+            toast({
+                title: 'Invalid Amount',
+                description: MINIMUM_DEPOSIT_ERROR,
+                variant: 'destructive',
+            });
+            setAmountError(MINIMUM_DEPOSIT_ERROR);
+            return;
+        }
+
         // Guard: ensure public key is configured
         const publicKey = import.meta.env.VITE_PAYSTACK_PUBLIC_KEY || '';
         if (!publicKey) {
@@ -1124,8 +1225,12 @@ const FundWalletDialog = () => {
                                                     type="number"
                                                     placeholder="₦0.00"
                                                     value={amount}
-                                                    onChange={(e) => setAmount(Number(e.target.value))}
+                                                    onChange={(e) => handleAmountChange(Number(e.target.value))}
+                                                    className={amountError ? 'border-destructive' : ''}
                                                 />
+                                                {amountError && (
+                                                    <p className="text-sm text-destructive">{amountError}</p>
+                                                )}
                                             </div>
                                             <Alert>
                                                 <Coins className="h-4 w-4" />
@@ -1153,7 +1258,7 @@ const FundWalletDialog = () => {
                                             </Alert>
                                         </div>
                                         <DialogFooter>
-                                            <Button onClick={handlePayment} disabled={!user || !profile || amount <= 0 || isLoading}>
+                                            <Button onClick={handlePayment} disabled={!user || !profile || amount < MINIMUM_DEPOSIT || isLoading || !!amountError}>
                                                 {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                                                 Fund with Paystack
                                             </Button>
@@ -1173,9 +1278,12 @@ const Wallet: React.FC = () => {
   const [totalTransactions, setTotalTransactions] = useState(0);
   const [withdrawCooldown, setWithdrawCooldown] = useState(0);
   const [redeemCooldown, setRedeemCooldown] = useState(0);
+  const [showReceiptDialog, setShowReceiptDialog] = useState(false);
+  const [selectedTransaction, setSelectedTransaction] = useState(null);
+  const [fetchingTransactionId, setFetchingTransactionId] = useState<string | null>(null);
   
   const WITHDRAW_COOLDOWN_SECONDS = 43200; // 12 hours
-  const REDEEM_COOLDOWN_SECONDS = 600; // 10 minutes
+    const REDEEM_COOLDOWN_SECONDS = 60; // 60 seconds
 
   const fetchWalletData = async (page = 1) => {
     if (!user?.id) return;
@@ -1191,8 +1299,7 @@ const Wallet: React.FC = () => {
       if (walletError) {
         console.error('Error fetching wallet:', walletError);
       } else if (walletData) {
-        setWalletBalance(Number(walletData.balance) || 0);
-      }
+                  setWalletBalance(Math.round(Number(walletData.balance) * 100) / 100 || 0);      }
 
       // Fetch transactions
       const { data: walletIdData } = await supabase
@@ -1249,11 +1356,12 @@ const Wallet: React.FC = () => {
             }
             
             return {
-              id: tx.id,
+              id: tx.id, // This is the transaction ID from the database
               description: `${description} - ${tx.status}`,
               date: new Date(tx.created_at).toLocaleDateString(),
               amount: isDebit ? -Number(tx.amount) : Number(tx.amount),
-              type: typeMapping[tx.type] || 'Other'
+              type: typeMapping[tx.type] || 'Other',
+              originalTx: tx // Keep the original transaction for receipt generation
             };
           }));
           
@@ -1329,6 +1437,42 @@ const Wallet: React.FC = () => {
     setRedeemCooldown(REDEEM_COOLDOWN_SECONDS);
   };
 
+  const [isFetchingReceipt, setIsFetchingReceipt] = useState(false);
+
+  const handleViewReceipt = async (transactionId: string) => {
+    setFetchingTransactionId(transactionId);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        toast({ title: "Error", description: "Authentication required to view receipt.", variant: "destructive" });
+        return;
+      }
+
+      const { data, error } = await supabase.functions.invoke('generate-receipt', {
+        headers: { 'Authorization': `Bearer ${session.access_token}` },
+        body: { transaction_id: transactionId },
+      });
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      // Supabase edge function returns the receipt data directly
+      if (data) {
+        setSelectedTransaction(data);
+        setShowReceiptDialog(true);
+      } else {
+        toast({ title: "Error", description: "Failed to retrieve receipt.", variant: "destructive" });
+      }
+
+    } catch (err: any) {
+      console.error('Error fetching receipt:', err);
+      toast({ title: "Error", description: err.message || "An error occurred while fetching the receipt.", variant: "destructive" });
+    } finally {
+      setFetchingTransactionId(null);
+    }
+  };
+
   return (
     <div className="container mx-auto p-4 md:p-6 lg:p-8">
 
@@ -1338,7 +1482,7 @@ const Wallet: React.FC = () => {
           <CardTitle className="text-2xl font-bold">Your Wallet</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="text-5xl font-bold text-[#C1B66D]">₦{walletBalance}</div>
+          <div className="text-5xl font-bold text-primary">₦{Number(walletBalance).toFixed(2)}</div>
           <p className="text-xs text-muted-foreground">Available Balance</p>
         </CardContent>
       </Card>
@@ -1349,20 +1493,34 @@ const Wallet: React.FC = () => {
                     setWalletBalance={setWalletBalance} 
                     walletBalance={walletBalance} 
                     banks={banks} 
-                    onWithdrawalComplete={() => {
+                    onWithdrawalComplete={(transaction) => {
                         fetchWalletData();
                         startWithdrawCooldown();
+                        if (transaction) {
+                            handleViewReceipt(transaction.id);
+                        }
                     }} 
                     isWithdrawalServiceAvailable={true}
                     cooldown={withdrawCooldown}
                 />
-        <TransferDialog walletBalance={walletBalance} onTransferComplete={fetchWalletData} />
+        <TransferDialog walletBalance={walletBalance} onTransferComplete={(transaction) => {
+            fetchWalletData();
+            if (transaction) {
+                handleViewReceipt(transaction.id);
+            }
+        }} />
         <GiveawayDialog 
           setWalletBalance={setWalletBalance} 
           walletBalance={walletBalance} 
           onRedeemComplete={fetchWalletData}
           redeemCooldown={redeemCooldown}
           onRedeemSuccess={startRedeemCooldown}
+          onGiveawayComplete={(transaction) => {
+            fetchWalletData();
+            if (transaction) {
+                handleViewReceipt(transaction.id);
+            }
+          }}
         />
       </div>
 
@@ -1381,7 +1539,12 @@ const Wallet: React.FC = () => {
             <TabsContent value="all">
               {transactions.length > 0 ? (
                 transactions.map((tx) => (
-                  <TransactionItem key={tx.id} transaction={tx} />
+                  <TransactionItem 
+                    key={tx.id} 
+                    transaction={tx} 
+                    onClick={() => handleViewReceipt(tx.originalTx.id)} 
+                    isFetching={fetchingTransactionId === tx.originalTx.id}
+                  />
                 ))
               ) : (
                 <p className="text-center text-muted-foreground py-8">No transactions yet.</p>
@@ -1389,14 +1552,14 @@ const Wallet: React.FC = () => {
               <div className="flex justify-center items-center gap-4 mt-4">
                 <Button 
                   onClick={() => setCurrentPage(prev => prev - 1)} 
-                  disabled={currentPage === 1}
+                  disabled={currentPage === 1 || !!fetchingTransactionId}
                 >
                   Previous
                 </Button>
                 <span>Page {currentPage} of {Math.ceil(totalTransactions / transactionsPerPage)}</span>
                 <Button 
                   onClick={() => setCurrentPage(prev => prev + 1)} 
-                  disabled={currentPage === Math.ceil(totalTransactions / transactionsPerPage)}
+                  disabled={currentPage === Math.ceil(totalTransactions / transactionsPerPage) || !!fetchingTransactionId}
                 >
                   Next
                 </Button>
@@ -1406,14 +1569,24 @@ const Wallet: React.FC = () => {
               {transactions
                 .filter((tx) => tx.type === 'Deposit' || tx.type === 'Transfer In')
                 .map((tx) => (
-                  <TransactionItem key={tx.id} transaction={tx} />
+                  <TransactionItem 
+                    key={tx.id} 
+                    transaction={tx} 
+                    onClick={() => handleViewReceipt(tx.originalTx.id)} 
+                    isFetching={fetchingTransactionId === tx.originalTx.id}
+                  />
                 ))}
             </TabsContent>
             <TabsContent value="withdrawals">
               {transactions
                 .filter((tx) => tx.type === 'Withdrawal' || tx.type === 'Transfer Out')
                 .map((tx) => (
-                  <TransactionItem key={tx.id} transaction={tx} />
+                  <TransactionItem 
+                    key={tx.id} 
+                    transaction={tx} 
+                    onClick={() => handleViewReceipt(tx.originalTx.id)} 
+                    isFetching={fetchingTransactionId === tx.originalTx.id}
+                  />
                 ))}
             </TabsContent>
             <TabsContent value="redeems">
@@ -1423,7 +1596,12 @@ const Wallet: React.FC = () => {
                 );
                 return redeemTransactions.length > 0 ? (
                   redeemTransactions.map((tx) => (
-                    <TransactionItem key={tx.id} transaction={tx} />
+                    <TransactionItem 
+                      key={tx.id} 
+                      transaction={tx} 
+                      onClick={() => handleViewReceipt(tx.originalTx.id)} 
+                      isFetching={fetchingTransactionId === tx.originalTx.id}
+                    />
                   ))
                 ) : (
                   <p className="text-center text-muted-foreground py-8">
@@ -1435,6 +1613,13 @@ const Wallet: React.FC = () => {
           </Tabs>
         </CardContent>
       </Card>
+
+      {showReceiptDialog && selectedTransaction && (
+        <ReceiptDialog
+          transaction={selectedTransaction}
+          onClose={() => setShowReceiptDialog(false)}
+        />
+      )}
     </div>
   );
 };

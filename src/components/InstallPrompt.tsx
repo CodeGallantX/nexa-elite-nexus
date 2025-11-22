@@ -48,7 +48,7 @@ const InstallPrompt: React.FC = () => {
   if (installPrompt) {
     return (
       <div className="fixed bottom-4 right-4 z-50">
-        <Button onClick={handleInstallClick}>Install Nexa Elite Nexus</Button>
+        <Button onClick={handleInstallClick}>Install NeXa Esports</Button>
       </div>
     );
   }
@@ -58,7 +58,7 @@ const InstallPrompt: React.FC = () => {
       <Dialog open={showIosInstallDialog} onOpenChange={setShowIosInstallDialog}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Install Nexa Elite Nexus</DialogTitle>
+            <DialogTitle>Install NeXa Esports</DialogTitle>
             <DialogDescription>Follow these steps to install the app on your iOS device.</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">

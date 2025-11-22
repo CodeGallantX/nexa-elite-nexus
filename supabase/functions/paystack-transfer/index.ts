@@ -284,7 +284,23 @@ serve(async (req) => {
         }
       }
 
-      return new Response(JSON.stringify(result), {
+      // 5. Fetch the full transaction to return
+      const { data: newTransaction, error: txError } = await supabaseAdmin
+        .from('transactions')
+        .select('*')
+        .eq('id', transactionId)
+        .single();
+
+      if (txError) {
+        console.error("Error fetching created transaction:", txError);
+        // Return original paystack data if fetching the transaction fails
+        return new Response(JSON.stringify(result), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 200,
+        });
+      }
+
+      return new Response(JSON.stringify({ ...result, transaction: newTransaction }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 200,
       });

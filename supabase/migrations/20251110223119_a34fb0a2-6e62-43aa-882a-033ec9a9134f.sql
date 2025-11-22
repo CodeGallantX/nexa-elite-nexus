@@ -27,7 +27,7 @@ CREATE OR REPLACE FUNCTION public.create_giveaway_with_codes(
     p_message text, 
     p_code_value numeric, 
     p_total_codes integer, 
-    p_expires_in_hours integer
+    p_expires_in_hours numeric
 )
 RETURNS uuid
 LANGUAGE plpgsql
@@ -126,7 +126,34 @@ DECLARE
     v_fee DECIMAL := p_amount * 0.04; -- 4% fee
     v_net_amount DECIMAL := p_amount - v_fee;
     v_transaction_id UUID;
+    v_min_deposit_limit NUMERIC := 500;
+    v_max_deposit_limit NUMERIC := 100000;
+    v_daily_deposit_limit NUMERIC := 100000;
+    v_today_deposits NUMERIC;
 BEGIN
+    -- Check minimum deposit limit
+    IF p_amount < v_min_deposit_limit THEN
+        RAISE EXCEPTION 'Deposit amount must be at least ₦%', v_min_deposit_limit;
+    END IF;
+
+    -- Check maximum deposit limit per transaction
+    IF p_amount > v_max_deposit_limit THEN
+        RAISE EXCEPTION 'Deposit amount cannot exceed ₦%', v_max_deposit_limit;
+    END IF;
+
+    -- Calculate total deposits for today
+    SELECT COALESCE(SUM(amount), 0) INTO v_today_deposits
+    FROM transactions
+    WHERE wallet_id = (SELECT id FROM wallets WHERE user_id = p_user_id)
+      AND type = 'deposit'
+      AND status = 'success'
+      AND created_at >= CURRENT_DATE;
+
+    -- Check daily deposit limit
+    IF (v_today_deposits + p_amount) > v_daily_deposit_limit THEN
+        RAISE EXCEPTION 'Daily deposit limit of ₦% exceeded. You have deposited ₦% today.', v_daily_deposit_limit, v_today_deposits;
+    END IF;
+
     -- Get the user's wallet id
     SELECT id INTO v_wallet_id FROM wallets WHERE user_id = p_user_id;
 
