@@ -17,19 +17,28 @@ const Earnings = () => {
     const { earnings, loading: earningsLoading } = useEarnings();
     const { taxAmount, loading: taxLoading, isUpdating, updateTaxAmount } = useTaxSettings();
     const [newTaxAmount, setNewTaxAmount] = useState<number>(taxAmount || 0);
+    const [currentPage, setCurrentPage] = useState(1);
+
+    const isClanMaster = profile?.role === 'clan_master' || profile?.role === 'admin';
 
     // Keep the tax input synced with the latest value set by the clan master
     useEffect(() => {
         setNewTaxAmount(taxAmount || 0);
     }, [taxAmount]);
 
-    const isClanMaster = profile?.role === 'clan_master' || profile?.role === 'admin';
-
     useEffect(() => {
         if (profile && !isClanMaster) {
             navigate('/dashboard');
         }
     }, [profile, isClanMaster, navigate]);
+
+    // Pagination for recent transactions
+    const pageSize = 10;
+    const totalPages = Math.max(1, Math.ceil(earnings.length / pageSize));
+
+    useEffect(() => {
+        if (currentPage > totalPages) setCurrentPage(totalPages);
+    }, [currentPage, totalPages]);
 
     if (!isClanMaster) {
         return null;
@@ -79,15 +88,6 @@ const Earnings = () => {
             updateTaxAmount(newTaxAmount);
         }
     };
-
-    // Pagination for recent transactions
-    const [currentPage, setCurrentPage] = useState(1);
-    const pageSize = 10;
-    const totalPages = Math.max(1, Math.ceil(earnings.length / pageSize));
-
-    useEffect(() => {
-        if (currentPage > totalPages) setCurrentPage(totalPages);
-    }, [earnings.length, totalPages]);
 
     const startIdx = (currentPage - 1) * pageSize;
     const pageItems = earnings.slice(startIdx, startIdx + pageSize);
