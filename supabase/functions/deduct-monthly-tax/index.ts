@@ -96,7 +96,8 @@ serve(async (req) => {
 
         deductedCount++;
       } catch (err) {
-        errors.push({ wallet_id: wallet.id, error: err.message });
+        console.error(`Failed to deduct tax for wallet ${wallet.id}:`, err);
+        errors.push({ wallet_id: wallet.id, error: err instanceof Error ? err.message : String(err) });
       }
     }
 
@@ -113,7 +114,7 @@ serve(async (req) => {
   } catch (error) {
     console.error('Error in deduct-monthly-tax:', error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: error instanceof Error ? error.message : String(error) }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
     );
   }

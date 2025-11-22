@@ -72,7 +72,36 @@ export type Database = {
           performed_by?: string | null
           target_user_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "activities_performed_by_fkey"
+            columns: ["performed_by"]
+            isOneToOne: false
+            referencedRelation: "leaderboard"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "activities_performed_by_fkey"
+            columns: ["performed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "activities_target_user_id_fkey"
+            columns: ["target_user_id"]
+            isOneToOne: false
+            referencedRelation: "leaderboard"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "activities_target_user_id_fkey"
+            columns: ["target_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       announcements: {
         Row: {
@@ -755,6 +784,7 @@ export type Database = {
           ign: string
           is_banned: boolean | null
           kills: number | null
+          last_giveaway_redeemed_at: string | null
           mp_class: string | null
           mp_kills: number | null
           player_type: Database["public"]["Enums"]["player_type"] | null
@@ -786,6 +816,7 @@ export type Database = {
           ign?: string
           is_banned?: boolean | null
           kills?: number | null
+          last_giveaway_redeemed_at?: string | null
           mp_class?: string | null
           mp_kills?: number | null
           player_type?: Database["public"]["Enums"]["player_type"] | null
@@ -817,6 +848,7 @@ export type Database = {
           ign?: string
           is_banned?: boolean | null
           kills?: number | null
+          last_giveaway_redeemed_at?: string | null
           mp_class?: string | null
           mp_kills?: number | null
           player_type?: Database["public"]["Enums"]["player_type"] | null
@@ -1063,6 +1095,14 @@ export type Database = {
       }
     }
     Functions: {
+      can_redeem_giveaway: {
+        Args: { p_user_id: string }
+        Returns: {
+          can_redeem: boolean
+          cooldown_seconds: number
+          last_redeemed_at: string
+        }[]
+      }
       create_giveaway_with_codes: {
         Args: {
           p_code_value: number
@@ -1071,7 +1111,9 @@ export type Database = {
           p_title: string
           p_total_codes: number
         }
-        Returns: string
+        Returns: {
+          giveaway_id: string
+        }[]
       }
       credit_wallet: {
         Args: {
@@ -1088,7 +1130,7 @@ export type Database = {
       }
       execute_user_transfer: {
         Args: { amount: number; recipient_ign: string; sender_id: string }
-        Returns: undefined
+        Returns: Json
       }
       expire_giveaway_codes: { Args: never; Returns: undefined }
       get_public_profiles: {

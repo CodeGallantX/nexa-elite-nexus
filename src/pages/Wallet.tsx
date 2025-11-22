@@ -6,7 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { Shield, Coins, ArrowDown, ArrowUp, Gift, Award, ArrowUpDown, Copy, Check, ChevronsUpDown, Loader2 } from 'lucide-react';
+import { Shield, Coins, ArrowDown, ArrowUp, Gift, Award, ArrowUpDown, Copy, Check, ChevronsUpDown, Loader2, FileText } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
@@ -19,18 +19,29 @@ import { sendBroadcastPushNotification } from '@/lib/pushNotifications';
 import { usePaystackPayment } from 'react-paystack';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
+import { TransactionReceipt } from '@/components/TransactionReceipt';
 
-const TransactionItem = ({ transaction }) => (
+const TransactionItem = ({ transaction, onViewReceipt }) => (
   <div className="flex items-center justify-between p-4 bg-background/80 backdrop-blur-sm rounded-lg mb-2">
-    <div className="flex items-center gap-4">
+    <div className="flex items-center gap-4 flex-1">
       {renderTransactionIcon(transaction.type)}
-      <div>
+      <div className="flex-1">
         <p className="font-semibold">{transaction.description}</p>
         <p className="text-sm text-muted-foreground">{transaction.date}</p>
       </div>
     </div>
-    <div className={`font-bold text-lg ${transaction.amount > 0 ? 'text-green-500' : 'text-red-500'}`}>
-      {transaction.amount > 0 ? '+' : ''}₦{Math.abs(transaction.amount).toFixed(0)}
+    <div className="flex items-center gap-4">
+      <div className={`font-bold text-lg ${transaction.amount > 0 ? 'text-green-500' : 'text-red-500'}`}>
+        {transaction.amount > 0 ? '+' : ''}₦{Math.abs(transaction.amount).toFixed(0)}
+      </div>
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={() => onViewReceipt(transaction)}
+        className="shrink-0"
+      >
+        <FileText className="h-4 w-4" />
+      </Button>
     </div>
   </div>
 );
@@ -1173,6 +1184,8 @@ const Wallet: React.FC = () => {
   const [totalTransactions, setTotalTransactions] = useState(0);
   const [withdrawCooldown, setWithdrawCooldown] = useState(0);
   const [redeemCooldown, setRedeemCooldown] = useState(0);
+  const [selectedTransaction, setSelectedTransaction] = useState<any>(null);
+  const [receiptOpen, setReceiptOpen] = useState(false);
   
   const WITHDRAW_COOLDOWN_SECONDS = 43200; // 12 hours
   const REDEEM_COOLDOWN_SECONDS = 600; // 10 minutes
@@ -1253,7 +1266,13 @@ const Wallet: React.FC = () => {
               description: `${description} - ${tx.status}`,
               date: new Date(tx.created_at).toLocaleDateString(),
               amount: isDebit ? -Number(tx.amount) : Number(tx.amount),
-              type: typeMapping[tx.type] || 'Other'
+              type: typeMapping[tx.type] || 'Other',
+              // Include raw data for receipt
+              raw_type: tx.type,
+              status: tx.status,
+              reference: tx.reference,
+              created_at: tx.created_at,
+              currency: tx.currency || 'NGN'
             };
           }));
           
@@ -1329,6 +1348,11 @@ const Wallet: React.FC = () => {
     setRedeemCooldown(REDEEM_COOLDOWN_SECONDS);
   };
 
+  const handleViewReceipt = (transaction: any) => {
+    setSelectedTransaction(transaction);
+    setReceiptOpen(true);
+  };
+
   return (
     <div className="container mx-auto p-4 md:p-6 lg:p-8">
 
@@ -1381,7 +1405,7 @@ const Wallet: React.FC = () => {
             <TabsContent value="all">
               {transactions.length > 0 ? (
                 transactions.map((tx) => (
-                  <TransactionItem key={tx.id} transaction={tx} />
+                  <TransactionItem key={tx.id} transaction={tx} onViewReceipt={handleViewReceipt} />
                 ))
               ) : (
                 <p className="text-center text-muted-foreground py-8">No transactions yet.</p>
@@ -1406,14 +1430,14 @@ const Wallet: React.FC = () => {
               {transactions
                 .filter((tx) => tx.type === 'Deposit' || tx.type === 'Transfer In')
                 .map((tx) => (
-                  <TransactionItem key={tx.id} transaction={tx} />
+                  <TransactionItem key={tx.id} transaction={tx} onViewReceipt={handleViewReceipt} />
                 ))}
             </TabsContent>
             <TabsContent value="withdrawals">
               {transactions
                 .filter((tx) => tx.type === 'Withdrawal' || tx.type === 'Transfer Out')
                 .map((tx) => (
-                  <TransactionItem key={tx.id} transaction={tx} />
+                  <TransactionItem key={tx.id} transaction={tx} onViewReceipt={handleViewReceipt} />
                 ))}
             </TabsContent>
             <TabsContent value="redeems">
@@ -1423,7 +1447,7 @@ const Wallet: React.FC = () => {
                 );
                 return redeemTransactions.length > 0 ? (
                   redeemTransactions.map((tx) => (
-                    <TransactionItem key={tx.id} transaction={tx} />
+                    <TransactionItem key={tx.id} transaction={tx} onViewReceipt={handleViewReceipt} />
                   ))
                 ) : (
                   <p className="text-center text-muted-foreground py-8">
@@ -1435,6 +1459,26 @@ const Wallet: React.FC = () => {
           </Tabs>
         </CardContent>
       </Card>
+
+      {selectedTransaction && (
+        <TransactionReceipt
+          transaction={{
+            id: selectedTransaction.id,
+            type: selectedTransaction.raw_type,
+            amount: Math.abs(selectedTransaction.amount),
+            status: selectedTransaction.status,
+            reference: selectedTransaction.reference,
+            created_at: selectedTransaction.created_at,
+            currency: selectedTransaction.currency,
+          }}
+          open={receiptOpen}
+          onOpenChange={setReceiptOpen}
+          userInfo={{
+            ign: profile?.ign,
+            username: profile?.username,
+          }}
+        />
+      )}
     </div>
   );
 };
