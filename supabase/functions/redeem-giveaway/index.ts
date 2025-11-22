@@ -47,6 +47,27 @@ serve(async (req) => {
       // Enrich common failure responses with extra context when possible
       const payload: any = { success: false, message: result.message };
 
+      // Handle cooldown message
+      if (result.message === 'Cooldown active' && result.cooldown_seconds) {
+        payload.cooldown_seconds = result.cooldown_seconds;
+        return new Response(JSON.stringify(payload), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 429, // Too Many Requests
+        });
+      }
+
+      // Handle invalid code
+      if (result.message === 'Invalid code') {
+        return new Response(JSON.stringify({ 
+          success: false, 
+          message: 'Code does not exist' 
+        }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 404,
+        });
+      }
+
+      // Handle already redeemed code with extra context
       if (result.message === 'Code already redeemed') {
         try {
           const { data: codeRow } = await supabaseClient

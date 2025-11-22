@@ -221,9 +221,10 @@ const GiveawayDialog = ({ setWalletBalance, walletBalance, onRedeemComplete, red
 
                 switch (base) {
                     case 'Invalid code':
+                    case 'Code does not exist':
                         return {
                             title: 'Invalid Code',
-                            description: 'The code you entered is invalid. Please check and try again.',
+                            description: 'This code does not exist. Please check and try again.',
                             variant: 'destructive',
                         };
                     case 'Code already redeemed': {
@@ -232,8 +233,8 @@ const GiveawayDialog = ({ setWalletBalance, walletBalance, onRedeemComplete, red
                         const redeemedAt = input?.redeemed_at || input?.redeemedAt;
                         const extra = redeemedBy ? ` It was redeemed${redeemedAt ? ` on ${new Date(redeemedAt).toLocaleString()}` : ''} by ${redeemedBy}.` : '';
                         return {
-                            title: 'Code Already Used',
-                            description: `This code has already been redeemed.${extra} If you believe this is a mistake, contact support.`,
+                            title: 'Code Already Redeemed',
+                            description: `This code has already been redeemed.${extra}`,
                             variant: 'warning',
                         };
                     }
@@ -243,6 +244,14 @@ const GiveawayDialog = ({ setWalletBalance, walletBalance, onRedeemComplete, red
                             description: 'This code has expired and can no longer be redeemed.',
                             variant: 'warning',
                         };
+                    case 'Cooldown active': {
+                        const cooldownSecs = input?.cooldown_seconds || 60;
+                        return {
+                            title: 'Please Wait',
+                            description: `You need to wait ${cooldownSecs} seconds before redeeming another code.`,
+                            variant: 'warning',
+                        };
+                    }
                     default:
                         return {
                             title: 'Redemption Failed',
@@ -1092,6 +1101,25 @@ const FundWalletDialog = () => {
     }
 
     const handlePayment = () => {
+        // Validate amount
+        if (amount <= 0) {
+            toast({
+                title: 'Invalid Amount',
+                description: 'Please enter a valid amount greater than 0.',
+                variant: 'destructive',
+            });
+            return;
+        }
+
+        if (amount < 500) {
+            toast({
+                title: 'Minimum Deposit',
+                description: 'Minimum deposit amount is ₦500.',
+                variant: 'destructive',
+            });
+            return;
+        }
+
         // Guard: ensure public key is configured
         const publicKey = import.meta.env.VITE_PAYSTACK_PUBLIC_KEY || '';
         if (!publicKey) {
@@ -1469,6 +1497,7 @@ const Wallet: React.FC = () => {
           userInfo={{
             ign: profile?.ign,
             username: profile?.username,
+            player_type: profile?.status === 'beta' ? 'beta' : 'main',
           }}
         />
       )}

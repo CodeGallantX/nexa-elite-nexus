@@ -91,7 +91,7 @@ export const useDeletePlayer = () => {
       });
 
       if (error) throw error;
-      if (!data) throw new Error('Failed to delete user');
+      if (data === false) throw new Error('Failed to delete user');
 
       // Log the activity
       if (player) {
