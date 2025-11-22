@@ -22,6 +22,7 @@ interface TransactionReceiptProps {
   userInfo?: {
     ign?: string;
     username?: string;
+    player_type?: string;
   };
 }
 
@@ -283,7 +284,10 @@ export const TransactionReceipt: React.FC<TransactionReceiptProps> = ({
                     {userInfo.ign && (
                       <div className="flex justify-between">
                         <span className="font-semibold">Player:</span>
-                        <span>{userInfo.ign}</span>
+                        <span>
+                          {userInfo.player_type === 'beta' ? 'Ɲ・乃' : 'Ɲ・乂'}
+                          {userInfo.ign}
+                        </span>
                       </div>
                     )}
                     {userInfo.username && (
