@@ -90,8 +90,15 @@ export const TransactionReceipt: React.FC<TransactionReceiptProps> = ({
             .header {
               text-align: center;
               border-bottom: 2px dashed #000;
-              padding-bottom: 15px;
-              margin-bottom: 15px;
+              padding-bottom: 20px;
+              margin-bottom: 20px;
+            }
+            .logo-img {
+              width: 60px;
+              height: 60px;
+              margin: 0 auto 10px;
+              border-radius: 50%;
+              border: 2px solid hsl(355, 100%, 56%);
             }
             .logo {
               font-size: 24px;
@@ -99,8 +106,9 @@ export const TransactionReceipt: React.FC<TransactionReceiptProps> = ({
               margin-bottom: 5px;
             }
             .tagline {
-              font-size: 12px;
-              color: #666;
+              font-size: 14px;
+              font-weight: bold;
+              color: hsl(355, 100%, 56%);
             }
             .row {
               display: flex;
@@ -111,13 +119,21 @@ export const TransactionReceipt: React.FC<TransactionReceiptProps> = ({
               font-weight: bold;
             }
             .amount {
-              font-size: 24px;
+              font-size: 32px;
               font-weight: bold;
               text-align: center;
               margin: 20px 0;
-              padding: 15px;
-              background: #f5f5f5;
-              border: 2px solid #000;
+              padding: 20px;
+              background: linear-gradient(135deg, rgba(255, 31, 68, 0.1), rgba(255, 31, 68, 0.05));
+              border: 2px solid hsl(355, 100%, 56%);
+              border-radius: 8px;
+              color: hsl(355, 100%, 56%);
+            }
+            .amount-label {
+              font-size: 12px;
+              color: hsl(355, 100%, 56%);
+              font-weight: bold;
+              margin-bottom: 8px;
             }
             .footer {
               border-top: 2px dashed #000;
@@ -264,10 +280,19 @@ export const TransactionReceipt: React.FC<TransactionReceiptProps> = ({
             {/* Content */}
             <div className="relative z-10">
               {/* Header */}
-              <div className="text-center border-b-2 border-dashed border-border pb-4 mb-4">
+              <div className="text-center border-b-2 border-dashed border-border pb-6 mb-6">
+                <div className="flex justify-center mb-3">
+                  <img 
+                    src="/nexa-logo.jpg" 
+                    alt="NeXa Esports" 
+                    className="h-16 w-16 rounded-full border-2 border-primary shadow-lg"
+                  />
+                </div>
                 <div className="text-2xl font-bold mb-1">NeXa Esports</div>
-                <div className="text-sm text-muted-foreground">Elite Gaming Clan</div>
-                <div className="text-xs text-muted-foreground mt-1">Transaction Receipt</div>
+                <div className="text-sm font-semibold" style={{ color: 'hsl(var(--primary))' }}>
+                  Elite Gaming Clan
+                </div>
+                <div className="text-xs text-muted-foreground mt-2">Transaction Receipt</div>
               </div>
 
               {/* Transaction Details */}
@@ -332,9 +357,11 @@ export const TransactionReceipt: React.FC<TransactionReceiptProps> = ({
               </div>
 
               {/* Amount */}
-              <div className="my-6 p-4 bg-muted rounded-lg border-2 border-border text-center">
-                <div className="text-sm text-muted-foreground mb-1">Amount</div>
-                <div className="text-3xl font-bold">
+              <div className="my-6 p-6 bg-gradient-to-br from-primary/10 to-primary/5 rounded-lg border-2 border-primary/30 text-center shadow-lg">
+                <div className="text-sm font-semibold mb-2" style={{ color: 'hsl(var(--primary))' }}>
+                  Transaction Amount
+                </div>
+                <div className="text-4xl font-bold tracking-tight" style={{ color: 'hsl(var(--primary))' }}>
                   {transaction.currency || '₦'}{Math.abs(transaction.amount).toLocaleString('en-NG', {
                     minimumFractionDigits: 2,
                     maximumFractionDigits: 2,
