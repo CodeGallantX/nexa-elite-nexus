@@ -38,7 +38,7 @@ serve(async (req) => {
       });
     }
 
-    const { data: giveawayId, error } = await supabaseClient.rpc('create_giveaway_with_codes', {
+    const { data: giveawayResult, error } = await supabaseClient.rpc('create_giveaway_with_codes', {
       p_title: title,
       p_message: message || null,
       p_code_value: code_value,
@@ -54,6 +54,19 @@ serve(async (req) => {
       });
     }
 
+    // Extract the actual giveaway ID from the result
+    const giveawayId = giveawayResult?.[0]?.giveaway_id;
+    
+    if (!giveawayId) {
+      console.error("No giveaway ID returned from RPC");
+      return new Response(JSON.stringify({ error: "Failed to create giveaway" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 500,
+      });
+    }
+
+    console.log("Giveaway created with ID:", giveawayId);
+
     // Fetch the created giveaway with codes
     const { data: giveaway, error: fetchError } = await supabaseClient
       .from('giveaways')
@@ -63,6 +76,54 @@ serve(async (req) => {
 
     if (fetchError) {
       console.error("Error fetching giveaway:", fetchError);
+      return new Response(JSON.stringify({ error: "Giveaway created but failed to fetch details" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 500,
+      });
+    }
+
+    console.log("Giveaway fetched successfully with", giveaway?.giveaway_codes?.length, "codes");
+
+    // Deduct from wallet and create transaction
+    const totalCost = code_value * total_codes;
+    
+    // Get user's wallet
+    const { data: wallet, error: walletError } = await supabaseClient
+      .from('wallets')
+      .select('id, balance')
+      .eq('user_id', user.id)
+      .single();
+
+    if (walletError || !wallet) {
+      console.error("Error fetching wallet:", walletError);
+    } else {
+      // Update wallet balance
+      const { error: updateError } = await supabaseClient
+        .from('wallets')
+        .update({ balance: wallet.balance - totalCost })
+        .eq('id', wallet.id);
+
+      if (updateError) {
+        console.error("Error updating wallet:", updateError);
+      } else {
+        // Create transaction record
+        const { error: txError } = await supabaseClient
+          .from('transactions')
+          .insert({
+            wallet_id: wallet.id,
+            type: 'giveaway_created',
+            amount: totalCost,
+            status: 'success',
+            reference: `giveaway_${giveawayId}_${Date.now()}`,
+            currency: 'NGN',
+          });
+
+        if (txError) {
+          console.error("Error creating transaction:", txError);
+        } else {
+          console.log("Giveaway transaction recorded");
+        }
+      }
     }
 
     // Send notification to all clan members
