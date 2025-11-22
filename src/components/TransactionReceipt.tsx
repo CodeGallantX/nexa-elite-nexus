@@ -1,8 +1,9 @@
 import React, { useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Download, Printer } from 'lucide-react';
+import { Download, Printer, Share2, X } from 'lucide-react';
 import { format } from 'date-fns';
+import { useToast } from '@/hooks/use-toast';
 
 interface Transaction {
   id: string;
@@ -31,6 +32,7 @@ export const TransactionReceipt: React.FC<TransactionReceiptProps> = ({
   userInfo,
 }) => {
   const receiptRef = useRef<HTMLDivElement>(null);
+  const { toast } = useToast();
 
   const formatTransactionType = (type: string) => {
     return type
@@ -159,16 +161,86 @@ export const TransactionReceipt: React.FC<TransactionReceiptProps> = ({
     link.download = `receipt-${transaction.reference}.png`;
     link.href = canvas.toDataURL('image/png');
     link.click();
+    
+    toast({
+      title: "Downloaded",
+      description: "Receipt has been downloaded successfully",
+    });
+  };
+
+  const handleShare = async () => {
+    const html2canvas = (await import('html2canvas')).default;
+    if (!receiptRef.current) return;
+
+    try {
+      const canvas = await html2canvas(receiptRef.current, {
+        scale: 2,
+        backgroundColor: '#ffffff',
+      });
+
+      canvas.toBlob(async (blob) => {
+        if (!blob) return;
+        
+        const file = new File([blob], `receipt-${transaction.reference}.png`, { type: 'image/png' });
+        
+        if (navigator.share) {
+          try {
+            await navigator.share({
+              title: 'Transaction Receipt',
+              text: `NeXa Esports - Receipt #${transaction.reference}`,
+              files: [file],
+            });
+            toast({
+              title: "Shared",
+              description: "Receipt has been shared successfully",
+            });
+          } catch (err) {
+            if ((err as Error).name !== 'AbortError') {
+              console.error('Error sharing:', err);
+              toast({
+                title: "Share failed",
+                description: "Could not share the receipt",
+                variant: "destructive",
+              });
+            }
+          }
+        } else {
+          // Fallback: copy link or download
+          toast({
+            title: "Share not supported",
+            description: "Your browser doesn't support sharing. The receipt has been downloaded instead.",
+          });
+          handleDownload();
+        }
+      });
+    } catch (error) {
+      console.error('Error preparing share:', error);
+      toast({
+        title: "Error",
+        description: "Could not prepare receipt for sharing",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl">
-        <DialogHeader>
-          <DialogTitle>Transaction Receipt</DialogTitle>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
+        <DialogHeader className="flex-shrink-0">
+          <div className="flex items-center justify-between">
+            <DialogTitle>Transaction Receipt</DialogTitle>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => onOpenChange(false)}
+              className="h-6 w-6"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
         </DialogHeader>
 
-        <div className="space-y-4">
+        <div className="flex-1 overflow-y-auto space-y-4 px-1">
           <div ref={receiptRef} className="relative border-2 border-border p-6 rounded-lg bg-background">
             {/* Watermark */}
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none overflow-hidden">
@@ -260,7 +332,11 @@ export const TransactionReceipt: React.FC<TransactionReceiptProps> = ({
           </div>
 
           {/* Action Buttons */}
-          <div className="flex gap-2 justify-end">
+          <div className="flex gap-2 justify-end flex-shrink-0 pt-2">
+            <Button onClick={handleShare} variant="outline">
+              <Share2 className="h-4 w-4 mr-2" />
+              Share
+            </Button>
             <Button onClick={handlePrint} variant="outline">
               <Printer className="h-4 w-4 mr-2" />
               Print
