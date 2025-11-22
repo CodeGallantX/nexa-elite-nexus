@@ -290,7 +290,7 @@ export const TransactionReceipt: React.FC<TransactionReceiptProps> = ({
                 </div>
                 <div className="text-2xl font-bold mb-1">NeXa Esports</div>
                 <div className="text-sm font-semibold" style={{ color: 'hsl(var(--primary))' }}>
-                  Elite Gaming Clan
+                  Never Ever eXpect Average
                 </div>
                 <div className="text-xs text-muted-foreground mt-2">Transaction Receipt</div>
               </div>
