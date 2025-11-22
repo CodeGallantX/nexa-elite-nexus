@@ -7,17 +7,9 @@ LANGUAGE plpgsql
 SECURITY DEFINER
 AS $$
 BEGIN
-  -- Set all existing activities references to NULL
-  -- This ensures no orphaned references remain
-  UPDATE public.activities 
-  SET performed_by = NULL 
-  WHERE performed_by = user_id_to_delete;
-  
-  UPDATE public.activities 
-  SET target_user_id = NULL 
-  WHERE target_user_id = user_id_to_delete;
-  
   -- Delete from profiles first
+  -- The foreign key constraints with ON DELETE SET NULL will automatically
+  -- handle updating activities references
   -- The trigger has been updated to handle this gracefully
   -- Cascades will handle related records in other tables
   DELETE FROM public.profiles WHERE id = user_id_to_delete;
