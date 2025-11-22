@@ -7,7 +7,8 @@ LANGUAGE plpgsql
 SECURITY DEFINER
 AS $$
 BEGIN
-  -- First, set all activities references to NULL (they should cascade but let's be explicit)
+  -- Set all existing activities references to NULL
+  -- This ensures no orphaned references remain
   UPDATE public.activities 
   SET performed_by = NULL 
   WHERE performed_by = user_id_to_delete;
@@ -16,7 +17,9 @@ BEGIN
   SET target_user_id = NULL 
   WHERE target_user_id = user_id_to_delete;
   
-  -- Delete from profiles (this should cascade to other tables via ON DELETE CASCADE)
+  -- Delete from profiles first
+  -- The trigger has been updated to handle this gracefully
+  -- Cascades will handle related records in other tables
   DELETE FROM public.profiles WHERE id = user_id_to_delete;
   
   -- Delete the auth user
