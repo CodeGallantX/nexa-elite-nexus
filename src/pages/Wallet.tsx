@@ -6,7 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { Shield, Coins, ArrowDown, ArrowUp, Gift, Award, ArrowUpDown, Copy, Check, ChevronsUpDown, Loader2, FileText } from 'lucide-react';
+import { Shield, Coins, ArrowDown, ArrowUp, Gift, Award, ArrowUpDown, Copy, Check, ChevronsUpDown, Loader2 } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
@@ -22,7 +22,10 @@ import { useNavigate } from 'react-router-dom';
 import { TransactionReceipt } from '@/components/TransactionReceipt';
 
 const TransactionItem = ({ transaction, onViewReceipt }) => (
-  <div className="flex items-center justify-between p-4 bg-background/80 backdrop-blur-sm rounded-lg mb-2">
+  <div 
+    className="flex items-center justify-between p-4 bg-background/80 backdrop-blur-sm rounded-lg mb-2 cursor-pointer hover:bg-muted/50 transition-colors"
+    onClick={() => onViewReceipt(transaction)}
+  >
     <div className="flex items-center gap-4 flex-1">
       {renderTransactionIcon(transaction.type)}
       <div className="flex-1">
@@ -30,18 +33,8 @@ const TransactionItem = ({ transaction, onViewReceipt }) => (
         <p className="text-sm text-muted-foreground">{transaction.date}</p>
       </div>
     </div>
-    <div className="flex items-center gap-4">
-      <div className={`font-bold text-lg ${transaction.amount > 0 ? 'text-green-500' : 'text-red-500'}`}>
-        {transaction.amount > 0 ? '+' : ''}₦{Math.abs(transaction.amount).toFixed(0)}
-      </div>
-      <Button
-        variant="ghost"
-        size="sm"
-        onClick={() => onViewReceipt(transaction)}
-        className="shrink-0"
-      >
-        <FileText className="h-4 w-4" />
-      </Button>
+    <div className={`font-bold text-lg ${transaction.amount > 0 ? 'text-green-500' : 'text-red-500'}`}>
+      {transaction.amount > 0 ? '+' : ''}₦{Math.abs(transaction.amount).toFixed(0)}
     </div>
   </div>
 );
