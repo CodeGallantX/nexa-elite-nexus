@@ -1140,8 +1140,17 @@ const FundWalletDialog = () => {
 
         if (amount < 500) {
             toast({
-                title: 'Minimum Deposit',
-                description: 'Minimum deposit amount is ₦500.',
+                title: 'Minimum Deposit Required',
+                description: 'Minimum deposit amount is ₦500. Please enter at least ₦500 to proceed.',
+                variant: 'destructive',
+            });
+            return;
+        }
+
+        if (amount > 50000) {
+            toast({
+                title: 'Maximum Deposit Exceeded',
+                description: 'Maximum deposit amount is ₦50,000. Please enter ₦50,000 or less.',
                 variant: 'destructive',
             });
             return;
@@ -1179,12 +1188,14 @@ const FundWalletDialog = () => {
                 </DialogHeader>
                 <div className="py-4 grid gap-4">
                     <div className="grid gap-2">
-                        <Label htmlFor="amount">Amount</Label>
+                        <Label htmlFor="amount">Amount (₦500 - ₦50,000)</Label>
                                                 <Input
                                                     id="amount"
                                                     type="number"
                                                     placeholder="₦0.00"
                                                     value={amount}
+                                                    min={500}
+                                                    max={50000}
                                                     onChange={(e) => setAmount(Number(e.target.value))}
                                                 />
                                             </div>

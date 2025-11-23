@@ -1,7 +1,8 @@
 import React, { useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Download, Printer, Share2, X } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Download, Share2, X } from 'lucide-react';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 
@@ -49,128 +50,6 @@ export const TransactionReceipt: React.FC<TransactionReceiptProps> = ({
       .join(' ');
   };
 
-  const handlePrint = () => {
-    const printContent = receiptRef.current;
-    if (!printContent) return;
-
-    const printWindow = window.open('', '_blank');
-    if (!printWindow) return;
-
-    printWindow.document.write(`
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <title>Receipt - ${transaction.reference}</title>
-          <style>
-            body {
-              font-family: 'Courier New', monospace;
-              padding: 20px;
-              max-width: 600px;
-              margin: 0 auto;
-            }
-            .receipt-container {
-              border: 2px solid #000;
-              padding: 20px;
-              position: relative;
-            }
-            .watermark {
-              position: absolute;
-              top: 50%;
-              left: 50%;
-              transform: translate(-50%, -50%) rotate(-45deg);
-              font-size: 80px;
-              font-weight: bold;
-              color: rgba(0, 0, 0, 0.05);
-              white-space: nowrap;
-              pointer-events: none;
-              z-index: 0;
-            }
-            .content {
-              position: relative;
-              z-index: 1;
-            }
-            .header {
-              text-align: center;
-              border-bottom: 2px dashed #000;
-              padding-bottom: 20px;
-              margin-bottom: 20px;
-            }
-            .logo-img {
-              width: 60px;
-              height: 60px;
-              margin: 0 auto 10px;
-              border-radius: 50%;
-              border: 2px solid hsl(355, 100%, 56%);
-            }
-            .logo {
-              font-size: 24px;
-              font-weight: bold;
-              margin-bottom: 5px;
-            }
-            .tagline {
-              font-size: 14px;
-              font-weight: bold;
-              color: hsl(355, 100%, 56%);
-            }
-            .row {
-              display: flex;
-              justify-content: space-between;
-              margin: 8px 0;
-            }
-            .label {
-              font-weight: bold;
-            }
-            .amount {
-              font-size: 32px;
-              font-weight: bold;
-              text-align: center;
-              margin: 20px 0;
-              padding: 20px;
-              background: linear-gradient(135deg, rgba(255, 31, 68, 0.1), rgba(255, 31, 68, 0.05));
-              border: 2px solid hsl(355, 100%, 56%);
-              border-radius: 8px;
-              color: hsl(355, 100%, 56%);
-            }
-            .amount-label {
-              font-size: 12px;
-              color: hsl(355, 100%, 56%);
-              font-weight: bold;
-              margin-bottom: 8px;
-            }
-            .footer {
-              border-top: 2px dashed #000;
-              padding-top: 15px;
-              margin-top: 15px;
-              text-align: center;
-              font-size: 11px;
-            }
-            .status {
-              display: inline-block;
-              padding: 5px 15px;
-              border-radius: 20px;
-              font-weight: bold;
-              background: ${transaction.status === 'success' ? '#22c55e' : '#ef4444'};
-              color: white;
-            }
-            @media print {
-              body { padding: 0; }
-              .receipt-container { border: none; }
-            }
-          </style>
-        </head>
-        <body>
-          ${printContent.innerHTML}
-          <script>
-            window.onload = () => {
-              window.print();
-              window.onafterprint = () => window.close();
-            };
-          </script>
-        </body>
-      </html>
-    `);
-    printWindow.document.close();
-  };
 
   const handleDownload = async () => {
     const html2canvas = (await import('html2canvas')).default;
@@ -207,7 +86,7 @@ export const TransactionReceipt: React.FC<TransactionReceiptProps> = ({
         
         const file = new File([blob], `receipt-${transaction.reference}.png`, { type: 'image/png' });
         
-        if (navigator.share) {
+        if (navigator.share && navigator.canShare({ files: [file] })) {
           try {
             await navigator.share({
               title: 'Transaction Receipt',
@@ -216,25 +95,32 @@ export const TransactionReceipt: React.FC<TransactionReceiptProps> = ({
             });
             toast({
               title: "Shared",
-              description: "Receipt has been shared successfully",
+              description: "Receipt shared successfully",
             });
           } catch (err) {
             if ((err as Error).name !== 'AbortError') {
               console.error('Error sharing:', err);
+              // Fallback to download
+              const link = document.createElement('a');
+              link.download = `receipt-${transaction.reference}.png`;
+              link.href = canvas.toDataURL('image/png');
+              link.click();
               toast({
-                title: "Share failed",
-                description: "Could not share the receipt",
-                variant: "destructive",
+                title: "Downloaded",
+                description: "Sharing not available. Receipt downloaded instead.",
               });
             }
           }
         } else {
-          // Fallback: copy link or download
+          // Fallback: download
+          const link = document.createElement('a');
+          link.download = `receipt-${transaction.reference}.png`;
+          link.href = canvas.toDataURL('image/png');
+          link.click();
           toast({
-            title: "Share not supported",
-            description: "Your browser doesn't support sharing. The receipt has been downloaded instead.",
+            title: "Downloaded",
+            description: "Sharing not available. Receipt downloaded instead.",
           });
-          handleDownload();
         }
       });
     } catch (error) {
@@ -393,18 +279,30 @@ export const TransactionReceipt: React.FC<TransactionReceiptProps> = ({
 
           {/* Action Buttons */}
           <div className="flex gap-2 justify-end flex-shrink-0 pt-2">
-            <Button onClick={handleShare} variant="outline">
-              <Share2 className="h-4 w-4 mr-2" />
-              Share
-            </Button>
-            <Button onClick={handlePrint} variant="outline">
-              <Printer className="h-4 w-4 mr-2" />
-              Print
-            </Button>
-            <Button onClick={handleDownload}>
-              <Download className="h-4 w-4 mr-2" />
-              Download
-            </Button>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button onClick={handleShare} variant="outline" size="icon">
+                    <Share2 className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Share Receipt</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button onClick={handleDownload} size="icon">
+                    <Download className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Download Receipt</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           </div>
         </div>
       </DialogContent>
