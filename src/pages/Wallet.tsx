@@ -21,6 +21,9 @@ import { supabase } from '@/integrations/supabase/client';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { TransactionReceipt } from '@/components/TransactionReceipt';
 
+// Transaction fee constants
+const TRANSFER_FEE = 50;
+
 const TransactionItem = ({ transaction, onViewReceipt }) => (
   <div 
     className="group flex items-center justify-between p-4 bg-card border border-border rounded-xl mb-3 cursor-pointer hover:bg-accent/50 hover:border-primary/20 hover:shadow-lg hover:scale-[1.01] transition-all duration-200 animate-fade-in"
@@ -997,6 +1000,8 @@ const TransferDialog = ({ walletBalance, onTransferComplete }) => {
     const totalCost = amount + TRANSFER_FEE;
 
     const handleTransfer = async () => {
+        const totalDeduction = amount + TRANSFER_FEE;
+        
         if (amount <= 0) {
             toast({ title: "Invalid Amount", description: "Transfer amount must be positive.", variant: "destructive" });
             return;
@@ -1005,10 +1010,10 @@ const TransferDialog = ({ walletBalance, onTransferComplete }) => {
             toast({ title: "No Recipient", description: "Please select a player to transfer to.", variant: "destructive" });
             return;
         }
-        if (totalCost > walletBalance) {
+        if (totalDeduction > walletBalance) {
             toast({ 
                 title: "Insufficient funds", 
-                description: `You need ₦${totalCost.toLocaleString()} (₦${amount.toLocaleString()} transfer + ₦${TRANSFER_FEE} fee) but only have ₦${walletBalance.toLocaleString()}`,
+                description: `You need ₦${totalDeduction.toLocaleString()} (₦${amount.toLocaleString()} + ₦${TRANSFER_FEE} fee) but only have ₦${walletBalance.toLocaleString()}`,
                 variant: "destructive" 
             });
             return;
@@ -1044,7 +1049,7 @@ const TransferDialog = ({ walletBalance, onTransferComplete }) => {
 
             toast({
                 title: "Transfer Successful!",
-                description: `₦${amount.toLocaleString()} has been sent to ${recipient}`,
+                description: `₦${amount.toLocaleString()} has been sent to ${recipient} (₦${TRANSFER_FEE} fee deducted)`,
             });
             
             // Reset form
@@ -1112,18 +1117,16 @@ const TransferDialog = ({ walletBalance, onTransferComplete }) => {
                         <AlertDescription>
                             {amount > 0 ? (
                                 <>
-                                    <div className="font-semibold text-foreground">
-                                        You pay: ₦{amount.toLocaleString()} + ₦{TRANSFER_FEE} fee = ₦{totalCost.toLocaleString()} total
-                                    </div>
+                                    A flat fee of ₦{TRANSFER_FEE.toFixed(2)} will be deducted from your wallet.
                                     <div className="text-sm text-muted-foreground mt-1">
-                                        Recipient receives: ₦{amount.toLocaleString()} (full amount, no deduction)
+                                        Total deduction: ₦{(amount + TRANSFER_FEE).toFixed(2)} (₦{amount.toFixed(2)} transfer + ₦{TRANSFER_FEE.toFixed(2)} fee)
                                     </div>
-                                    <div className="text-xs text-muted-foreground mt-1">
-                                        Total deduction: ₦{totalCost.toLocaleString()} (₦{amount.toLocaleString()} transfer + ₦{TRANSFER_FEE} fee)
+                                    <div className="text-sm text-green-600 mt-1">
+                                        Recipient will receive: ₦{amount.toFixed(2)}
                                     </div>
                                 </>
                             ) : (
-                                `A flat fee of ₦${TRANSFER_FEE} will be charged in addition to the transfer amount.`
+                                `A flat fee of ₦${TRANSFER_FEE.toFixed(2)} will be deducted for this transaction.`
                             )}
                         </AlertDescription>
                     </Alert>
