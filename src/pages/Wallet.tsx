@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -18,7 +18,7 @@ import { useAdminPlayers } from '@/hooks/useAdminPlayers';
 import { sendBroadcastPushNotification } from '@/lib/pushNotifications';
 import { usePaystackPayment } from 'react-paystack';
 import { supabase } from '@/integrations/supabase/client';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { TransactionReceipt } from '@/components/TransactionReceipt';
 
 const TransactionItem = ({ transaction, onViewReceipt }) => (
@@ -1270,6 +1270,8 @@ const FundWalletDialog = () => {
 
 const Wallet: React.FC = () => {
   const { profile, user } = useAuth();
+  const location = useLocation();
+  const navigate = useNavigate();
   const [walletBalance, setWalletBalance] = useState(0);
   const [transactions, setTransactions] = useState<any[]>([]);
   const [banks, setBanks] = useState<any[]>([]);
@@ -1282,6 +1284,7 @@ const Wallet: React.FC = () => {
   const [selectedTransaction, setSelectedTransaction] = useState<any>(null);
   const [receiptOpen, setReceiptOpen] = useState(false);
   const [transferInfo, setTransferInfo] = useState<any>(null);
+  const receiptShownRef = useRef<string | null>(null);
   
   const WITHDRAW_COOLDOWN_SECONDS = 43200; // 12 hours
   const REDEEM_COOLDOWN_SECONDS = 600; // 10 minutes
@@ -1414,6 +1417,35 @@ const Wallet: React.FC = () => {
     }
   }, [redeemCooldown]);
 
+  // Handle showing receipt after successful payment
+  useEffect(() => {
+    const query = new URLSearchParams(location.search);
+    const showReceiptRef = query.get('showReceipt');
+    
+    // Only proceed if we have a reference and haven't shown this receipt yet
+    if (showReceiptRef && transactions.length > 0 && receiptShownRef.current !== showReceiptRef) {
+      // Find the transaction with the matching reference
+      const transaction = transactions.find(tx => tx.reference === showReceiptRef);
+      
+      if (transaction) {
+        // Mark this receipt as shown
+        receiptShownRef.current = showReceiptRef;
+        
+        // Show the receipt for this transaction
+        handleViewReceipt(transaction);
+        
+        // Remove the query parameter from the URL
+        const newSearch = new URLSearchParams(location.search);
+        newSearch.delete('showReceipt');
+        const newSearchStr = newSearch.toString();
+        navigate(
+          location.pathname + (newSearchStr ? '?' + newSearchStr : ''),
+          { replace: true }
+        );
+      }
+    }
+  }, [location.search, location.pathname, transactions, navigate, handleViewReceipt]);
+
   const checkCooldowns = () => {
     const withdrawCooldownEnd = localStorage.getItem('withdrawCooldownEnd');
     if (withdrawCooldownEnd) {
@@ -1444,15 +1476,8 @@ const Wallet: React.FC = () => {
     setRedeemCooldown(REDEEM_COOLDOWN_SECONDS);
   };
 
-  const handleViewReceipt = async (transaction: any) => {
-    setSelectedTransaction(transaction);
-    const info = await getTransferInfo(transaction);
-    setTransferInfo(info);
-    setReceiptOpen(true);
-  };
-
   // Parse transfer info from transaction reference
-  const getTransferInfo = async (transaction: any) => {
+  const getTransferInfo = useCallback(async (transaction: any) => {
     if (!transaction?.reference) return null;
     
     const ref = transaction.reference;
@@ -1511,7 +1536,14 @@ const Wallet: React.FC = () => {
     }
     
     return null;
-  };
+  }, []);
+
+  const handleViewReceipt = useCallback(async (transaction: any) => {
+    setSelectedTransaction(transaction);
+    const info = await getTransferInfo(transaction);
+    setTransferInfo(info);
+    setReceiptOpen(true);
+  }, [getTransferInfo]);
 
   return (
     <div className="container mx-auto p-4 md:p-6 lg:p-8 space-y-6 animate-fade-in">
