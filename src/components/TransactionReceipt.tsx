@@ -183,6 +183,19 @@ export const TransactionReceipt: React.FC<TransactionReceiptProps> = ({
                 <div className="text-xs text-muted-foreground mt-2">Transaction Receipt</div>
               </div>
 
+              {/* Amount */}
+              <div className="my-6 p-4 sm:p-6 bg-gradient-to-br from-primary/10 to-primary/5 rounded-lg border-2 border-primary/30 text-center shadow-lg">
+                <div className="text-xs sm:text-sm font-semibold mb-2" style={{ color: 'hsl(var(--primary))' }}>
+                  Transaction Amount
+                </div>
+                <div className="text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight break-words" style={{ color: 'hsl(var(--primary))' }}>
+                  {transaction.currency || '₦'}{Math.abs(transaction.amount).toLocaleString('en-NG', {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  })}
+                </div>
+              </div>
+
               {/* Transaction Details */}
               <div className="space-y-3 mb-4">
                 <div className="flex justify-between">
@@ -247,19 +260,6 @@ export const TransactionReceipt: React.FC<TransactionReceiptProps> = ({
                   }`}>
                     {transaction.status.toUpperCase()}
                   </span>
-                </div>
-              </div>
-
-              {/* Amount */}
-              <div className="my-6 p-6 bg-gradient-to-br from-primary/10 to-primary/5 rounded-lg border-2 border-primary/30 text-center shadow-lg">
-                <div className="text-sm font-semibold mb-2" style={{ color: 'hsl(var(--primary))' }}>
-                  Transaction Amount
-                </div>
-                <div className="text-4xl font-bold tracking-tight" style={{ color: 'hsl(var(--primary))' }}>
-                  {transaction.currency || '₦'}{Math.abs(transaction.amount).toLocaleString('en-NG', {
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 2,
-                  })}
                 </div>
               </div>
 
