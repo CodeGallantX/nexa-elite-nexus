@@ -28,12 +28,14 @@ const PaymentSuccess: React.FC = () => {
 
     useEffect(() => {
         if (status === 'success') {
+            const query = new URLSearchParams(location.search);
+            const reference = query.get('reference');
             const timer = setTimeout(() => {
-                navigate('/wallet');
+                navigate(`/wallet?showReceipt=${reference}`);
             }, 3000);
             return () => clearTimeout(timer);
         }
-    }, [status, navigate]);
+    }, [status, navigate, location.search]);
 
       const verifyPayment = async (reference: string) => {
         const { data, error } = await supabase.functions.invoke('verify-payment', {

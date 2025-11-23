@@ -18,7 +18,7 @@ import { useAdminPlayers } from '@/hooks/useAdminPlayers';
 import { sendBroadcastPushNotification } from '@/lib/pushNotifications';
 import { usePaystackPayment } from 'react-paystack';
 import { supabase } from '@/integrations/supabase/client';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { TransactionReceipt } from '@/components/TransactionReceipt';
 
 const TransactionItem = ({ transaction, onViewReceipt }) => (
@@ -1264,6 +1264,8 @@ const FundWalletDialog = () => {
 
 const Wallet: React.FC = () => {
   const { profile, user } = useAuth();
+  const location = useLocation();
+  const navigate = useNavigate();
   const [walletBalance, setWalletBalance] = useState(0);
   const [transactions, setTransactions] = useState<any[]>([]);
   const [banks, setBanks] = useState<any[]>([]);
@@ -1407,6 +1409,30 @@ const Wallet: React.FC = () => {
       return () => clearInterval(timer);
     }
   }, [redeemCooldown]);
+
+  // Handle showing receipt after successful payment
+  useEffect(() => {
+    const query = new URLSearchParams(location.search);
+    const showReceiptRef = query.get('showReceipt');
+    
+    if (showReceiptRef && transactions.length > 0) {
+      // Find the transaction with the matching reference
+      const transaction = transactions.find(tx => tx.reference === showReceiptRef);
+      
+      if (transaction) {
+        // Show the receipt for this transaction
+        handleViewReceipt(transaction);
+        
+        // Remove the query parameter from the URL
+        const newSearch = new URLSearchParams(location.search);
+        newSearch.delete('showReceipt');
+        navigate({
+          pathname: location.pathname,
+          search: newSearch.toString(),
+        }, { replace: true });
+      }
+    }
+  }, [location.search, transactions, navigate, location.pathname]);
 
   const checkCooldowns = () => {
     const withdrawCooldownEnd = localStorage.getItem('withdrawCooldownEnd');
