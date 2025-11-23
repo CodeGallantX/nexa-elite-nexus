@@ -1236,6 +1236,7 @@ const Wallet: React.FC = () => {
   const [redeemCooldown, setRedeemCooldown] = useState(0);
   const [selectedTransaction, setSelectedTransaction] = useState<any>(null);
   const [receiptOpen, setReceiptOpen] = useState(false);
+  const [transferInfo, setTransferInfo] = useState<any>(null);
   
   const WITHDRAW_COOLDOWN_SECONDS = 43200; // 12 hours
   const REDEEM_COOLDOWN_SECONDS = 600; // 10 minutes
@@ -1398,13 +1399,15 @@ const Wallet: React.FC = () => {
     setRedeemCooldown(REDEEM_COOLDOWN_SECONDS);
   };
 
-  const handleViewReceipt = (transaction: any) => {
+  const handleViewReceipt = async (transaction: any) => {
     setSelectedTransaction(transaction);
+    const info = await getTransferInfo(transaction);
+    setTransferInfo(info);
     setReceiptOpen(true);
   };
 
   // Parse transfer info from transaction reference
-  const getTransferInfo = (transaction: any) => {
+  const getTransferInfo = async (transaction: any) => {
     if (!transaction?.reference) return null;
     
     const ref = transaction.reference;
@@ -1416,7 +1419,23 @@ const Wallet: React.FC = () => {
       if (parts.length >= 3) {
         // Extract IGN between 'transfer_to_' and the timestamp
         const recipient = parts.slice(2, -1).join('_');
-        return { recipient };
+        
+        // Fetch recipient's player type
+        try {
+          const { data: recipientProfile } = await supabase
+            .from('profiles')
+            .select('status, player_type')
+            .eq('ign', recipient)
+            .maybeSingle();
+          
+          return { 
+            recipient,
+            recipientPlayerType: recipientProfile?.status === 'beta' ? 'beta' : 'main'
+          };
+        } catch (error) {
+          console.error('Error fetching recipient profile:', error);
+          return { recipient };
+        }
       }
     }
     
@@ -1426,7 +1445,23 @@ const Wallet: React.FC = () => {
       if (parts.length >= 3) {
         // Extract IGN between 'transfer_from_' and the timestamp
         const sender = parts.slice(2, -1).join('_');
-        return { sender };
+        
+        // Fetch sender's player type
+        try {
+          const { data: senderProfile } = await supabase
+            .from('profiles')
+            .select('status, player_type')
+            .eq('ign', sender)
+            .maybeSingle();
+          
+          return { 
+            sender,
+            senderPlayerType: senderProfile?.status === 'beta' ? 'beta' : 'main'
+          };
+        } catch (error) {
+          console.error('Error fetching sender profile:', error);
+          return { sender };
+        }
       }
     }
     
@@ -1621,7 +1656,7 @@ const Wallet: React.FC = () => {
             username: profile?.username,
             player_type: profile?.status === 'beta' ? 'beta' : 'main',
           }}
-          transferInfo={getTransferInfo(selectedTransaction)}
+          transferInfo={transferInfo}
         />
       )}
     </div>

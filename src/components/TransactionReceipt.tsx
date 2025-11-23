@@ -26,7 +26,9 @@ interface TransactionReceiptProps {
   };
   transferInfo?: {
     sender?: string;
+    senderPlayerType?: string;
     recipient?: string;
+    recipientPlayerType?: string;
   };
 }
 
@@ -333,13 +335,19 @@ export const TransactionReceipt: React.FC<TransactionReceiptProps> = ({
                     {transferInfo.sender && (
                       <div className="flex justify-between">
                         <span className="font-semibold">Sender:</span>
-                        <span className="font-mono text-sm">{transferInfo.sender}</span>
+                        <span className="font-mono text-sm">
+                          {transferInfo.senderPlayerType === 'beta' ? 'Ɲ・乃' : 'Ɲ・乂'}
+                          {transferInfo.sender}
+                        </span>
                       </div>
                     )}
                     {transferInfo.recipient && (
                       <div className="flex justify-between">
                         <span className="font-semibold">Recipient:</span>
-                        <span className="font-mono text-sm">{transferInfo.recipient}</span>
+                        <span className="font-mono text-sm">
+                          {transferInfo.recipientPlayerType === 'beta' ? 'Ɲ・乃' : 'Ɲ・乂'}
+                          {transferInfo.recipient}
+                        </span>
                       </div>
                     )}
                   </>
