@@ -21,6 +21,9 @@ import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
 import { TransactionReceipt } from '@/components/TransactionReceipt';
 
+// Transaction fee constants
+const TRANSFER_FEE = 50;
+
 const TransactionItem = ({ transaction, onViewReceipt }) => (
   <div 
     className="group flex items-center justify-between p-4 bg-card border border-border rounded-xl mb-3 cursor-pointer hover:bg-accent/50 hover:border-primary/20 hover:shadow-lg hover:scale-[1.01] transition-all duration-200 animate-fade-in"
@@ -979,7 +982,6 @@ const WithdrawDialog = ({ setWalletBalance, walletBalance, banks, onWithdrawalCo
 }
 
 const TransferDialog = ({ walletBalance, onTransferComplete }) => {
-    const TRANSFER_FEE = 50;
     const [amount, setAmount] = useState(0);
     const [recipient, setRecipient] = useState('');
     const [open, setOpen] = useState(false);
@@ -1106,16 +1108,16 @@ const TransferDialog = ({ walletBalance, onTransferComplete }) => {
                         <AlertDescription>
                             {amount > 0 ? (
                                 <>
-                                    A flat fee of ₦{TRANSFER_FEE} will be deducted from your wallet.
+                                    A flat fee of ₦{TRANSFER_FEE.toFixed(2)} will be deducted from your wallet.
                                     <div className="text-sm text-muted-foreground mt-1">
-                                        Total deduction: ₦{(amount + TRANSFER_FEE).toFixed(2)} (₦{amount.toFixed(2)} transfer + ₦{TRANSFER_FEE} fee)
+                                        Total deduction: ₦{(amount + TRANSFER_FEE).toFixed(2)} (₦{amount.toFixed(2)} transfer + ₦{TRANSFER_FEE.toFixed(2)} fee)
                                     </div>
                                     <div className="text-sm text-green-600 mt-1">
                                         Recipient will receive: ₦{amount.toFixed(2)}
                                     </div>
                                 </>
                             ) : (
-                                `A flat fee of ₦${TRANSFER_FEE} will be deducted for this transaction.`
+                                `A flat fee of ₦${TRANSFER_FEE.toFixed(2)} will be deducted for this transaction.`
                             )}
                         </AlertDescription>
                     </Alert>
