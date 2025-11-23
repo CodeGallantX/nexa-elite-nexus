@@ -993,6 +993,9 @@ const TransferDialog = ({ walletBalance, onTransferComplete }) => {
 
     const [isTransferring, setIsTransferring] = useState(false);
 
+    const TRANSFER_FEE = 50;
+    const totalCost = amount + TRANSFER_FEE;
+
     const handleTransfer = async () => {
         if (amount <= 0) {
             toast({ title: "Invalid Amount", description: "Transfer amount must be positive.", variant: "destructive" });
@@ -1002,8 +1005,12 @@ const TransferDialog = ({ walletBalance, onTransferComplete }) => {
             toast({ title: "No Recipient", description: "Please select a player to transfer to.", variant: "destructive" });
             return;
         }
-        if (amount > walletBalance) {
-            toast({ title: "Insufficient funds", description: "You do not have enough funds to complete this transaction.", variant: "destructive" });
+        if (totalCost > walletBalance) {
+            toast({ 
+                title: "Insufficient funds", 
+                description: `You need ₦${totalCost.toLocaleString()} (₦${amount.toLocaleString()} transfer + ₦${TRANSFER_FEE} fee) but only have ₦${walletBalance.toLocaleString()}`,
+                variant: "destructive" 
+            });
             return;
         }
 
@@ -1105,13 +1112,18 @@ const TransferDialog = ({ walletBalance, onTransferComplete }) => {
                         <AlertDescription>
                             {amount > 0 ? (
                                 <>
-                                    A flat fee of ₦50 will be deducted from transfers.
+                                    <div className="font-semibold text-foreground">
+                                        You pay: ₦{amount.toLocaleString()} + ₦50 fee = ₦{totalCost.toLocaleString()} total
+                                    </div>
                                     <div className="text-sm text-muted-foreground mt-1">
-                                        Recipient will receive ₦{(Math.max(0, amount - 50)).toFixed(2)} after fees.
+                                        Recipient receives: ₦{amount.toLocaleString()} (full amount, no deduction)
+                                    </div>
+                                    <div className="text-xs text-muted-foreground mt-1">
+                                        Total deduction: ₦{totalCost.toLocaleString()} (₦{amount.toLocaleString()} transfer + ₦50 fee)
                                     </div>
                                 </>
                             ) : (
-                                'A flat fee of ₦50 will be deducted for this transaction.'
+                                'A flat fee of ₦50 will be charged in addition to the transfer amount.'
                             )}
                         </AlertDescription>
                     </Alert>
