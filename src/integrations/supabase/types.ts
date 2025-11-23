@@ -598,6 +598,7 @@ export type Database = {
           created_by: string
           expires_at: string
           id: string
+          is_private: boolean | null
           message: string | null
           redeemed_amount: number
           redeemed_count: number
@@ -612,6 +613,7 @@ export type Database = {
           created_by: string
           expires_at: string
           id?: string
+          is_private?: boolean | null
           message?: string | null
           redeemed_amount?: number
           redeemed_count?: number
@@ -626,6 +628,7 @@ export type Database = {
           created_by?: string
           expires_at?: string
           id?: string
+          is_private?: boolean | null
           message?: string | null
           redeemed_amount?: number
           redeemed_count?: number
