@@ -31,7 +31,11 @@ const PaymentSuccess: React.FC = () => {
             const query = new URLSearchParams(location.search);
             const reference = query.get('reference');
             const timer = setTimeout(() => {
-                navigate(`/wallet?showReceipt=${reference}`);
+                if (reference) {
+                    navigate(`/wallet?showReceipt=${reference}`);
+                } else {
+                    navigate('/wallet');
+                }
             }, 3000);
             return () => clearTimeout(timer);
         }

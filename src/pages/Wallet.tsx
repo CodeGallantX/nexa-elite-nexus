@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -1421,25 +1421,19 @@ const Wallet: React.FC = () => {
       
       if (transaction) {
         // Show the receipt for this transaction
-        const showReceipt = async (tx: any) => {
-          setSelectedTransaction(tx);
-          const info = await getTransferInfo(tx);
-          setTransferInfo(info);
-          setReceiptOpen(true);
-        };
-        
-        showReceipt(transaction);
+        handleViewReceipt(transaction);
         
         // Remove the query parameter from the URL
         const newSearch = new URLSearchParams(location.search);
         newSearch.delete('showReceipt');
-        navigate({
-          pathname: location.pathname,
-          search: newSearch.toString(),
-        }, { replace: true });
+        const newSearchStr = newSearch.toString();
+        navigate(
+          location.pathname + (newSearchStr ? '?' + newSearchStr : ''),
+          { replace: true }
+        );
       }
     }
-  }, [location.search, location.pathname, transactions, navigate]);
+  }, [location.search, location.pathname, transactions, navigate, handleViewReceipt]);
 
   const checkCooldowns = () => {
     const withdrawCooldownEnd = localStorage.getItem('withdrawCooldownEnd');
@@ -1471,15 +1465,8 @@ const Wallet: React.FC = () => {
     setRedeemCooldown(REDEEM_COOLDOWN_SECONDS);
   };
 
-  const handleViewReceipt = async (transaction: any) => {
-    setSelectedTransaction(transaction);
-    const info = await getTransferInfo(transaction);
-    setTransferInfo(info);
-    setReceiptOpen(true);
-  };
-
   // Parse transfer info from transaction reference
-  const getTransferInfo = async (transaction: any) => {
+  const getTransferInfo = useCallback(async (transaction: any) => {
     if (!transaction?.reference) return null;
     
     const ref = transaction.reference;
@@ -1538,7 +1525,14 @@ const Wallet: React.FC = () => {
     }
     
     return null;
-  };
+  }, []);
+
+  const handleViewReceipt = useCallback(async (transaction: any) => {
+    setSelectedTransaction(transaction);
+    const info = await getTransferInfo(transaction);
+    setTransferInfo(info);
+    setReceiptOpen(true);
+  }, [getTransferInfo]);
 
   return (
     <div className="container mx-auto p-4 md:p-6 lg:p-8 space-y-6 animate-fade-in">
