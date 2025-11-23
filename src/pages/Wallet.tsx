@@ -84,6 +84,7 @@ const GiveawayDialog = ({ setWalletBalance, walletBalance, onRedeemComplete, red
     const [expiresIn, setExpiresIn] = useState('24');
     const [title, setTitle] = useState('');
     const [message, setMessage] = useState('');
+    const [isPrivate, setIsPrivate] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [open, setOpen] = useState(false);
     
@@ -154,6 +155,7 @@ const GiveawayDialog = ({ setWalletBalance, walletBalance, onRedeemComplete, red
                     code_value: Number(codeValue),
                     total_codes: Number(totalCodes),
                     expires_in_hours: Number(expiresIn),
+                    is_private: isPrivate,
                 },
             });
 
@@ -180,6 +182,7 @@ const GiveawayDialog = ({ setWalletBalance, walletBalance, onRedeemComplete, red
             setMessage('');
             setCodeValue('500');
             setTotalCodes('10');
+            setIsPrivate(false);
             
             // Refresh wallet balance
             setWalletBalance(prev => prev - totalCost);
@@ -404,7 +407,7 @@ const GiveawayDialog = ({ setWalletBalance, walletBalance, onRedeemComplete, red
                     </DialogHeader>
 
                     {isAuthenticated ? (
-                        <Tabs defaultValue="create" className="w-full">
+                        <Tabs defaultValue="redeem" className="w-full">
                             <TabsList className="grid w-full grid-cols-3">
                                 <TabsTrigger value="create">Create New</TabsTrigger>
                                 <TabsTrigger value="history">My Giveaways</TabsTrigger>
@@ -480,6 +483,24 @@ const GiveawayDialog = ({ setWalletBalance, walletBalance, onRedeemComplete, red
                                                 <SelectItem value="24">24 hours</SelectItem>
                                             </SelectContent>
                                         </Select>
+                                    </div>
+
+                                    <div className="flex items-center space-x-2 p-4 border rounded-lg bg-muted/30">
+                                        <input
+                                            type="checkbox"
+                                            id="isPrivate"
+                                            checked={isPrivate}
+                                            onChange={(e) => setIsPrivate(e.target.checked)}
+                                            className="h-4 w-4 rounded border-border"
+                                        />
+                                        <div className="flex-1">
+                                            <Label htmlFor="isPrivate" className="cursor-pointer">
+                                                Private Giveaway
+                                            </Label>
+                                            <p className="text-xs text-muted-foreground">
+                                                Codes will be generated but won't appear in notifications
+                                            </p>
+                                        </div>
                                     </div>
 
                                     <Alert>

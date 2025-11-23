@@ -23,7 +23,7 @@ serve(async (req) => {
       });
     }
 
-    const { title, message, code_value, total_codes, expires_in_hours } = await req.json();
+    const { title, message, code_value, total_codes, expires_in_hours, is_private } = await req.json();
 
     if (!title || !code_value || !total_codes || !expires_in_hours) {
       return new Response(JSON.stringify({ error: "Missing required fields" }), {
@@ -45,6 +45,7 @@ serve(async (req) => {
       p_code_value: code_value,
       p_total_codes: total_codes,
       p_expires_in_hours: expires_in_hours,
+      p_is_private: is_private || false,
     });
 
     if (error) {
@@ -127,49 +128,51 @@ serve(async (req) => {
       }
     }
 
-    // Send notification to all clan members
-    const { data: profiles } = await supabaseAdmin
-      .from('profiles')
-      .select('id, ign')
-      .neq('id', user.id);
+    // Send notification to all clan members only if not private
+    if (!is_private) {
+      const { data: profiles } = await supabaseAdmin
+        .from('profiles')
+        .select('id, ign')
+        .neq('id', user.id);
 
-    if (profiles && profiles.length > 0) {
-      const notifications = profiles.map((profile) => ({
-        type: 'giveaway_created',
-        title: '🎁 New Giveaway Available!',
-        message: `${title} - Be the first to claim your share!`,
-        user_id: profile.id,
-        data: {
-          giveaway_id: giveawayId,
-          code_value: code_value,
-          total_codes: total_codes,
-          codes: giveaway?.giveaway_codes?.map((c: any) => c.code) || [],
-        },
-      }));
+      if (profiles && profiles.length > 0) {
+        const notifications = profiles.map((profile) => ({
+          type: 'giveaway_created',
+          title: '🎁 New Giveaway Available!',
+          message: `${title} - Be the first to claim your share!`,
+          user_id: profile.id,
+          data: {
+            giveaway_id: giveawayId,
+            code_value: code_value,
+            total_codes: total_codes,
+            codes: giveaway?.giveaway_codes?.map((c: any) => c.code) || [],
+          },
+        }));
 
-      await supabaseAdmin.from('notifications').insert(notifications);
-    }
+        await supabaseAdmin.from('notifications').insert(notifications);
+      }
 
-    // Send push notification to all subscribed users
-    try {
-      await supabaseClient.functions.invoke('send-push-notification', {
-        body: {
-          userIds: null, // Sending to all users
-          notification: {
-            title: '🎁 New Giveaway Available!',
-            message: `${title} - Be the first to claim your share!`,
-            data: {
-              giveaway_id: giveawayId,
-              code_value: code_value,
-              total_codes: total_codes,
-              codes: giveaway?.giveaway_codes?.map((c: any) => c.code) || [],
+      // Send push notification to all subscribed users
+      try {
+        await supabaseClient.functions.invoke('send-push-notification', {
+          body: {
+            userIds: null, // Sending to all users
+            notification: {
+              title: '🎁 New Giveaway Available!',
+              message: `${title} - Be the first to claim your share!`,
+              data: {
+                giveaway_id: giveawayId,
+                code_value: code_value,
+                total_codes: total_codes,
+                codes: giveaway?.giveaway_codes?.map((c: any) => c.code) || [],
+              },
             },
           },
-        },
-      });
-    } catch (pushError) {
-      console.error("Error sending push notification:", pushError);
-      // Do not block the response for push notification errors
+        });
+      } catch (pushError) {
+        console.error("Error sending push notification:", pushError);
+        // Do not block the response for push notification errors
+      }
     }
 
     return new Response(JSON.stringify({ 
