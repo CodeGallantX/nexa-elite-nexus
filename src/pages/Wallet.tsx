@@ -1113,17 +1113,17 @@ const TransferDialog = ({ walletBalance, onTransferComplete }) => {
                             {amount > 0 ? (
                                 <>
                                     <div className="font-semibold text-foreground">
-                                        You pay: ₦{amount.toLocaleString()} + ₦50 fee = ₦{totalCost.toLocaleString()} total
+                                        You pay: ₦{amount.toLocaleString()} + ₦{TRANSFER_FEE} fee = ₦{totalCost.toLocaleString()} total
                                     </div>
                                     <div className="text-sm text-muted-foreground mt-1">
                                         Recipient receives: ₦{amount.toLocaleString()} (full amount, no deduction)
                                     </div>
                                     <div className="text-xs text-muted-foreground mt-1">
-                                        Total deduction: ₦{totalCost.toLocaleString()} (₦{amount.toLocaleString()} transfer + ₦50 fee)
+                                        Total deduction: ₦{totalCost.toLocaleString()} (₦{amount.toLocaleString()} transfer + ₦{TRANSFER_FEE} fee)
                                     </div>
                                 </>
                             ) : (
-                                'A flat fee of ₦50 will be charged in addition to the transfer amount.'
+                                `A flat fee of ₦${TRANSFER_FEE} will be charged in addition to the transfer amount.`
                             )}
                         </AlertDescription>
                     </Alert>
