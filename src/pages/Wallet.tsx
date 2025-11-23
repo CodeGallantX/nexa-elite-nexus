@@ -290,6 +290,13 @@ const GiveawayDialog = ({ setWalletBalance, walletBalance, onRedeemComplete, red
                             ? JSON.parse(error.context.body)
                             : error.context.body;
                     }
+                    // Try to parse JSON from error message string
+                    else if (error?.message && typeof error.message === 'string') {
+                        const jsonMatch = error.message.match(/\{[\s\S]*\}/);
+                        if (jsonMatch) {
+                            errJson = JSON.parse(jsonMatch[0]);
+                        }
+                    }
                 } catch (parseErr) {
                     console.warn('Failed to parse error context:', parseErr);
                 }
