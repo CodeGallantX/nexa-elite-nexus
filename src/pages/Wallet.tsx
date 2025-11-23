@@ -23,17 +23,17 @@ import { TransactionReceipt } from '@/components/TransactionReceipt';
 
 const TransactionItem = ({ transaction, onViewReceipt }) => (
   <div 
-    className="flex items-center justify-between p-4 bg-background/80 backdrop-blur-sm rounded-lg mb-2 cursor-pointer hover:bg-muted/50 transition-colors"
+    className="group flex items-center justify-between p-4 bg-card border border-border rounded-xl mb-3 cursor-pointer hover:bg-accent/50 hover:border-primary/20 hover:shadow-lg hover:scale-[1.01] transition-all duration-200 animate-fade-in"
     onClick={() => onViewReceipt(transaction)}
   >
     <div className="flex items-center gap-4 flex-1">
       {renderTransactionIcon(transaction.type)}
       <div className="flex-1">
-        <p className="font-semibold">{transaction.description}</p>
+        <p className="font-semibold text-foreground group-hover:text-primary transition-colors">{transaction.description}</p>
         <p className="text-sm text-muted-foreground">{transaction.date}</p>
       </div>
     </div>
-    <div className={`font-bold text-lg ${transaction.amount > 0 ? 'text-green-500' : 'text-red-500'}`}>
+    <div className={`font-bold text-lg transition-transform group-hover:scale-110 ${transaction.amount > 0 ? 'text-green-500' : 'text-red-500'}`}>
       {transaction.amount > 0 ? '+' : ''}₦{Math.abs(transaction.amount).toFixed(0)}
     </div>
   </div>
@@ -45,8 +45,8 @@ const renderTransactionIcon = (type: string) => {
     case 'Transfer In':
     case 'Giveaway Redeemed':
       return (
-        <div className="p-2 rounded-full bg-green-500/20 backdrop-blur-sm">
-          <ArrowDown className="h-8 w-8 text-green-500" />
+        <div className="p-3 rounded-2xl bg-gradient-to-br from-green-500/20 to-green-600/10 backdrop-blur-sm border border-green-500/20 group-hover:shadow-lg group-hover:shadow-green-500/20 transition-all">
+          <ArrowDown className="h-7 w-7 text-green-500" />
         </div>
       );
     case 'Withdrawal':
@@ -54,20 +54,20 @@ const renderTransactionIcon = (type: string) => {
     case 'Giveaway Created':
     case 'Monthly Tax':
       return (
-        <div className="p-2 rounded-full bg-red-500/20 backdrop-blur-sm">
-          <ArrowUp className="h-8 w-8 text-red-500" />
+        <div className="p-3 rounded-2xl bg-gradient-to-br from-red-500/20 to-red-600/10 backdrop-blur-sm border border-red-500/20 group-hover:shadow-lg group-hover:shadow-red-500/20 transition-all">
+          <ArrowUp className="h-7 w-7 text-red-500" />
         </div>
       );
     case 'Giveaway Refund':
       return (
-        <div className="p-2 rounded-full bg-blue-500/20 backdrop-blur-sm">
-          <Gift className="h-8 w-8 text-blue-500" />
+        <div className="p-3 rounded-2xl bg-gradient-to-br from-blue-500/20 to-blue-600/10 backdrop-blur-sm border border-blue-500/20 group-hover:shadow-lg group-hover:shadow-blue-500/20 transition-all">
+          <Gift className="h-7 w-7 text-blue-500" />
         </div>
       );
     default:
       return (
-        <div className="p-2 rounded-full bg-gray-500/20 backdrop-blur-sm">
-          <Coins className="h-8 w-8 text-gray-500" />
+        <div className="p-3 rounded-2xl bg-gradient-to-br from-muted/50 to-muted/20 backdrop-blur-sm border border-border group-hover:shadow-lg transition-all">
+          <Coins className="h-7 w-7 text-muted-foreground" />
         </div>
       );
   }
@@ -362,9 +362,11 @@ const GiveawayDialog = ({ setWalletBalance, walletBalance, onRedeemComplete, red
         <>
             <Dialog open={open} onOpenChange={setOpen}>
                 <DialogTrigger asChild>
-                    <Button variant="outline" className="w-full h-24 flex flex-col items-center justify-center">
-                        <Gift className="h-8 w-8 mb-2" />
-                        Giveaway
+                    <Button variant="outline" className="group w-full h-24 flex flex-col items-center justify-center gap-2 border-2 hover:border-primary/50 hover:bg-primary/5 hover:scale-105 transition-all duration-200">
+                        <div className="p-2 rounded-xl bg-gradient-to-br from-primary/20 to-accent/20 group-hover:scale-110 transition-transform">
+                          <Gift className="h-6 w-6 text-primary" />
+                        </div>
+                        <span className="font-semibold text-sm">Giveaway</span>
                     </Button>
                 </DialogTrigger>
                 <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
@@ -789,22 +791,28 @@ const WithdrawDialog = ({ setWalletBalance, walletBalance, banks, onWithdrawalCo
                 <DialogTrigger asChild>
                     <Button 
                         variant="outline" 
-                        className="w-full h-24 flex flex-col items-center justify-center"
+                        className="group w-full h-24 flex flex-col items-center justify-center gap-2 border-2 hover:border-red-500/50 hover:bg-red-500/5 hover:scale-105 transition-all duration-200"
                         disabled={cooldown > 0}
                     >
-                        <ArrowDown className="h-8 w-8 mb-2" />
-                        {cooldown > 0 
-                            ? `Cooldown: ${Math.floor(cooldown / 3600)}h ${Math.floor((cooldown % 3600) / 60)}m`
-                            : 'Withdraw'}
+                        <div className="p-2 rounded-xl bg-gradient-to-br from-red-500/20 to-red-600/10 group-hover:scale-110 transition-transform">
+                          <ArrowDown className="h-6 w-6 text-red-500" />
+                        </div>
+                        <span className="font-semibold text-sm">
+                          {cooldown > 0 
+                              ? `Cooldown: ${Math.floor(cooldown / 3600)}h ${Math.floor((cooldown % 3600) / 60)}m`
+                              : 'Withdraw'}
+                        </span>
                     </Button>
                 </DialogTrigger>
             ) : (
                 <TooltipProvider>
                     <Tooltip>
                         <TooltipTrigger asChild>
-                            <Button variant="outline" className="w-full h-24 flex flex-col items-center justify-center" disabled>
-                                <ArrowDown className="h-8 w-8 mb-2" />
-                                Withdraw
+                            <Button variant="outline" className="w-full h-24 flex flex-col items-center justify-center gap-2 border-2 opacity-50" disabled>
+                                <div className="p-2 rounded-xl bg-gradient-to-br from-red-500/20 to-red-600/10">
+                                  <ArrowDown className="h-6 w-6 text-red-500" />
+                                </div>
+                                <span className="font-semibold text-sm">Withdraw</span>
                             </Button>
                         </TooltipTrigger>
                         <TooltipContent>
@@ -1002,9 +1010,11 @@ const TransferDialog = ({ walletBalance, onTransferComplete }) => {
     return (
         <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
-                <Button variant="outline" className="w-full h-24 flex flex-col items-center justify-center">
-                    <ArrowUpDown className="h-8 w-8 mb-2" />
-                    Transfer
+                <Button variant="outline" className="group w-full h-24 flex flex-col items-center justify-center gap-2 border-2 hover:border-primary/50 hover:bg-primary/5 hover:scale-105 transition-all duration-200">
+                    <div className="p-2 rounded-xl bg-gradient-to-br from-primary/20 to-accent/20 group-hover:scale-110 transition-transform">
+                      <ArrowUpDown className="h-6 w-6 text-primary" />
+                    </div>
+                    <span className="font-semibold text-sm">Transfer</span>
                 </Button>
             </DialogTrigger>
             <DialogContent>
@@ -1138,9 +1148,11 @@ const FundWalletDialog = () => {
     return (
         <Dialog>
             <DialogTrigger asChild>
-                <Button variant="outline" className="w-full h-24 flex flex-col items-center justify-center">
-                    <Coins className="h-8 w-8 mb-2" />
-                    Fund Wallet
+                <Button variant="outline" className="group w-full h-24 flex flex-col items-center justify-center gap-2 border-2 hover:border-green-500/50 hover:bg-green-500/5 hover:scale-105 transition-all duration-200">
+                    <div className="p-2 rounded-xl bg-gradient-to-br from-green-500/20 to-green-600/10 group-hover:scale-110 transition-transform">
+                      <Coins className="h-6 w-6 text-green-500" />
+                    </div>
+                    <span className="font-semibold text-sm">Fund Wallet</span>
                 </Button>
             </DialogTrigger>
             <DialogContent>
@@ -1405,32 +1417,38 @@ const Wallet: React.FC = () => {
   };
 
   return (
-    <div className="container mx-auto p-4 md:p-6 lg:p-8">
-
-
-      <Card className="mb-6 bg-background/80 backdrop-blur-sm text-center">
-        <CardHeader>
-          <CardTitle className="text-2xl font-bold">Your Wallet</CardTitle>
+    <div className="container mx-auto p-4 md:p-6 lg:p-8 space-y-6 animate-fade-in">
+      <Card className="relative overflow-hidden border-2 border-primary/20 shadow-2xl">
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-accent/10 pointer-events-none" />
+        <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full blur-3xl -mr-32 -mt-32" />
+        <div className="absolute bottom-0 left-0 w-64 h-64 bg-accent/5 rounded-full blur-3xl -ml-32 -mb-32" />
+        
+        <CardHeader className="relative text-center pb-2">
+          <CardTitle className="text-2xl font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
+            Your Wallet
+          </CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="text-5xl font-bold text-[#C1B66D]">₦{walletBalance}</div>
-          <p className="text-xs text-muted-foreground">Available Balance</p>
+        <CardContent className="relative text-center pb-8">
+          <div className="text-6xl md:text-7xl font-bold text-primary mb-2 animate-scale-in">
+            ₦{walletBalance.toLocaleString()}
+          </div>
+          <p className="text-sm text-muted-foreground tracking-wide uppercase">Available Balance</p>
         </CardContent>
       </Card>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                <FundWalletDialog />
-                <WithdrawDialog 
-                    setWalletBalance={setWalletBalance} 
-                    walletBalance={walletBalance} 
-                    banks={banks} 
-                    onWithdrawalComplete={() => {
-                        fetchWalletData();
-                        startWithdrawCooldown();
-                    }} 
-                    isWithdrawalServiceAvailable={true}
-                    cooldown={withdrawCooldown}
-                />
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 animate-fade-in" style={{ animationDelay: '0.1s' }}>
+        <FundWalletDialog />
+        <WithdrawDialog 
+          setWalletBalance={setWalletBalance} 
+          walletBalance={walletBalance} 
+          banks={banks} 
+          onWithdrawalComplete={() => {
+            fetchWalletData();
+            startWithdrawCooldown();
+          }} 
+          isWithdrawalServiceAvailable={true}
+          cooldown={withdrawCooldown}
+        />
         <TransferDialog walletBalance={walletBalance} onTransferComplete={fetchWalletData} />
         <GiveawayDialog 
           setWalletBalance={setWalletBalance} 
@@ -1441,69 +1459,126 @@ const Wallet: React.FC = () => {
         />
       </div>
 
-      <Card className="bg-transparent shadow-none">
+      <Card className="border-border/50 shadow-xl animate-fade-in" style={{ animationDelay: '0.2s' }}>
         <CardHeader>
-          <CardTitle>Transaction History</CardTitle>
+          <CardTitle className="text-2xl font-bold flex items-center gap-2">
+            <Coins className="h-6 w-6 text-primary" />
+            Transaction History
+          </CardTitle>
         </CardHeader>
         <CardContent>
-          <Tabs defaultValue="all">
-            <TabsList>
-              <TabsTrigger value="all">All</TabsTrigger>
-              <TabsTrigger value="earnings">Earnings</TabsTrigger>
-              <TabsTrigger value="withdrawals">Withdrawals</TabsTrigger>
-              <TabsTrigger value="redeems">Redeems</TabsTrigger>
+          <Tabs defaultValue="all" className="w-full">
+            <TabsList className="grid w-full grid-cols-4 mb-6 bg-muted/50 p-1 rounded-xl">
+              <TabsTrigger value="all" className="rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground transition-all">
+                All
+              </TabsTrigger>
+              <TabsTrigger value="earnings" className="rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground transition-all">
+                Earnings
+              </TabsTrigger>
+              <TabsTrigger value="withdrawals" className="rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground transition-all">
+                Withdrawals
+              </TabsTrigger>
+              <TabsTrigger value="redeems" className="rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground transition-all">
+                Redeems
+              </TabsTrigger>
             </TabsList>
-            <TabsContent value="all">
+            <TabsContent value="all" className="space-y-2">
               {transactions.length > 0 ? (
-                transactions.map((tx) => (
-                  <TransactionItem key={tx.id} transaction={tx} onViewReceipt={handleViewReceipt} />
-                ))
+                <>
+                  {transactions.map((tx, index) => (
+                    <div key={tx.id} style={{ animationDelay: `${index * 0.05}s` }}>
+                      <TransactionItem transaction={tx} onViewReceipt={handleViewReceipt} />
+                    </div>
+                  ))}
+                  <div className="flex justify-center items-center gap-4 mt-6 pt-4 border-t border-border">
+                    <Button 
+                      variant="outline"
+                      onClick={() => setCurrentPage(prev => prev - 1)} 
+                      disabled={currentPage === 1}
+                      className="hover:scale-105 transition-transform"
+                    >
+                      Previous
+                    </Button>
+                    <span className="text-sm font-medium px-4 py-2 rounded-lg bg-muted">
+                      Page {currentPage} of {Math.ceil(totalTransactions / transactionsPerPage)}
+                    </span>
+                    <Button 
+                      variant="outline"
+                      onClick={() => setCurrentPage(prev => prev + 1)} 
+                      disabled={currentPage === Math.ceil(totalTransactions / transactionsPerPage)}
+                      className="hover:scale-105 transition-transform"
+                    >
+                      Next
+                    </Button>
+                  </div>
+                </>
               ) : (
-                <p className="text-center text-muted-foreground py-8">No transactions yet.</p>
+                <div className="text-center py-16 space-y-4">
+                  <div className="inline-flex p-6 rounded-full bg-muted/50">
+                    <Coins className="h-12 w-12 text-muted-foreground/50" />
+                  </div>
+                  <p className="text-lg text-muted-foreground">No transactions yet</p>
+                  <p className="text-sm text-muted-foreground/70">Start by funding your wallet or receiving transfers</p>
+                </div>
               )}
-              <div className="flex justify-center items-center gap-4 mt-4">
-                <Button 
-                  onClick={() => setCurrentPage(prev => prev - 1)} 
-                  disabled={currentPage === 1}
-                >
-                  Previous
-                </Button>
-                <span>Page {currentPage} of {Math.ceil(totalTransactions / transactionsPerPage)}</span>
-                <Button 
-                  onClick={() => setCurrentPage(prev => prev + 1)} 
-                  disabled={currentPage === Math.ceil(totalTransactions / transactionsPerPage)}
-                >
-                  Next
-                </Button>
-              </div>
             </TabsContent>
-                        <TabsContent value="earnings">
-              {transactions
-                .filter((tx) => tx.type === 'Deposit' || tx.type === 'Transfer In')
-                .map((tx) => (
-                  <TransactionItem key={tx.id} transaction={tx} onViewReceipt={handleViewReceipt} />
-                ))}
+            <TabsContent value="earnings" className="space-y-2">
+              {(() => {
+                const earningsTx = transactions.filter((tx) => tx.type === 'Deposit' || tx.type === 'Transfer In' || tx.type === 'Giveaway Redeemed');
+                return earningsTx.length > 0 ? (
+                  earningsTx.map((tx, index) => (
+                    <div key={tx.id} style={{ animationDelay: `${index * 0.05}s` }}>
+                      <TransactionItem transaction={tx} onViewReceipt={handleViewReceipt} />
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-center py-16 space-y-4">
+                    <div className="inline-flex p-6 rounded-full bg-green-500/10">
+                      <ArrowDown className="h-12 w-12 text-green-500/50" />
+                    </div>
+                    <p className="text-lg text-muted-foreground">No earnings yet</p>
+                  </div>
+                );
+              })()}
             </TabsContent>
-            <TabsContent value="withdrawals">
-              {transactions
-                .filter((tx) => tx.type === 'Withdrawal' || tx.type === 'Transfer Out')
-                .map((tx) => (
-                  <TransactionItem key={tx.id} transaction={tx} onViewReceipt={handleViewReceipt} />
-                ))}
+            <TabsContent value="withdrawals" className="space-y-2">
+              {(() => {
+                const withdrawalTx = transactions.filter((tx) => tx.type === 'Withdrawal' || tx.type === 'Transfer Out');
+                return withdrawalTx.length > 0 ? (
+                  withdrawalTx.map((tx, index) => (
+                    <div key={tx.id} style={{ animationDelay: `${index * 0.05}s` }}>
+                      <TransactionItem transaction={tx} onViewReceipt={handleViewReceipt} />
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-center py-16 space-y-4">
+                    <div className="inline-flex p-6 rounded-full bg-red-500/10">
+                      <ArrowUp className="h-12 w-12 text-red-500/50" />
+                    </div>
+                    <p className="text-lg text-muted-foreground">No withdrawals yet</p>
+                  </div>
+                );
+              })()}
             </TabsContent>
-            <TabsContent value="redeems">
+            <TabsContent value="redeems" className="space-y-2">
               {(() => {
                 const redeemTransactions = transactions.filter(
                   (tx) => tx.type === 'Giveaway Redeemed'
                 );
                 return redeemTransactions.length > 0 ? (
-                  redeemTransactions.map((tx) => (
-                    <TransactionItem key={tx.id} transaction={tx} onViewReceipt={handleViewReceipt} />
+                  redeemTransactions.map((tx, index) => (
+                    <div key={tx.id} style={{ animationDelay: `${index * 0.05}s` }}>
+                      <TransactionItem transaction={tx} onViewReceipt={handleViewReceipt} />
+                    </div>
                   ))
                 ) : (
-                  <p className="text-center text-muted-foreground py-8">
-                    No redeem transactions yet.
-                  </p>
+                  <div className="text-center py-16 space-y-4">
+                    <div className="inline-flex p-6 rounded-full bg-primary/10">
+                      <Gift className="h-12 w-12 text-primary/50" />
+                    </div>
+                    <p className="text-lg text-muted-foreground">No giveaway redeems yet</p>
+                    <p className="text-sm text-muted-foreground/70">Redeem codes to earn rewards</p>
+                  </div>
                 );
               })()}
             </TabsContent>
