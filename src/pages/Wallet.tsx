@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -1278,6 +1278,7 @@ const Wallet: React.FC = () => {
   const [selectedTransaction, setSelectedTransaction] = useState<any>(null);
   const [receiptOpen, setReceiptOpen] = useState(false);
   const [transferInfo, setTransferInfo] = useState<any>(null);
+  const receiptShownRef = useRef<string | null>(null);
   
   const WITHDRAW_COOLDOWN_SECONDS = 43200; // 12 hours
   const REDEEM_COOLDOWN_SECONDS = 600; // 10 minutes
@@ -1415,11 +1416,15 @@ const Wallet: React.FC = () => {
     const query = new URLSearchParams(location.search);
     const showReceiptRef = query.get('showReceipt');
     
-    if (showReceiptRef && transactions.length > 0) {
+    // Only proceed if we have a reference and haven't shown this receipt yet
+    if (showReceiptRef && transactions.length > 0 && receiptShownRef.current !== showReceiptRef) {
       // Find the transaction with the matching reference
       const transaction = transactions.find(tx => tx.reference === showReceiptRef);
       
       if (transaction) {
+        // Mark this receipt as shown
+        receiptShownRef.current = showReceiptRef;
+        
         // Show the receipt for this transaction
         handleViewReceipt(transaction);
         
