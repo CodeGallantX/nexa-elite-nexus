@@ -979,6 +979,7 @@ const WithdrawDialog = ({ setWalletBalance, walletBalance, banks, onWithdrawalCo
 }
 
 const TransferDialog = ({ walletBalance, onTransferComplete }) => {
+    const TRANSFER_FEE = 50;
     const [amount, setAmount] = useState(0);
     const [recipient, setRecipient] = useState('');
     const [open, setOpen] = useState(false);
@@ -988,7 +989,6 @@ const TransferDialog = ({ walletBalance, onTransferComplete }) => {
     const [isTransferring, setIsTransferring] = useState(false);
 
     const handleTransfer = async () => {
-        const TRANSFER_FEE = 50;
         const totalDeduction = amount + TRANSFER_FEE;
         
         if (amount <= 0) {
@@ -1106,16 +1106,16 @@ const TransferDialog = ({ walletBalance, onTransferComplete }) => {
                         <AlertDescription>
                             {amount > 0 ? (
                                 <>
-                                    A flat fee of ₦50 will be deducted from your wallet.
+                                    A flat fee of ₦{TRANSFER_FEE} will be deducted from your wallet.
                                     <div className="text-sm text-muted-foreground mt-1">
-                                        Total deduction: ₦{(amount + 50).toFixed(2)} (₦{amount.toFixed(2)} transfer + ₦50 fee)
+                                        Total deduction: ₦{(amount + TRANSFER_FEE).toFixed(2)} (₦{amount.toFixed(2)} transfer + ₦{TRANSFER_FEE} fee)
                                     </div>
                                     <div className="text-sm text-green-600 mt-1">
                                         Recipient will receive: ₦{amount.toFixed(2)}
                                     </div>
                                 </>
                             ) : (
-                                'A flat fee of ₦50 will be deducted for this transaction.'
+                                `A flat fee of ₦${TRANSFER_FEE} will be deducted for this transaction.`
                             )}
                         </AlertDescription>
                     </Alert>
