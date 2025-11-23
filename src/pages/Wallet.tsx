@@ -996,6 +996,9 @@ const TransferDialog = ({ walletBalance, onTransferComplete }) => {
 
     const [isTransferring, setIsTransferring] = useState(false);
 
+    const TRANSFER_FEE = 50;
+    const totalCost = amount + TRANSFER_FEE;
+
     const handleTransfer = async () => {
         const totalDeduction = amount + TRANSFER_FEE;
         
