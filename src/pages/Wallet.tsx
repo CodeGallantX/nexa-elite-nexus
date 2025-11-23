@@ -1421,7 +1421,14 @@ const Wallet: React.FC = () => {
       
       if (transaction) {
         // Show the receipt for this transaction
-        handleViewReceipt(transaction);
+        const showReceipt = async (tx: any) => {
+          setSelectedTransaction(tx);
+          const info = await getTransferInfo(tx);
+          setTransferInfo(info);
+          setReceiptOpen(true);
+        };
+        
+        showReceipt(transaction);
         
         // Remove the query parameter from the URL
         const newSearch = new URLSearchParams(location.search);
@@ -1432,7 +1439,7 @@ const Wallet: React.FC = () => {
         }, { replace: true });
       }
     }
-  }, [location.search, transactions, navigate, location.pathname]);
+  }, [location.search, location.pathname, transactions, navigate]);
 
   const checkCooldowns = () => {
     const withdrawCooldownEnd = localStorage.getItem('withdrawCooldownEnd');
