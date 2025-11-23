@@ -379,7 +379,7 @@ const GiveawayDialog = ({ setWalletBalance, walletBalance, onRedeemComplete, red
             >
                 {isRedeeming && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 {redeemCooldown > 0 
-                  ? `Wait ${Math.floor(redeemCooldown / 60)}m ${redeemCooldown % 60}s` 
+                  ? `Wait ${Math.floor(redeemCooldown / 60)} ${Math.floor(redeemCooldown / 60) === 1 ? 'minute' : 'minutes'} ${redeemCooldown % 60} ${redeemCooldown % 60 === 1 ? 'second' : 'seconds'}` 
                   : 'Redeem Code'}
             </Button>
         </div>
