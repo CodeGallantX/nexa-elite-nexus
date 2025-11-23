@@ -988,6 +988,9 @@ const TransferDialog = ({ walletBalance, onTransferComplete }) => {
     const [isTransferring, setIsTransferring] = useState(false);
 
     const handleTransfer = async () => {
+        const TRANSFER_FEE = 50;
+        const totalDeduction = amount + TRANSFER_FEE;
+        
         if (amount <= 0) {
             toast({ title: "Invalid Amount", description: "Transfer amount must be positive.", variant: "destructive" });
             return;
@@ -996,8 +999,12 @@ const TransferDialog = ({ walletBalance, onTransferComplete }) => {
             toast({ title: "No Recipient", description: "Please select a player to transfer to.", variant: "destructive" });
             return;
         }
-        if (amount > walletBalance) {
-            toast({ title: "Insufficient funds", description: "You do not have enough funds to complete this transaction.", variant: "destructive" });
+        if (totalDeduction > walletBalance) {
+            toast({ 
+                title: "Insufficient funds", 
+                description: `You need ₦${totalDeduction.toLocaleString()} (₦${amount.toLocaleString()} + ₦${TRANSFER_FEE} fee) but only have ₦${walletBalance.toLocaleString()}`,
+                variant: "destructive" 
+            });
             return;
         }
 
@@ -1031,7 +1038,7 @@ const TransferDialog = ({ walletBalance, onTransferComplete }) => {
 
             toast({
                 title: "Transfer Successful!",
-                description: `₦${amount.toLocaleString()} has been sent to ${recipient}`,
+                description: `₦${amount.toLocaleString()} has been sent to ${recipient} (₦${TRANSFER_FEE} fee deducted)`,
             });
             
             // Reset form
@@ -1099,9 +1106,12 @@ const TransferDialog = ({ walletBalance, onTransferComplete }) => {
                         <AlertDescription>
                             {amount > 0 ? (
                                 <>
-                                    A flat fee of ₦50 will be deducted from transfers.
+                                    A flat fee of ₦50 will be deducted from your wallet.
                                     <div className="text-sm text-muted-foreground mt-1">
-                                        Recipient will receive ₦{(Math.max(0, amount - 50)).toFixed(2)} after fees.
+                                        Total deduction: ₦{(amount + 50).toFixed(2)} (₦{amount.toFixed(2)} transfer + ₦50 fee)
+                                    </div>
+                                    <div className="text-sm text-green-600 mt-1">
+                                        Recipient will receive: ₦{amount.toFixed(2)}
                                     </div>
                                 </>
                             ) : (
