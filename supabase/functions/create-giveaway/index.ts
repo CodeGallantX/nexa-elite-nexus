@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { corsHeaders } from "../_shared/cors.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { supabaseAdmin } from "../_shared/supabaseAdmin.ts";
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -127,7 +128,7 @@ serve(async (req) => {
     }
 
     // Send notification to all clan members
-    const { data: profiles } = await supabaseClient
+    const { data: profiles } = await supabaseAdmin
       .from('profiles')
       .select('id, ign')
       .neq('id', user.id);
@@ -146,7 +147,7 @@ serve(async (req) => {
         },
       }));
 
-      await supabaseClient.from('notifications').insert(notifications);
+      await supabaseAdmin.from('notifications').insert(notifications);
     }
 
     // Send push notification to all subscribed users
