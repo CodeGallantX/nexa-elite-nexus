@@ -1106,18 +1106,32 @@ export type Database = {
           last_redeemed_at: string
         }[]
       }
-      create_giveaway_with_codes: {
-        Args: {
-          p_code_value: number
-          p_expires_in_hours: number
-          p_message: string
-          p_title: string
-          p_total_codes: number
-        }
-        Returns: {
-          giveaway_id: string
-        }[]
-      }
+      create_giveaway_with_codes:
+        | {
+            Args: {
+              p_code_value: number
+              p_expires_in_hours: number
+              p_is_private?: boolean
+              p_message: string
+              p_title: string
+              p_total_codes: number
+            }
+            Returns: {
+              giveaway_id: string
+            }[]
+          }
+        | {
+            Args: {
+              p_code_value: number
+              p_expires_in_hours: number
+              p_message: string
+              p_title: string
+              p_total_codes: number
+            }
+            Returns: {
+              giveaway_id: string
+            }[]
+          }
       credit_wallet: {
         Args: {
           p_amount: number
