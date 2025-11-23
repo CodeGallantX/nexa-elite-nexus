@@ -228,13 +228,12 @@ const GiveawayDialog = ({ setWalletBalance, walletBalance, onRedeemComplete, red
                             variant: 'destructive',
                         };
                     case 'Code already redeemed': {
-                        // Include extra context when available
-                        const redeemedBy = input?.redeemed_by || input?.redeemedBy;
+                        // Include extra context when available (but don't show UUID)
                         const redeemedAt = input?.redeemed_at || input?.redeemedAt;
-                        const extra = redeemedBy ? ` It was redeemed${redeemedAt ? ` on ${new Date(redeemedAt).toLocaleString()}` : ''} by ${redeemedBy}.` : '';
+                        const timeInfo = redeemedAt ? ` on ${new Date(redeemedAt).toLocaleString()}` : '';
                         return {
                             title: 'Code Already Redeemed',
-                            description: `This code has already been redeemed.${extra}`,
+                            description: `This code has already been redeemed${timeInfo}.`,
                             variant: 'warning',
                         };
                     }
@@ -260,6 +259,7 @@ const GiveawayDialog = ({ setWalletBalance, walletBalance, onRedeemComplete, red
                         };
                 }
             };
+            
             const { data: { session } } = await supabase.auth.getSession();
             const { data, error } = await supabase.functions.invoke('redeem-giveaway', {
                 headers: {
@@ -273,20 +273,33 @@ const GiveawayDialog = ({ setWalletBalance, walletBalance, onRedeemComplete, red
             // If the edge function returned a transport-level error (non-2xx), try to extract friendly message
             if (error) {
                 console.error('Redeem edge function error:', error);
-                // Supabase FunctionsHttpError often contains the function response under error.context.json
-                let errJson: any = error?.context?.json;
-                // In some clients this may be a function (Response.json), so call it to get the parsed body
-                if (typeof errJson === 'function') {
-                    try {
-                        errJson = await errJson();
-                    } catch (e) {
-                        console.warn('Failed to call error.context.json()', e);
-                        errJson = null;
+                
+                // Try to extract the error payload from various possible locations
+                let errJson: any = null;
+                
+                try {
+                    // Check if error has context.json
+                    if (error?.context?.json) {
+                        errJson = typeof error.context.json === 'function' 
+                            ? await error.context.json() 
+                            : error.context.json;
                     }
+                    // Also check error.context.body for some Supabase versions
+                    else if (error?.context?.body) {
+                        errJson = typeof error.context.body === 'string'
+                            ? JSON.parse(error.context.body)
+                            : error.context.body;
+                    }
+                } catch (parseErr) {
+                    console.warn('Failed to parse error context:', parseErr);
                 }
 
                 const mapped = mapRedeemResult(errJson ?? error?.message ?? error);
-                toast({ title: mapped.title, description: mapped.description, variant: mapped.variant as any });
+                toast({ 
+                    title: mapped.title, 
+                    description: mapped.description, 
+                    variant: mapped.variant as any 
+                });
                 return;
             }
 
@@ -318,7 +331,11 @@ const GiveawayDialog = ({ setWalletBalance, walletBalance, onRedeemComplete, red
             onRedeemComplete?.();
         } catch (error: any) {
             console.error('Error redeeming code:', error);
-            toast({ title: 'Error', description: error?.message || 'Failed to redeem code', variant: 'destructive' });
+            toast({ 
+                title: 'Error', 
+                description: error?.message || 'Failed to redeem code. Please try again.', 
+                variant: 'destructive' 
+            });
         } finally {
             setIsRedeeming(false);
         }
