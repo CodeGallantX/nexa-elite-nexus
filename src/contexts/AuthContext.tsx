@@ -208,7 +208,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
           try {
             await sendPushNotification([userId], {
               title: "Welcome Soldier!",
-              message: "Great to have you back",
+              message: "Onward to the frontline!",
             });
           } catch (err) {
             console.error("Welcome push error:", err);
