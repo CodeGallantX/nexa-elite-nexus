@@ -790,7 +790,13 @@ const WithdrawDialog = ({ setWalletBalance, walletBalance, banks, onWithdrawalCo
             const errorCode = payload?.error;
             const errorMessage = payload?.message || transferError?.message || 'An unexpected error occurred';
 
-            if (errorCode === 'insufficient_paystack_balance') {
+            if (errorCode === 'withdrawals_disabled_today') {
+                toast({
+                    title: "Withdrawals Not Available Today",
+                    description: "Withdrawals are not allowed on Sundays in your region. Please try again on Monday.",
+                    variant: "destructive",
+                });
+            } else if (errorCode === 'insufficient_paystack_balance') {
                 toast({
                     title: "Withdrawal Service Unavailable",
                     description: "We are currently unable to process withdrawals. Please try again later. Our team has been notified.",

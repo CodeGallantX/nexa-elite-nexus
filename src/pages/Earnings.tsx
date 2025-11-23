@@ -128,7 +128,51 @@ const Earnings = () => {
                 },
             });
 
-            if (error) throw error;
+            if (error) {
+                // Try to extract structured JSON returned by the edge function
+                let payload: any = data ?? null;
+                try {
+                    if (error?.context?.json) payload = error.context.json;
+                    if (typeof payload === 'function') {
+                        try { 
+                            payload = await payload(); 
+                        } catch (e) { 
+                            console.warn('Failed to parse error.context.json()', e); 
+                            payload = null; 
+                        }
+                    }
+                } catch (e) {
+                    // ignore
+                }
+
+                const errorCode = payload?.error;
+                const errorMessage = payload?.message || error?.message || 'An unexpected error occurred';
+
+                console.error('Cash out error:', error, 'payload:', payload);
+
+                // Handle specific error cases with user-friendly messages
+                if (errorCode === 'withdrawals_disabled_today') {
+                    toast({
+                        title: "Withdrawals Not Available Today",
+                        description: "Withdrawals are not allowed on Sundays in your region. Please try again on Monday.",
+                        variant: "destructive",
+                    });
+                } else if (errorCode === 'insufficient_paystack_balance') {
+                    toast({
+                        title: "Withdrawal Service Unavailable",
+                        description: "We are currently unable to process withdrawals. Please try again later. Our team has been notified.",
+                        variant: "destructive",
+                    });
+                } else {
+                    toast({
+                        title: "Cash Out Failed",
+                        description: errorMessage,
+                        variant: "destructive",
+                    });
+                }
+                setIsCashingOut(false);
+                return;
+            }
 
             if (data?.success) {
                 toast({
