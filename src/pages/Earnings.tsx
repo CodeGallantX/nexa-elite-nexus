@@ -438,7 +438,7 @@ const Earnings = () => {
                                 className="text-lg"
                             />
                             <p className="text-xs text-muted-foreground">
-                                A 4% withdrawal fee will be deducted from the amount
+                                Full amount will be transferred to your account
                             </p>
                         </div>
                         {profile?.banking_info && (
