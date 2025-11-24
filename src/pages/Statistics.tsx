@@ -7,7 +7,6 @@ import { useLeaderboard } from '@/hooks/useLeaderboard';
 import { supabase } from '@/integrations/supabase/client';
 import { Award, Trophy, Target, Share2, Link2, Download } from 'lucide-react';
 import { toast } from 'sonner';
-import html2canvas from 'html2canvas';
 
 const Statistics: FC = () => {
   const { user } = useAuth();
@@ -85,6 +84,7 @@ const Statistics: FC = () => {
     
     try {
       toast.info('Generating image...');
+      const html2canvas = (await import('html2canvas')).default;
       const canvas = await html2canvas(leaderboardRef.current, {
         backgroundColor: '#0a0a0f',
         scale: 2,
@@ -111,6 +111,7 @@ const Statistics: FC = () => {
     if (!leaderboardRef.current) return;
     
     try {
+      const html2canvas = (await import('html2canvas')).default;
       const canvas = await html2canvas(leaderboardRef.current, {
         backgroundColor: '#0a0a0f',
         scale: 2,
