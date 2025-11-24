@@ -1399,68 +1399,6 @@ const Wallet: React.FC = () => {
     }
   };
 
-  useEffect(() => {
-    fetchWalletData(currentPage);
-    checkCooldowns();
-  }, [user?.id, currentPage]);
-
-  useEffect(() => {
-    const fetchBanks = async () => {
-      const { data, error } = await supabase.functions.invoke('get-banks');
-      if (data?.status && data?.data) {
-        setBanks(data.data);
-      }
-    };
-    fetchBanks();
-  }, []);
-
-  useEffect(() => {
-    if (withdrawCooldown > 0) {
-      const timer = setInterval(() => {
-        setWithdrawCooldown(prev => Math.max(0, prev - 1));
-      }, 1000);
-      return () => clearInterval(timer);
-    }
-  }, [withdrawCooldown]);
-
-  useEffect(() => {
-    if (redeemCooldown > 0) {
-      const timer = setInterval(() => {
-        setRedeemCooldown(prev => Math.max(0, prev - 1));
-      }, 1000);
-      return () => clearInterval(timer);
-    }
-  }, [redeemCooldown]);
-
-  // Handle showing receipt after successful payment
-  useEffect(() => {
-    const query = new URLSearchParams(location.search);
-    const showReceiptRef = query.get('showReceipt');
-    
-    // Only proceed if we have a reference and haven't shown this receipt yet
-    if (showReceiptRef && transactions.length > 0 && receiptShownRef.current !== showReceiptRef) {
-      // Find the transaction with the matching reference
-      const transaction = transactions.find(tx => tx.reference === showReceiptRef);
-      
-      if (transaction) {
-        // Mark this receipt as shown
-        receiptShownRef.current = showReceiptRef;
-        
-        // Show the receipt for this transaction
-        handleViewReceipt(transaction);
-        
-        // Remove the query parameter from the URL
-        const newSearch = new URLSearchParams(location.search);
-        newSearch.delete('showReceipt');
-        const newSearchStr = newSearch.toString();
-        navigate(
-          location.pathname + (newSearchStr ? '?' + newSearchStr : ''),
-          { replace: true }
-        );
-      }
-    }
-  }, [location.search, location.pathname, transactions, navigate, handleViewReceipt]);
-
   const checkCooldowns = () => {
     const withdrawCooldownEnd = localStorage.getItem('withdrawCooldownEnd');
     if (withdrawCooldownEnd) {
@@ -1559,6 +1497,68 @@ const Wallet: React.FC = () => {
     setTransferInfo(info);
     setReceiptOpen(true);
   }, [getTransferInfo]);
+
+  useEffect(() => {
+    fetchWalletData(currentPage);
+    checkCooldowns();
+  }, [user?.id, currentPage]);
+
+  useEffect(() => {
+    const fetchBanks = async () => {
+      const { data, error } = await supabase.functions.invoke('get-banks');
+      if (data?.status && data?.data) {
+        setBanks(data.data);
+      }
+    };
+    fetchBanks();
+  }, []);
+
+  useEffect(() => {
+    if (withdrawCooldown > 0) {
+      const timer = setInterval(() => {
+        setWithdrawCooldown(prev => Math.max(0, prev - 1));
+      }, 1000);
+      return () => clearInterval(timer);
+    }
+  }, [withdrawCooldown]);
+
+  useEffect(() => {
+    if (redeemCooldown > 0) {
+      const timer = setInterval(() => {
+        setRedeemCooldown(prev => Math.max(0, prev - 1));
+      }, 1000);
+      return () => clearInterval(timer);
+    }
+  }, [redeemCooldown]);
+
+  // Handle showing receipt after successful payment
+  useEffect(() => {
+    const query = new URLSearchParams(location.search);
+    const showReceiptRef = query.get('showReceipt');
+    
+    // Only proceed if we have a reference and haven't shown this receipt yet
+    if (showReceiptRef && transactions.length > 0 && receiptShownRef.current !== showReceiptRef) {
+      // Find the transaction with the matching reference
+      const transaction = transactions.find(tx => tx.reference === showReceiptRef);
+      
+      if (transaction) {
+        // Mark this receipt as shown
+        receiptShownRef.current = showReceiptRef;
+        
+        // Show the receipt for this transaction
+        handleViewReceipt(transaction);
+        
+        // Remove the query parameter from the URL
+        const newSearch = new URLSearchParams(location.search);
+        newSearch.delete('showReceipt');
+        const newSearchStr = newSearch.toString();
+        navigate(
+          location.pathname + (newSearchStr ? '?' + newSearchStr : ''),
+          { replace: true }
+        );
+      }
+    }
+  }, [location.search, location.pathname, transactions, navigate, handleViewReceipt]);
 
   return (
     <div className="container mx-auto p-4 md:p-6 lg:p-8 space-y-6 animate-fade-in">
