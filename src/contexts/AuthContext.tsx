@@ -1,4 +1,3 @@
-import { sendPushNotification } from '@/lib/pushNotifications';
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
@@ -206,6 +205,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         // Send welcome notification
         setTimeout(async () => {
           try {
+            const { sendPushNotification } = await import('@/lib/pushNotifications');
             await sendPushNotification([userId], {
               title: "Welcome Soldier!",
               message: "Onward to the frontline!",
