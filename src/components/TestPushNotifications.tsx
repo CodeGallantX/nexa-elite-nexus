@@ -4,7 +4,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { useAuth } from '@/contexts/AuthContext';
-import { sendPushNotification, sendBroadcastPushNotification } from '@/lib/pushNotifications';
 import { toast } from 'sonner';
 
 export const TestPushNotifications = () => {
@@ -18,6 +17,7 @@ export const TestPushNotifications = () => {
 
     setIsSending(true);
     try {
+      const { sendPushNotification } = await import('@/lib/pushNotifications');
       const success = await sendPushNotification([user.id], {
         title,
         message,
@@ -44,6 +44,7 @@ export const TestPushNotifications = () => {
   const handleSendBroadcastNotification = async () => {
     setIsSending(true);
     try {
+      const { sendBroadcastPushNotification } = await import('@/lib/pushNotifications');
       const success = await sendBroadcastPushNotification({
         title,
         message,
