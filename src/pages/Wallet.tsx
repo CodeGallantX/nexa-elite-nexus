@@ -1590,7 +1590,7 @@ const Wallet: React.FC = () => {
             fetchWalletData();
             startWithdrawCooldown();
           }} 
-          isWithdrawalServiceAvailable={true}
+          isWithdrawalServiceAvailable={false}
           cooldown={withdrawCooldown}
         />
         <TransferDialog walletBalance={walletBalance} onTransferComplete={fetchWalletData} />
