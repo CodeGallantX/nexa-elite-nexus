@@ -12,7 +12,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { AlertCircle, X, Camera } from 'lucide-react';
-import html2canvas from 'html2canvas';
 
 const bugReportSchema = z.object({
   category: z.enum(['gameplay', 'ui', 'performance', 'other']),
@@ -41,6 +40,7 @@ export const BugReportModal: React.FC = () => {
     await new Promise(resolve => setTimeout(resolve, 500)); // wait for modal to close
 
     try {
+      const html2canvas = (await import('html2canvas')).default;
       const canvas = await html2canvas(document.body);
       canvas.toBlob((blob) => {
         if (blob) {
