@@ -1221,65 +1221,21 @@ const FundWalletDialog = () => {
     }
 
     return (
-        <Dialog>
-            <DialogTrigger asChild>
-                <Button variant="outline" className="group w-full h-24 flex flex-col items-center justify-center gap-2 border-2 hover:border-green-500/50 hover:bg-green-500/5 hover:scale-105 transition-all duration-200">
-                    <div className="p-2 rounded-xl bg-gradient-to-br from-green-500/20 to-green-600/10 group-hover:scale-110 transition-transform">
-                      <Coins className="h-6 w-6 text-green-500" />
-                    </div>
-                    <span className="font-semibold text-sm">Fund Wallet</span>
-                </Button>
-            </DialogTrigger>
-            <DialogContent>
-                <DialogHeader>
-                    <DialogTitle>Fund Your Wallet</DialogTitle>
-                    <DialogDescription>Add funds to your wallet using Paystack.</DialogDescription>
-                </DialogHeader>
-                <div className="py-4 grid gap-4">
-                    <div className="grid gap-2">
-                        <Label htmlFor="amount">Amount (₦500 - ₦50,000)</Label>
-                                                <Input
-                                                    id="amount"
-                                                    type="number"
-                                                    placeholder="₦0.00"
-                                                    value={amount}
-                                                    min={500}
-                                                    max={50000}
-                                                    onChange={(e) => setAmount(Number(e.target.value))}
-                                                />
-                                            </div>
-                                            <Alert>
-                                                <Coins className="h-4 w-4" />
-                                                <AlertTitle>Transaction Fee</AlertTitle>
-                                                <AlertDescription>
-                                                    {amount > 0 ? (
-                                                        <>
-                                                            {(() => {
-                                                                const fee = Number((amount * 0.04).toFixed(2));
-                                                                const net = Number((amount - fee).toFixed(2));
-                                                                return (
-                                                                    <>
-                                                                        A fee of ₦{fee.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} (4%) will be deducted.
-                                                                        <div className="text-sm text-muted-foreground mt-1">
-                                                                            You will receive ₦{net.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} after fees.
-                                                                        </div>
-                                                                    </>
-                                                                );
-                                                            })()}
-                                                        </>
-                                                    ) : (
-                                                        'A fee of 4% will be deducted for this transaction.'
-                                                    )}
-                                                </AlertDescription>
-                                            </Alert>
-                                        </div>
-                                        <DialogFooter>
-                                            <Button onClick={handlePayment} disabled={!user || !profile || amount <= 0 || isLoading}>
-                                                {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                                Fund with Paystack
-                                            </Button>
-                                        </DialogFooter>            </DialogContent>
-        </Dialog>
+        <TooltipProvider>
+            <Tooltip>
+                <TooltipTrigger asChild>
+                    <Button variant="outline" className="w-full h-24 flex flex-col items-center justify-center gap-2 border-2 opacity-50" disabled>
+                        <div className="p-2 rounded-xl bg-gradient-to-br from-green-500/20 to-green-600/10">
+                          <Coins className="h-6 w-6 text-green-500" />
+                        </div>
+                        <span className="font-semibold text-sm">Fund Wallet</span>
+                    </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                    <p>Wallet funding is temporarily disabled.</p>
+                </TooltipContent>
+            </Tooltip>
+        </TooltipProvider>
     )
 }
 
