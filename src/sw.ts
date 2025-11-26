@@ -66,7 +66,7 @@ self.addEventListener('notificationclick', (event: NotificationEvent) => {
   console.log('Notification clicked:', event.notification);
   event.notification.close();
 
-  const urlToOpen = event.notification.data?.url || '/dashboard';
+  const targetUrl = event.notification.data?.url || '/dashboard';
 
   const promiseChain = self.clients.matchAll({
     type: 'window',
@@ -74,18 +74,18 @@ self.addEventListener('notificationclick', (event: NotificationEvent) => {
   }).then((windowClients) => {
     // Check if there's already an open window with the app
     for (const windowClient of windowClients) {
-      if (windowClient.url.includes(self.location.origin)) {
+      if (windowClient.url.startsWith(self.location.origin)) {
         // Focus the existing window and navigate to the URL
         return windowClient.focus().then((client) => {
           if (client && 'navigate' in client) {
-            return (client as WindowClient).navigate(urlToOpen);
+            return client.navigate(targetUrl);
           }
           return client;
         });
       }
     }
     // If no window is open, open a new one
-    return self.clients.openWindow(urlToOpen);
+    return self.clients.openWindow(targetUrl);
   });
 
   event.waitUntil(promiseChain);
