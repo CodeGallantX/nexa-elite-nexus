@@ -24,21 +24,10 @@ export const usePushNotifications = () => {
     setIsSupported(supported);
 
     if (supported) {
-      // Register service worker
-      registerServiceWorker();
-      // Check existing subscription
+      // Check existing subscription - VitePWA handles service worker registration
       checkSubscription();
     }
   }, []);
-
-  const registerServiceWorker = async () => {
-    try {
-      const registration = await navigator.serviceWorker.register('/sw.js');
-      console.log('Service Worker registered:', registration);
-    } catch (error) {
-      console.error('Service Worker registration failed:', error);
-    }
-  };
 
   const checkSubscription = async () => {
     try {

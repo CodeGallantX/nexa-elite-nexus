@@ -15,6 +15,8 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { usePushNotifications } from "@/hooks/usePushNotifications";
+import { Switch } from "@/components/ui/switch";
 import {
   Settings as SettingsIcon,
   User,
@@ -37,6 +39,8 @@ import {
   Bell,
   CheckCircle2,
   XCircle,
+  BellRing,
+  BellOff,
 } from "lucide-react";
 
 // Device and brand data
@@ -153,6 +157,13 @@ export const Settings: React.FC = () => {
   const { profile, user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const {
+    isSupported: isPushSupported,
+    isSubscribed: isPushSubscribed,
+    isLoading: isPushLoading,
+    subscribe: subscribeToPush,
+    unsubscribe: unsubscribeFromPush
+  } = usePushNotifications();
 
   const [formData, setFormData] = useState({
     ign: "",
@@ -381,11 +392,22 @@ export const Settings: React.FC = () => {
     setFormData((prev) => ({ ...prev, avatar_file: file }));
   };
 
+  const handlePushNotificationToggle = async (enabled: boolean) => {
+    if (!user?.id) return;
+
+    if (enabled) {
+      await subscribeToPush(user.id);
+    } else {
+      await unsubscribeFromPush(user.id);
+    }
+  };
+
   const tabs = [
     { id: "profile", label: "Profile", icon: User },
     { id: "gaming", label: "Gaming", icon: Gamepad2 },
     { id: "social", label: "Social", icon: TrendingUp },
     { id: "banking", label: "Banking", icon: CreditCard },
+    { id: "notifications", label: "Notifications", icon: Bell },
     { id: "account", label: "Account", icon: SettingsIcon },
   ];
 
@@ -957,6 +979,135 @@ export const Settings: React.FC = () => {
                     <p className="text-gray-300 text-sm mt-1">
                       This information is used for prize payments and tournament
                       winnings. All data is encrypted and stored securely.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Notifications Tab */}
+        {activeTab === "notifications" && (
+          <Card className="bg-card/50 border-border/30 backdrop-blur-sm">
+            <CardHeader>
+              <CardTitle className="text-white flex items-center">
+                <Bell className="w-5 h-5 mr-2 text-[#FF1F44]" />
+                Notification Settings
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* Push Notifications */}
+              <div className="space-y-4">
+                <div className="flex items-center justify-between p-4 bg-background/20 rounded-lg border border-border/30">
+                  <div className="flex items-center space-x-4">
+                    {isPushSubscribed ? (
+                      <BellRing className="w-6 h-6 text-green-400" />
+                    ) : (
+                      <BellOff className="w-6 h-6 text-gray-400" />
+                    )}
+                    <div>
+                      <Label className="text-white font-medium">
+                        Push Notifications
+                      </Label>
+                      <p className="text-gray-400 text-sm mt-1">
+                        Receive notifications about events, scrims, announcements, and more
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-3">
+                    {isPushLoading && (
+                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white" />
+                    )}
+                    <Switch
+                      checked={isPushSubscribed}
+                      onCheckedChange={handlePushNotificationToggle}
+                      disabled={!isPushSupported || isPushLoading}
+                    />
+                  </div>
+                </div>
+
+                {!isPushSupported && (
+                  <div className="p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
+                    <div className="flex items-start space-x-3">
+                      <BellOff className="w-5 h-5 text-yellow-500 mt-0.5" />
+                      <div>
+                        <h4 className="text-yellow-500 font-medium">
+                          Push Notifications Not Supported
+                        </h4>
+                        <p className="text-gray-300 text-sm mt-1">
+                          Your browser does not support push notifications. Try using a
+                          modern browser like Chrome, Firefox, or Edge for the best
+                          experience.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {isPushSupported && isPushSubscribed && (
+                  <div className="p-4 bg-green-500/10 border border-green-500/20 rounded-lg">
+                    <div className="flex items-start space-x-3">
+                      <CheckCircle2 className="w-5 h-5 text-green-500 mt-0.5" />
+                      <div>
+                        <h4 className="text-green-500 font-medium">
+                          Push Notifications Enabled
+                        </h4>
+                        <p className="text-gray-300 text-sm mt-1">
+                          You will receive push notifications for important updates,
+                          including new events, scrim schedules, and announcements.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Notification Types Info */}
+              <div className="space-y-4 pt-4 border-t border-border/30">
+                <h4 className="text-white font-medium flex items-center">
+                  <Bell className="w-4 h-4 mr-2 text-[#FF1F44]" />
+                  What You&apos;ll Receive
+                </h4>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="p-4 bg-background/20 rounded-lg border border-border/30">
+                    <div className="flex items-center space-x-3 mb-2">
+                      <div className="w-2 h-2 rounded-full bg-blue-400" />
+                      <span className="text-white font-medium">Event Updates</span>
+                    </div>
+                    <p className="text-gray-400 text-sm">
+                      New tournaments, scrims, and event reminders
+                    </p>
+                  </div>
+
+                  <div className="p-4 bg-background/20 rounded-lg border border-border/30">
+                    <div className="flex items-center space-x-3 mb-2">
+                      <div className="w-2 h-2 rounded-full bg-green-400" />
+                      <span className="text-white font-medium">Announcements</span>
+                    </div>
+                    <p className="text-gray-400 text-sm">
+                      Important clan announcements and updates
+                    </p>
+                  </div>
+
+                  <div className="p-4 bg-background/20 rounded-lg border border-border/30">
+                    <div className="flex items-center space-x-3 mb-2">
+                      <div className="w-2 h-2 rounded-full bg-yellow-400" />
+                      <span className="text-white font-medium">Giveaways</span>
+                    </div>
+                    <p className="text-gray-400 text-sm">
+                      New giveaways and redemption codes
+                    </p>
+                  </div>
+
+                  <div className="p-4 bg-background/20 rounded-lg border border-border/30">
+                    <div className="flex items-center space-x-3 mb-2">
+                      <div className="w-2 h-2 rounded-full bg-purple-400" />
+                      <span className="text-white font-medium">Profile Updates</span>
+                    </div>
+                    <p className="text-gray-400 text-sm">
+                      Changes to your rank, tier, or role
                     </p>
                   </div>
                 </div>
