@@ -25,10 +25,14 @@ BEGIN
   -- Delete related records first (in order of dependencies)
   DELETE FROM public.notifications WHERE user_id = user_id_to_delete;
   DELETE FROM public.push_subscriptions WHERE user_id = user_id_to_delete;
-  DELETE FROM public.activities WHERE performed_by = user_id_to_delete OR target_user_id = user_id_to_delete;
+  -- Split activities deletion for better index usage
+  DELETE FROM public.activities WHERE performed_by = user_id_to_delete;
+  DELETE FROM public.activities WHERE target_user_id = user_id_to_delete;
   DELETE FROM public.bug_reports WHERE reporter_id = user_id_to_delete;
   DELETE FROM public.chat_messages WHERE user_id = user_id_to_delete;
-  DELETE FROM public.attendance WHERE player_id = user_id_to_delete OR marked_by = user_id_to_delete;
+  -- Split attendance deletion for better index usage
+  DELETE FROM public.attendance WHERE player_id = user_id_to_delete;
+  DELETE FROM public.attendance WHERE marked_by = user_id_to_delete;
   DELETE FROM public.event_participants WHERE player_id = user_id_to_delete;
   DELETE FROM public.events WHERE created_by = user_id_to_delete;
   DELETE FROM public.loadouts WHERE player_id = user_id_to_delete;
@@ -38,9 +42,12 @@ BEGIN
   UPDATE public.giveaway_codes SET redeemed_by = NULL WHERE redeemed_by = user_id_to_delete;
   DELETE FROM public.giveaways WHERE created_by = user_id_to_delete;
   
-  -- Delete wallet and transactions
-  DELETE FROM public.transactions WHERE wallet_id IN (
-    SELECT id FROM public.wallets WHERE user_id = user_id_to_delete
+  -- Delete wallet and transactions using EXISTS for better performance
+  DELETE FROM public.transactions 
+  WHERE EXISTS (
+    SELECT 1 FROM public.wallets 
+    WHERE wallets.id = transactions.wallet_id 
+    AND wallets.user_id = user_id_to_delete
   );
   DELETE FROM public.wallets WHERE user_id = user_id_to_delete;
   
