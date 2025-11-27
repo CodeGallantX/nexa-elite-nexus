@@ -21,6 +21,12 @@ export const useNotifications = () => {
   const queryClient = useQueryClient();
   const [unreadCount, setUnreadCount] = useState(0);
 
+  // Read read announcement IDs from local storage
+  const getReadAnnouncements = () => {
+    const read = localStorage.getItem("readAnnouncements");
+    return read ? JSON.parse(read) : [];
+  };
+
   // Fetch announcements as notifications for all users (everyone gets these)
   const { data: announcements = [] } = useQuery({
     queryKey: ["announcements-notifications"],
@@ -37,13 +43,14 @@ export const useNotifications = () => {
         return [];
       }
 
+      const readAnnouncements = getReadAnnouncements();
       return data.map((announcement) => ({
         id: `announcement-${announcement.id}`,
         type: "announcement",
         message: announcement.content || announcement.title,
         title: announcement.title,
         timestamp: announcement.created_at,
-        status: "unread" as const,
+        status: readAnnouncements.includes(announcement.id) ? "read" : "unread",
         action: "view_announcement",
       }));
     },
@@ -196,8 +203,13 @@ export const useNotifications = () => {
   // Mark notification as read
   const markAsReadMutation = useMutation({
     mutationFn: async (notificationId: string) => {
-      // Skip if it's an announcement (they start with 'announcement-')
       if (notificationId.startsWith("announcement-")) {
+        const announcementId = notificationId.replace("announcement-", "");
+        const readAnnouncements = getReadAnnouncements();
+        if (!readAnnouncements.includes(announcementId)) {
+          const newReadAnnouncements = [...readAnnouncements, announcementId];
+          localStorage.setItem("readAnnouncements", JSON.stringify(newReadAnnouncements));
+        }
         return;
       }
 
@@ -217,6 +229,7 @@ export const useNotifications = () => {
       queryClient.invalidateQueries({
         queryKey: ["user-specific-notifications"],
       });
+      queryClient.invalidateQueries({ queryKey: ["announcements-notifications"] });
     },
   });
 
@@ -225,7 +238,16 @@ export const useNotifications = () => {
     mutationFn: async () => {
       if (!user?.id) return;
 
-      // Mark all non-announcement notifications as read
+      const announcementIdsToMark = announcements
+        .filter((n) => n.status === "unread")
+        .map((n) => n.id.replace("announcement-", ""));
+        
+      if (announcementIdsToMark.length > 0) {
+        const readAnnouncements = getReadAnnouncements();
+        const newReadAnnouncements = [...new Set([...readAnnouncements, ...announcementIdsToMark])];
+        localStorage.setItem("readAnnouncements", JSON.stringify(newReadAnnouncements));
+      }
+
       const notificationIds = notifications
         .filter((n) => !n.id.startsWith("announcement-"))
         .map((n) => n.id);
@@ -248,6 +270,7 @@ export const useNotifications = () => {
       queryClient.invalidateQueries({
         queryKey: ["user-specific-notifications"],
       });
+      queryClient.invalidateQueries({ queryKey: ["announcements-notifications"] });
     },
   });
 
