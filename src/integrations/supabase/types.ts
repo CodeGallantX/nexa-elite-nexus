@@ -286,6 +286,41 @@ export type Database = {
           },
         ]
       }
+      clan_settings: {
+        Row: {
+          id: string
+          key: string
+          value: boolean
+          description: string | null
+          updated_at: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          id?: string
+          key: string
+          value?: boolean
+          description?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          id?: string
+          key?: string
+          value?: boolean
+          description?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clan_settings_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       chat_messages: {
         Row: {
           attachment_name: string | null
