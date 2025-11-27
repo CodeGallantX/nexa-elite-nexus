@@ -20,6 +20,7 @@ import { usePaystackPayment } from 'react-paystack';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { TransactionReceipt } from '@/components/TransactionReceipt';
+import { useWalletSettings } from '@/hooks/useWalletSettings';
 
 // Transaction fee constants
 const TRANSFER_FEE = 50;
@@ -633,6 +634,8 @@ const WithdrawDialog = ({ setWalletBalance, walletBalance, banks, onWithdrawalCo
     const [notes, setNotes] = useState('');
     const [open, setOpen] = useState(false);
     const [withdrawalAllowed, setWithdrawalAllowed] = useState<boolean | null>(null);
+    const [isProcessing, setIsProcessing] = useState(false);
+    const withdrawalInProgressRef = useRef(false);
     const { toast } = useToast();
 
     useEffect(() => {
@@ -674,169 +677,201 @@ const WithdrawDialog = ({ setWalletBalance, walletBalance, banks, onWithdrawalCo
     }, [profile?.id]);
 
     const handleWithdraw = async () => {
+        // Idempotency check: prevent multiple simultaneous withdrawal requests
+        if (withdrawalInProgressRef.current || isProcessing) {
+            console.warn("Withdrawal already in progress, ignoring duplicate request.");
+            toast({
+                title: "Please Wait",
+                description: "A withdrawal is already being processed. Please wait for it to complete.",
+                variant: "destructive",
+            });
+            return;
+        }
+
+        // Set processing state immediately to prevent double-clicks
+        withdrawalInProgressRef.current = true;
+        setIsProcessing(true);
+
         console.log("Withdrawal process started.");
         console.log("State:", { amount, walletBalance, bankCode, accountNumber, accountName });
 
-        if (amount > walletBalance) {
-            console.error("Validation failed: Insufficient funds.");
-            toast({
-                title: "Insufficient funds",
-                description: "You do not have enough funds in your wallet to complete this transaction.",
-                variant: "destructive",
+        // Generate a deterministic idempotency key based on user, amount, and account details
+        // This allows safe retries of the same legitimate request while preventing duplicate withdrawals
+        const idempotencyKey = `withdraw_${profile?.id}_${amount}_${bankCode}_${accountNumber}`;
+
+        try {
+            if (amount > walletBalance) {
+                console.error("Validation failed: Insufficient funds.");
+                toast({
+                    title: "Insufficient funds",
+                    description: "You do not have enough funds in your wallet to complete this transaction.",
+                    variant: "destructive",
+                });
+                return;
+            }
+            if (amount < 500) {
+                console.error("Validation failed: Amount less than 500.");
+                toast({
+                    title: "Minimum Withdrawal",
+                    description: "Minimum withdrawal amount is ₦500",
+                    variant: "destructive",
+                });
+                return;
+            }
+            if (amount > 30000) {
+                console.error("Validation failed: Amount greater than 30000.");
+                toast({
+                    title: "Maximum Withdrawal",
+                    description: "Maximum withdrawal amount is ₦30,000",
+                    variant: "destructive",
+                });
+                return;
+            }
+            if (!bankCode) {
+                console.error("Validation failed: Bank not selected.");
+                toast({
+                    title: "Bank not selected",
+                    description: "Please select a bank",
+                    variant: "destructive",
+                });
+                return;
+            }
+            if (!/^[0-9]{10}$/.test(accountNumber)) {
+                console.error("Validation failed: Invalid account number.");
+                toast({
+                    title: "Invalid Account Number",
+                    description: "Please enter a valid 10-digit account number",
+                    variant: "destructive",
+                });
+                return;
+            }
+
+            console.log("Validation passed. Creating transfer recipient...");
+            const recipientPayload = {
+                endpoint: 'create-transfer-recipient',
+                name: accountName,
+                account_number: accountNumber,
+                bank_code: bankCode,
+            };
+            console.log("Recipient payload:", recipientPayload);
+
+            const { data: { session } } = await supabase.auth.getSession();
+
+            if (!session || !session.access_token) {
+                toast({
+                    title: "Authentication Error",
+                    description: "Your session has expired. Please log out and log back in.",
+                    variant: "destructive",
+                });
+                return;
+            }
+
+            const { data: recipientData, error: recipientError } = await supabase.functions.invoke('paystack-transfer', {
+                headers: {
+                    'Authorization': `Bearer ${session.access_token}`,
+                },
+                body: recipientPayload,
             });
-            return;
-        }
-        if (amount < 500) {
-            console.error("Validation failed: Amount less than 500.");
-            toast({
-                title: "Minimum Withdrawal",
-                description: "Minimum withdrawal amount is ₦500",
-                variant: "destructive",
+
+            if (recipientError || !recipientData.status) {
+                console.error("Error creating transfer recipient:", recipientError || recipientData);
+                toast({
+                    title: "Error creating transfer recipient",
+                    description: recipientData?.message || recipientError?.message || "An error occurred",
+                    variant: "destructive",
+                });
+                return;
+            }
+
+            console.log("Transfer recipient created successfully:", recipientData);
+            console.log("Initiating transfer...");
+            const transferPayload = {
+                endpoint: 'initiate-transfer',
+                amount,
+                recipient_code: recipientData.data.recipient_code,
+                idempotency_key: idempotencyKey,
+            };
+            console.log("Transfer payload:", transferPayload);
+
+            const { data: transferData, error: transferError } = await supabase.functions.invoke('paystack-transfer', {
+                headers: {
+                    'Authorization': `Bearer ${session.access_token}`,
+                },
+                body: transferPayload,
             });
-            return;
-        }
-        if (amount > 30000) {
-            console.error("Validation failed: Amount greater than 30000.");
-            toast({
-                title: "Maximum Withdrawal",
-                description: "Maximum withdrawal amount is ₦30,000",
-                variant: "destructive",
-            });
-            return;
-        }
-        if (!bankCode) {
-            console.error("Validation failed: Bank not selected.");
-            toast({
-                title: "Bank not selected",
-                description: "Please select a bank",
-                variant: "destructive",
-            });
-            return;
-        }
-        if (!/^[0-9]{10}$/.test(accountNumber)) {
-            console.error("Validation failed: Invalid account number.");
-            toast({
-                title: "Invalid Account Number",
-                description: "Please enter a valid 10-digit account number",
-                variant: "destructive",
-            });
-            return;
-        }
 
-        console.log("Validation passed. Creating transfer recipient...");
-        const recipientPayload = {
-            endpoint: 'create-transfer-recipient',
-            name: accountName,
-            account_number: accountNumber,
-            bank_code: bankCode,
-        };
-        console.log("Recipient payload:", recipientPayload);
-
-        const { data: { session } } = await supabase.auth.getSession();
-
-        if (!session || !session.access_token) {
-            toast({
-                title: "Authentication Error",
-                description: "Your session has expired. Please log out and log back in.",
-                variant: "destructive",
-            });
-            return;
-        }
-
-        const { data: recipientData, error: recipientError } = await supabase.functions.invoke('paystack-transfer', {
-            headers: {
-                'Authorization': `Bearer ${session.access_token}`,
-            },
-            body: recipientPayload,
-        });
-
-        if (recipientError || !recipientData.status) {
-            console.error("Error creating transfer recipient:", recipientError || recipientData);
-            toast({
-                title: "Error creating transfer recipient",
-                description: recipientData?.message || recipientError?.message || "An error occurred",
-                variant: "destructive",
-            });
-            return;
-        }
-
-        console.log("Transfer recipient created successfully:", recipientData);
-        console.log("Initiating transfer...");
-        const transferPayload = {
-            endpoint: 'initiate-transfer',
-            amount,
-            recipient_code: recipientData.data.recipient_code,
-        };
-        console.log("Transfer payload:", transferPayload);
-
-        const { data: transferData, error: transferError } = await supabase.functions.invoke('paystack-transfer', {
-            headers: {
-                'Authorization': `Bearer ${session.access_token}`,
-            },
-            body: transferPayload,
-        });
-
-        if (transferError || !transferData.status) {
-            console.error("Error initiating transfer:", transferError || transferData);
-            
-            // Try to extract structured JSON returned by the edge function (it may be in transferError.context.json)
-            let payload: any = transferData ?? null;
-            try {
-                if (transferError?.context?.json) payload = transferError.context.json;
-                if (typeof payload === 'function') {
-                    try { payload = await payload(); } catch (e) { console.warn('Failed to parse transferError.context.json()', e); payload = null; }
+            if (transferError || !transferData.status) {
+                console.error("Error initiating transfer:", transferError || transferData);
+                
+                // Try to extract structured JSON returned by the edge function (it may be in transferError.context.json)
+                let payload: any = transferData ?? null;
+                try {
+                    if (transferError?.context?.json) payload = transferError.context.json;
+                    if (typeof payload === 'function') {
+                        try { payload = await payload(); } catch (e) { console.warn('Failed to parse transferError.context.json()', e); payload = null; }
+                    }
+                } catch (e) {
+                    // ignore
                 }
-            } catch (e) {
-                // ignore
+
+                const errorCode = payload?.error;
+                const errorMessage = payload?.message || transferError?.message || 'An unexpected error occurred';
+
+                if (errorCode === 'withdrawals_disabled_today') {
+                    toast({
+                        title: "Withdrawals Not Available Today",
+                        description: "Withdrawals are not allowed on Sundays in your region. Please try again on Monday.",
+                        variant: "destructive",
+                    });
+                } else if (errorCode === 'insufficient_paystack_balance') {
+                    toast({
+                        title: "Withdrawal Service Unavailable",
+                        description: "We are currently unable to process withdrawals. Please try again later. Our team has been notified.",
+                        variant: "destructive",
+                    });
+                } else if (errorCode === 'failed_to_update_wallet') {
+                    // Edge case: the transfer likely succeeded with Paystack but DB update failed
+                    toast({
+                        title: "Withdrawal Processing",
+                        description: "Your withdrawal was processed but we couldn't update your wallet immediately. Our team has been notified and will reconcile this shortly.",
+                    });
+                } else if (errorCode === 'duplicate_withdrawal') {
+                    toast({
+                        title: "Duplicate Request",
+                        description: "This withdrawal has already been processed. Please check your transaction history.",
+                        variant: "destructive",
+                    });
+                } else {
+                    toast({
+                        title: "Withdrawal Failed",
+                        description: errorMessage,
+                        variant: "destructive",
+                    });
+                }
+                return;
             }
 
-            const errorCode = payload?.error;
-            const errorMessage = payload?.message || transferError?.message || 'An unexpected error occurred';
-
-            if (errorCode === 'withdrawals_disabled_today') {
-                toast({
-                    title: "Withdrawals Not Available Today",
-                    description: "Withdrawals are not allowed on Sundays in your region. Please try again on Monday.",
-                    variant: "destructive",
-                });
-            } else if (errorCode === 'insufficient_paystack_balance') {
-                toast({
-                    title: "Withdrawal Service Unavailable",
-                    description: "We are currently unable to process withdrawals. Please try again later. Our team has been notified.",
-                    variant: "destructive",
-                });
-            } else if (errorCode === 'failed_to_update_wallet') {
-                // Edge case: the transfer likely succeeded with Paystack but DB update failed
-                toast({
-                    title: "Withdrawal Processing",
-                    description: "Your withdrawal was processed but we couldn't update your wallet immediately. Our team has been notified and will reconcile this shortly.",
-                });
-            } else {
-                toast({
-                    title: "Withdrawal Failed",
-                    description: errorMessage,
-                    variant: "destructive",
-                });
-            }
-            return;
+            console.log("Transfer initiated successfully:", transferData);
+            
+            // Reset form and close dialog
+            setAmount(0);
+            setNotes('');
+            setOpen(false);
+            
+            // Show success message
+            toast({
+                title: "Withdrawal Submitted",
+                description: `Your request to withdraw ₦${amount.toLocaleString()} has been submitted successfully. Funds will be sent to your account shortly.`,
+            });
+            
+            // Refresh wallet data from database
+            onWithdrawalComplete?.();
+            console.log("Withdrawal process finished.");
+        } finally {
+            // Always reset processing state
+            withdrawalInProgressRef.current = false;
+            setIsProcessing(false);
         }
-
-        console.log("Transfer initiated successfully:", transferData);
-        
-        // Reset form and close dialog
-        setAmount(0);
-        setNotes('');
-        setOpen(false);
-        
-        // Show success message
-        toast({
-            title: "Withdrawal Submitted",
-            description: `Your request to withdraw ₦${amount.toLocaleString()} has been submitted successfully. Funds will be sent to your account shortly.`,
-        });
-        
-        // Refresh wallet data from database
-        onWithdrawalComplete?.();
-        console.log("Withdrawal process finished.");
     }
 
     return (
@@ -975,9 +1010,14 @@ const WithdrawDialog = ({ setWalletBalance, walletBalance, banks, onWithdrawalCo
                 <DialogFooter>
                     <Button 
                         onClick={handleWithdraw}
-                        disabled={cooldown > 0}
+                        disabled={cooldown > 0 || isProcessing}
                     >
-                        {cooldown > 0 
+                        {isProcessing ? (
+                            <>
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                Processing...
+                            </>
+                        ) : cooldown > 0 
                             ? `Wait ${Math.floor(cooldown / 3600)}h ${Math.floor((cooldown % 3600) / 60)}m ${cooldown % 60}s`
                             : 'Submit Withdrawal'}
                     </Button>
@@ -1142,7 +1182,7 @@ const TransferDialog = ({ walletBalance, onTransferComplete }) => {
     )
 }
 
-const FundWalletDialog = () => {
+const FundWalletDialog = ({ isDepositsEnabled = true }: { isDepositsEnabled?: boolean }) => {
     const navigate = useNavigate();
     const { user, profile } = useAuth();
     const [amount, setAmount] = useState(0);
@@ -1220,6 +1260,30 @@ const FundWalletDialog = () => {
         initializePayment({ onSuccess, onClose } as any);
     }
 
+    // Show disabled state if deposits are not enabled by clan master
+    if (!isDepositsEnabled) {
+        return (
+            <TooltipProvider>
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <Button variant="outline" className="w-full h-24 flex flex-col items-center justify-center gap-2 border-2 opacity-50" disabled>
+                            <div className="p-2 rounded-xl bg-gradient-to-br from-green-500/20 to-green-600/10">
+                              <Coins className="h-6 w-6 text-green-500" />
+                            </div>
+                            <span className="font-semibold text-sm">Fund Wallet</span>
+                        </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                        <p>Wallet funding is currently disabled by clan master.</p>
+                    </TooltipContent>
+                </Tooltip>
+            </TooltipProvider>
+        )
+    }
+
+    // Deposits enabled by clan master, but temporarily disabled at system level
+    // Note: When the system is ready to accept deposits, this should be replaced
+    // with the actual payment dialog functionality
     return (
         <TooltipProvider>
             <Tooltip>
@@ -1232,7 +1296,7 @@ const FundWalletDialog = () => {
                     </Button>
                 </TooltipTrigger>
                 <TooltipContent>
-                    <p>Wallet funding is temporarily disabled.</p>
+                    <p>Wallet funding is temporarily unavailable. Please try again later.</p>
                 </TooltipContent>
             </Tooltip>
         </TooltipProvider>
@@ -1256,6 +1320,9 @@ const Wallet: React.FC = () => {
   const [receiptOpen, setReceiptOpen] = useState(false);
   const [transferInfo, setTransferInfo] = useState<any>(null);
   const receiptShownRef = useRef<string | null>(null);
+  
+  // Fetch wallet settings from database
+  const { settings: walletSettings, loading: walletSettingsLoading } = useWalletSettings();
   
   const WITHDRAW_COOLDOWN_SECONDS = 43200; // 12 hours
   const REDEEM_COOLDOWN_SECONDS = 600; // 10 minutes
@@ -1537,7 +1604,7 @@ const Wallet: React.FC = () => {
       </Card>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 animate-fade-in" style={{ animationDelay: '0.1s' }}>
-        <FundWalletDialog />
+        <FundWalletDialog isDepositsEnabled={walletSettings.deposits_enabled} />
         <WithdrawDialog 
           setWalletBalance={setWalletBalance} 
           walletBalance={walletBalance} 
@@ -1546,7 +1613,7 @@ const Wallet: React.FC = () => {
             fetchWalletData();
             startWithdrawCooldown();
           }} 
-          isWithdrawalServiceAvailable={false}
+          isWithdrawalServiceAvailable={walletSettings.withdrawals_enabled}
           cooldown={withdrawCooldown}
         />
         <TransferDialog walletBalance={walletBalance} onTransferComplete={fetchWalletData} />
