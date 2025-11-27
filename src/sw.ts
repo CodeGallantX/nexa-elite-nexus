@@ -23,10 +23,16 @@ clientsClaim();
 
 // Cache API responses with NetworkFirst strategy (try network, fallback to cache)
 // This ensures fresh data when online, but still works offline
+// Only cache Supabase API requests from our configured project
 registerRoute(
-  ({ url }) => url.origin === 'https://supabase.co' || 
-               url.pathname.includes('/rest/v1/') ||
-               url.pathname.includes('/functions/v1/'),
+  ({ url }) => {
+    // Check if this is a Supabase API request
+    const isSupabaseRequest = url.hostname.endsWith('.supabase.co') || 
+                              url.hostname.endsWith('.supabase.in');
+    const isApiPath = url.pathname.includes('/rest/v1/') || 
+                      url.pathname.includes('/functions/v1/');
+    return isSupabaseRequest && isApiPath;
+  },
   new NetworkFirst({
     cacheName: 'api-cache',
     plugins: [

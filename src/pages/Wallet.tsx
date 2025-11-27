@@ -695,8 +695,9 @@ const WithdrawDialog = ({ setWalletBalance, walletBalance, banks, onWithdrawalCo
         console.log("Withdrawal process started.");
         console.log("State:", { amount, walletBalance, bankCode, accountNumber, accountName });
 
-        // Generate a unique idempotency key for this withdrawal request
-        const idempotencyKey = `withdraw_${profile?.id}_${amount}_${Date.now()}`;
+        // Generate a deterministic idempotency key based on user, amount, and account details
+        // This allows safe retries of the same legitimate request while preventing duplicate withdrawals
+        const idempotencyKey = `withdraw_${profile?.id}_${amount}_${bankCode}_${accountNumber}`;
 
         try {
             if (amount > walletBalance) {

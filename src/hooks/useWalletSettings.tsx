@@ -7,17 +7,24 @@ export interface WalletSettings {
     deposits_enabled: boolean;
 }
 
-type WalletSettingKey = keyof WalletSettings;
-
-const isWalletSettingKey = (key: string): key is WalletSettingKey => {
-    return key === 'withdrawals_enabled' || key === 'deposits_enabled';
+// Default settings object - used as source of truth for valid keys
+const DEFAULT_WALLET_SETTINGS: WalletSettings = {
+    withdrawals_enabled: true,
+    deposits_enabled: true,
 };
 
+type WalletSettingKey = keyof WalletSettings;
+
+// Type guard derived from the WalletSettings interface
+const isWalletSettingKey = (key: string): key is WalletSettingKey => {
+    return key in DEFAULT_WALLET_SETTINGS;
+};
+
+// Get all wallet setting keys for database queries
+const WALLET_SETTING_KEYS = Object.keys(DEFAULT_WALLET_SETTINGS) as WalletSettingKey[];
+
 export const useWalletSettings = () => {
-    const [settings, setSettings] = useState<WalletSettings>({
-        withdrawals_enabled: true,
-        deposits_enabled: true,
-    });
+    const [settings, setSettings] = useState<WalletSettings>({ ...DEFAULT_WALLET_SETTINGS });
     const [loading, setLoading] = useState(true);
     const [isUpdating, setIsUpdating] = useState(false);
     const { toast } = useToast();
@@ -27,17 +34,14 @@ export const useWalletSettings = () => {
             const { data, error } = await supabase
                 .from('clan_settings')
                 .select('key, value')
-                .in('key', ['withdrawals_enabled', 'deposits_enabled']);
+                .in('key', WALLET_SETTING_KEYS);
 
             if (error) {
                 throw error;
             }
 
             if (data) {
-                const settingsMap: WalletSettings = {
-                    withdrawals_enabled: true,
-                    deposits_enabled: true,
-                };
+                const settingsMap: WalletSettings = { ...DEFAULT_WALLET_SETTINGS };
                 
                 data.forEach((item) => {
                     if (isWalletSettingKey(item.key)) {
