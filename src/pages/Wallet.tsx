@@ -1259,7 +1259,7 @@ const FundWalletDialog = ({ isDepositsEnabled = true }: { isDepositsEnabled?: bo
         initializePayment({ onSuccess, onClose } as any);
     }
 
-    // Show disabled state if deposits are not enabled
+    // Show disabled state if deposits are not enabled by clan master
     if (!isDepositsEnabled) {
         return (
             <TooltipProvider>
@@ -1280,6 +1280,9 @@ const FundWalletDialog = ({ isDepositsEnabled = true }: { isDepositsEnabled?: bo
         )
     }
 
+    // Deposits enabled by clan master, but temporarily disabled at system level
+    // Note: When the system is ready to accept deposits, this should be replaced
+    // with the actual payment dialog functionality
     return (
         <TooltipProvider>
             <Tooltip>
@@ -1292,7 +1295,7 @@ const FundWalletDialog = ({ isDepositsEnabled = true }: { isDepositsEnabled?: bo
                     </Button>
                 </TooltipTrigger>
                 <TooltipContent>
-                    <p>Wallet funding is temporarily disabled.</p>
+                    <p>Wallet funding is temporarily unavailable. Please try again later.</p>
                 </TooltipContent>
             </Tooltip>
         </TooltipProvider>

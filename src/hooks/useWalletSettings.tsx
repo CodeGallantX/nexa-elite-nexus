@@ -7,6 +7,12 @@ export interface WalletSettings {
     deposits_enabled: boolean;
 }
 
+type WalletSettingKey = keyof WalletSettings;
+
+const isWalletSettingKey = (key: string): key is WalletSettingKey => {
+    return key === 'withdrawals_enabled' || key === 'deposits_enabled';
+};
+
 export const useWalletSettings = () => {
     const [settings, setSettings] = useState<WalletSettings>({
         withdrawals_enabled: true,
@@ -34,7 +40,7 @@ export const useWalletSettings = () => {
                 };
                 
                 data.forEach((item) => {
-                    if (item.key === 'withdrawals_enabled' || item.key === 'deposits_enabled') {
+                    if (isWalletSettingKey(item.key)) {
                         settingsMap[item.key] = item.value;
                     }
                 });
