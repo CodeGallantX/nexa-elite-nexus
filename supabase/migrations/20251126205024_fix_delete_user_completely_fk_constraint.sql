@@ -1,0 +1,66 @@
+-- Fix delete_user_completely to delete related records before profile
+-- This fixes the foreign key constraint violation on notifications table
+
+DROP FUNCTION IF EXISTS public.delete_user_completely(uuid);
+
+CREATE OR REPLACE FUNCTION public.delete_user_completely(user_id_to_delete uuid)
+RETURNS boolean
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'public'
+AS $$
+DECLARE
+  current_user_role user_role;
+BEGIN
+  -- Get current user's role
+  SELECT role INTO current_user_role 
+  FROM public.profiles 
+  WHERE id = auth.uid();
+  
+  -- Only allow admins and clan masters to delete users
+  IF current_user_role NOT IN ('admin', 'clan_master') THEN
+    RAISE EXCEPTION 'Only admins and clan masters can delete users';
+  END IF;
+  
+  -- Delete related records first (in order of dependencies)
+  DELETE FROM public.notifications WHERE user_id = user_id_to_delete;
+  DELETE FROM public.push_subscriptions WHERE user_id = user_id_to_delete;
+  -- Split activities deletion for better index usage
+  DELETE FROM public.activities WHERE performed_by = user_id_to_delete;
+  DELETE FROM public.activities WHERE target_user_id = user_id_to_delete;
+  DELETE FROM public.bug_reports WHERE reporter_id = user_id_to_delete;
+  DELETE FROM public.chat_messages WHERE user_id = user_id_to_delete;
+  -- Split attendance deletion for better index usage
+  DELETE FROM public.attendance WHERE player_id = user_id_to_delete;
+  DELETE FROM public.attendance WHERE marked_by = user_id_to_delete;
+  DELETE FROM public.event_participants WHERE player_id = user_id_to_delete;
+  DELETE FROM public.events WHERE created_by = user_id_to_delete;
+  DELETE FROM public.loadouts WHERE player_id = user_id_to_delete;
+  DELETE FROM public.weapon_layouts WHERE player_id = user_id_to_delete;
+  
+  -- Handle giveaway-related cleanup
+  UPDATE public.giveaway_codes SET redeemed_by = NULL WHERE redeemed_by = user_id_to_delete;
+  DELETE FROM public.giveaways WHERE created_by = user_id_to_delete;
+  
+  -- Delete wallet and transactions using EXISTS for better performance
+  DELETE FROM public.transactions 
+  WHERE EXISTS (
+    SELECT 1 FROM public.wallets 
+    WHERE wallets.id = transactions.wallet_id 
+    AND wallets.user_id = user_id_to_delete
+  );
+  DELETE FROM public.wallets WHERE user_id = user_id_to_delete;
+  
+  -- Delete earnings and taxes
+  DELETE FROM public.earnings WHERE user_id = user_id_to_delete;
+  DELETE FROM public.taxes WHERE user_id = user_id_to_delete;
+  
+  -- Delete profile (auth user deletion is handled via Admin API in edge function)
+  DELETE FROM public.profiles WHERE id = user_id_to_delete;
+  
+  RETURN true;
+EXCEPTION
+  WHEN OTHERS THEN
+    RAISE EXCEPTION 'Error deleting user: %', SQLERRM;
+END;
+$$;
