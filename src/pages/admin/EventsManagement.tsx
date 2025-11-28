@@ -17,6 +17,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { logEventCreate, logEventUpdate, logEventDelete, logEventStatusUpdate } from "@/lib/activityLogger";
+import { sendBroadcastPushNotification } from "@/lib/pushNotifications";
 import {
   Calendar,
   Clock,
@@ -197,7 +198,9 @@ export const AdminEventsManagement: React.FC = () => {
   // Create/Update event mutation
   const saveEventMutation = useMutation({
     mutationFn: async (eventData: typeof formData) => {
-      if (editingEvent) {
+      const isUpdate = !!editingEvent;
+      
+      if (isUpdate) {
         const { error } = await supabase
           .from("events")
           .update({
@@ -209,6 +212,24 @@ export const AdminEventsManagement: React.FC = () => {
 
         // Log event update
         await logEventUpdate(eventData.name, editingEvent, eventData);
+        
+        // Send push notification for event update
+        try {
+          await sendBroadcastPushNotification({
+            title: `📅 Event Updated: ${eventData.name}`,
+            message: `${eventData.type} event on ${new Date(eventData.date).toLocaleDateString()} at ${eventData.time}`,
+            data: {
+              type: 'event_updated',
+              url: '/scrims',
+              eventName: eventData.name,
+              eventType: eventData.type,
+              eventDate: eventData.date,
+              eventTime: eventData.time,
+            }
+          });
+        } catch (pushError) {
+          console.warn('Failed to send push notification for event update:', pushError);
+        }
       } else {
         const { error } = await supabase.from("events").insert([
           {
@@ -220,9 +241,29 @@ export const AdminEventsManagement: React.FC = () => {
 
         // Log event creation
         await logEventCreate(eventData.name, eventData);
+        
+        // Send push notification for new event
+        try {
+          await sendBroadcastPushNotification({
+            title: `🎮 New Event: ${eventData.name}`,
+            message: `${eventData.type} event scheduled for ${new Date(eventData.date).toLocaleDateString()} at ${eventData.time}`,
+            data: {
+              type: 'event_created',
+              url: '/scrims',
+              eventName: eventData.name,
+              eventType: eventData.type,
+              eventDate: eventData.date,
+              eventTime: eventData.time,
+            }
+          });
+        } catch (pushError) {
+          console.warn('Failed to send push notification for new event:', pushError);
+        }
       }
+      
+      return { isUpdate };
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ["events"] });
       queryClient.invalidateQueries({ queryKey: ["activities"] });
       setIsCreating(false);
@@ -237,9 +278,9 @@ export const AdminEventsManagement: React.FC = () => {
         status: "upcoming",
       });
       toast({
-        title: editingEvent ? "Event Updated" : "Event Created",
+        title: result?.isUpdate ? "Event Updated" : "Event Created",
         description: `Event has been ${
-          editingEvent ? "updated" : "created"
+          result?.isUpdate ? "updated" : "created"
         } successfully.`,
       });
     },

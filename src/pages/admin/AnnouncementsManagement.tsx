@@ -26,6 +26,7 @@ import { Check, ChevronsUpDown } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
+import { sendBroadcastPushNotification, sendPushNotification } from '@/lib/pushNotifications';
 
 export const AdminAnnouncementsManagement = () => {
   const { toast } = useToast();
@@ -204,6 +205,37 @@ export const AdminAnnouncementsManagement = () => {
       const { error: notificationError } = await supabase.from('notifications').insert(notifications);
       if (notificationError) {
         console.error("Error creating notifications:", notificationError.message);
+      }
+
+      // Send push notifications if announcement is published
+      if (newAnn.is_published) {
+        try {
+          if (selectedUsers.length > 0) {
+            // Send to specific users
+            await sendPushNotification(selectedUsers, {
+              title: `📢 ${newAnn.title}`,
+              message: newAnn.content?.substring(0, 100) + (newAnn.content?.length > 100 ? '...' : ''),
+              data: {
+                type: 'announcement',
+                url: '/announcements',
+                announcementId: newAnn.id,
+              }
+            });
+          } else {
+            // Broadcast to all users
+            await sendBroadcastPushNotification({
+              title: `📢 ${newAnn.title}`,
+              message: newAnn.content?.substring(0, 100) + (newAnn.content?.length > 100 ? '...' : ''),
+              data: {
+                type: 'announcement',
+                url: '/announcements',
+                announcementId: newAnn.id,
+              }
+            });
+          }
+        } catch (pushError) {
+          console.warn('Failed to send push notification for announcement:', pushError);
+        }
       }
     }
   };
