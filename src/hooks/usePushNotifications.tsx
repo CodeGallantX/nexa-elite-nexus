@@ -15,6 +15,17 @@ export interface PushSubscription {
 // Reference: https://developer.mozilla.org/en-US/docs/Web/API/Notification/permission
 type NotificationPermissionState = 'default' | 'granted' | 'denied';
 
+// Badge API type declarations
+// Reference: https://developer.mozilla.org/en-US/docs/Web/API/Badging_API
+interface NavigatorBadge {
+  setAppBadge(count?: number): Promise<void>;
+  clearAppBadge(): Promise<void>;
+}
+
+declare global {
+  interface Navigator extends NavigatorBadge {}
+}
+
 export const usePushNotifications = () => {
   const [isSupported, setIsSupported] = useState(false);
   const [isSubscribed, setIsSubscribed] = useState(false);
@@ -266,7 +277,7 @@ export const usePushNotifications = () => {
       // Clear app badge using Badge API
       // Reference: https://developer.mozilla.org/en-US/docs/Web/API/Badging_API
       if ('clearAppBadge' in navigator) {
-        await (navigator as any).clearAppBadge();
+        await navigator.clearAppBadge();
       }
 
       setSubscription(null);

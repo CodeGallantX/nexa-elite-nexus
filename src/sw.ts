@@ -7,6 +7,18 @@ import { ExpirationPlugin } from 'workbox-expiration';
 
 declare let self: ServiceWorkerGlobalScope;
 
+// Badge API type declarations
+// Reference: https://developer.mozilla.org/en-US/docs/Web/API/Badging_API
+interface NavigatorBadge {
+  setAppBadge(count?: number): Promise<void>;
+  clearAppBadge(): Promise<void>;
+}
+
+declare global {
+  interface Navigator extends NavigatorBadge {}
+  interface WorkerNavigator extends NavigatorBadge {}
+}
+
 // Use the injected manifest from VitePWA
 precacheAndRoute(self.__WB_MANIFEST);
 
@@ -94,13 +106,13 @@ registerRoute(
 
 // Update app badge count using Badge API
 // Reference: https://developer.mozilla.org/en-US/docs/Web/API/Badging_API
-async function updateBadge(count: number) {
+async function updateBadge(count: number): Promise<void> {
   try {
     if ('setAppBadge' in navigator) {
       if (count > 0) {
-        await (navigator as any).setAppBadge(count);
+        await navigator.setAppBadge(count);
       } else {
-        await (navigator as any).clearAppBadge();
+        await navigator.clearAppBadge();
       }
     }
   } catch (error) {

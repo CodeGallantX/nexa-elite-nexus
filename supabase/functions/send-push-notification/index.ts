@@ -8,6 +8,13 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+// Type for web-push errors with HTTP status codes
+interface WebPushError extends Error {
+  statusCode?: number;
+  headers?: Record<string, string>;
+  body?: string;
+}
+
 // VAPID (Voluntary Application Server Identification) keys for Web Push
 // Reference: https://developer.mozilla.org/en-US/docs/Web/API/Push_API/Best_Practices
 const VAPID_PUBLIC_KEY = Deno.env.get('VAPID_PUBLIC_KEY');
@@ -162,8 +169,13 @@ Deno.serve(async (req) => {
         } catch (pushError: unknown) {
           console.error(`Failed to send push notification to user ${sub.user_id}:`, pushError);
           
+          // Type guard for web-push errors
+          const isWebPushError = (err: unknown): err is WebPushError => {
+            return err instanceof Error && 'statusCode' in err;
+          };
+          
           const errorMessage = pushError instanceof Error ? pushError.message : 'Unknown error';
-          const statusCode = (pushError as any)?.statusCode;
+          const statusCode = isWebPushError(pushError) ? pushError.statusCode : undefined;
           
           // Handle expired/invalid subscriptions (410 Gone or 404 Not Found)
           // Reference: https://developer.mozilla.org/en-US/docs/Web/API/Push_API/Best_Practices#handling_expired_subscriptions
