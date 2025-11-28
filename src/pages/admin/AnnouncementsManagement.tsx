@@ -208,7 +208,7 @@ export const AdminAnnouncementsManagement = () => {
       }
 
       // Send push notifications if announcement is published
-      if (newAnnouncement.is_published) {
+      if (newAnn.is_published) {
         try {
           if (selectedUsers.length > 0) {
             // Send to specific users
