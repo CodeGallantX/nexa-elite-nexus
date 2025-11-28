@@ -89,45 +89,129 @@ registerRoute(
 );
 
 // ============================================
-// PUSH NOTIFICATIONS
+// PUSH NOTIFICATIONS (MDN Web Push API + Badge API)
 // ============================================
 
+// Update app badge count using Badge API
+// Reference: https://developer.mozilla.org/en-US/docs/Web/API/Badging_API
+async function updateBadge(count: number) {
+  try {
+    if ('setAppBadge' in navigator) {
+      if (count > 0) {
+        await (navigator as any).setAppBadge(count);
+      } else {
+        await (navigator as any).clearAppBadge();
+      }
+    }
+  } catch (error) {
+    console.warn('Badge API not supported or failed:', error);
+  }
+}
+
 // Push notification event listener
+// Reference: https://developer.mozilla.org/en-US/docs/Web/API/Push_API
 self.addEventListener('push', (event: PushEvent) => {
+  console.log('[Service Worker] Push event received');
+  
   if (!event.data) {
-    console.log('Push event received but no data');
+    console.log('[Service Worker] Push event received but no data');
     return;
   }
 
-  try {
-    const data = event.data.json();
-    console.log('Push notification received:', data);
+  const showNotification = async () => {
+    try {
+      let data;
+      
+      // Try to parse as JSON, fall back to text
+      try {
+        data = event.data.json();
+      } catch {
+        const text = event.data.text();
+        data = { title: 'Nexa Esports', body: text };
+      }
+      
+      console.log('[Service Worker] Push notification data:', data);
 
-    const title = data.title || 'Nexa Esports';
-    const options: NotificationOptions = {
-      body: data.body,
-      icon: data.icon || '/nexa-logo.jpg',
-      badge: data.badge || '/nexa-logo.jpg',
-      tag: data.tag || 'nexa-notification',
-      data: data.data,
-      actions: data.actions,
-      requireInteraction: data.requireInteraction || false,
-      silent: data.silent || false,
-    };
+      const title = data.title || 'Nexa Esports';
+      
+      // NotificationOptions following MDN Web Notifications API
+      // Reference: https://developer.mozilla.org/en-US/docs/Web/API/Notification/Notification
+      const options: NotificationOptions = {
+        body: data.body || data.message || '',
+        icon: data.icon || '/nexa-logo.jpg',
+        badge: data.badge || '/pwa-192x192.png', // Smaller badge for notification tray
+        tag: data.tag || `nexa-notification-${Date.now()}`,
+        data: {
+          ...data.data,
+          url: data.data?.url || data.url || '/dashboard',
+          timestamp: data.data?.timestamp || Date.now(),
+        },
+        actions: data.actions || [
+          { action: 'open', title: 'Open' },
+          { action: 'dismiss', title: 'Dismiss' }
+        ],
+        requireInteraction: data.requireInteraction ?? false,
+        silent: data.silent ?? false,
+        // Vibration pattern for mobile devices (MDN Vibration API)
+        // Reference: https://developer.mozilla.org/en-US/docs/Web/API/Vibration_API
+        vibrate: data.vibrate || [100, 50, 100],
+        // Timestamp for notification ordering
+        timestamp: data.timestamp || Date.now(),
+        // Renotify when using the same tag to alert user of update
+        renotify: data.renotify ?? true,
+      };
 
-    const notificationPromise = self.registration.showNotification(title, options);
-    event.waitUntil(notificationPromise);
-  } catch (error) {
-    console.error('Error processing push notification:', error);
-  }
+      // Add image if provided (large image in notification body)
+      if (data.image) {
+        (options as any).image = data.image;
+      }
+
+      // Show the notification
+      await self.registration.showNotification(title, options);
+      
+      // Update app badge using Badge API
+      await updateBadge(1);
+      
+      console.log('[Service Worker] Notification shown successfully');
+    } catch (error) {
+      console.error('[Service Worker] Error processing push notification:', error);
+      
+      // Show a fallback notification if parsing fails
+      await self.registration.showNotification('Nexa Esports', {
+        body: 'You have a new notification',
+        icon: '/nexa-logo.jpg',
+        badge: '/pwa-192x192.png',
+        tag: 'nexa-fallback',
+      });
+    }
+  };
+
+  event.waitUntil(showNotification());
 });
 
 // Notification click event listener
+// Reference: https://developer.mozilla.org/en-US/docs/Web/API/ServiceWorkerGlobalScope/notificationclick_event
 self.addEventListener('notificationclick', (event: NotificationEvent) => {
-  console.log('Notification clicked:', event.notification);
-  event.notification.close();
+  console.log('[Service Worker] Notification clicked:', event.notification.tag);
+  
+  const notification = event.notification;
+  const action = event.action;
+  
+  // Close the notification
+  notification.close();
+  
+  // Clear the badge when notification is clicked
+  event.waitUntil(updateBadge(0));
 
-  const targetUrl = event.notification.data?.url || '/dashboard';
+  // Handle different actions
+  if (action === 'dismiss') {
+    console.log('[Service Worker] Notification dismissed by user');
+    return;
+  }
+
+  // Default action or 'open' action - open/focus the app
+  const targetUrl = notification.data?.url || '/dashboard';
+  const urlToOpen = new URL(targetUrl, self.location.origin).href;
 
   const promiseChain = self.clients.matchAll({
     type: 'window',
@@ -139,22 +223,57 @@ self.addEventListener('notificationclick', (event: NotificationEvent) => {
         // Focus the existing window and navigate to the URL
         return windowClient.focus().then((client) => {
           if (client && 'navigate' in client) {
-            return client.navigate(targetUrl);
+            return (client as WindowClient).navigate(urlToOpen);
           }
           return client;
         });
       }
     }
     // If no window is open, open a new one
-    return self.clients.openWindow(targetUrl);
+    return self.clients.openWindow(urlToOpen);
   });
 
   event.waitUntil(promiseChain);
 });
 
 // Notification close event listener
+// Reference: https://developer.mozilla.org/en-US/docs/Web/API/ServiceWorkerGlobalScope/notificationclose_event
 self.addEventListener('notificationclose', (event: NotificationEvent) => {
-  console.log('Notification closed:', event.notification);
+  console.log('[Service Worker] Notification closed:', event.notification.tag);
+  
+  // Clear the badge when notification is dismissed
+  event.waitUntil(updateBadge(0));
+});
+
+// Push subscription change event listener
+// Reference: https://developer.mozilla.org/en-US/docs/Web/API/ServiceWorkerGlobalScope/pushsubscriptionchange_event
+self.addEventListener('pushsubscriptionchange', (event: any) => {
+  console.log('[Service Worker] Push subscription changed');
+  
+  // Re-subscribe with the same options
+  const resubscribe = async () => {
+    try {
+      const subscription = await self.registration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: event.oldSubscription?.options?.applicationServerKey
+      });
+      
+      console.log('[Service Worker] Re-subscribed successfully:', subscription.endpoint);
+      
+      // Notify the main app about the new subscription
+      const clients = await self.clients.matchAll({ type: 'window' });
+      clients.forEach(client => {
+        client.postMessage({
+          type: 'PUSH_SUBSCRIPTION_CHANGED',
+          subscription: subscription.toJSON()
+        });
+      });
+    } catch (error) {
+      console.error('[Service Worker] Failed to re-subscribe:', error);
+    }
+  };
+  
+  event.waitUntil(resubscribe());
 });
 
 // ============================================
