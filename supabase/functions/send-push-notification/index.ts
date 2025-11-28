@@ -1,24 +1,52 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 // Use the npm 'web-push' package via esm.sh for Deno compatibility
-import * as webpush from 'https://esm.sh/web-push@3.5.0';
+// Reference: https://github.com/web-push-libs/web-push
+import * as webpush from 'https://esm.sh/web-push@3.6.7';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-const VAPID_PUBLIC_KEY = Deno.env.get('VAPID_PUBLIC_KEY')!;
-const VAPID_PRIVATE_KEY = Deno.env.get('VAPID_PRIVATE_KEY')!;
+// Type for web-push errors with HTTP status codes
+interface WebPushError extends Error {
+  statusCode?: number;
+  headers?: Record<string, string>;
+  body?: string;
+}
+
+// VAPID (Voluntary Application Server Identification) keys for Web Push
+// Reference: https://developer.mozilla.org/en-US/docs/Web/API/Push_API/Best_Practices
+const VAPID_PUBLIC_KEY = Deno.env.get('VAPID_PUBLIC_KEY');
+const VAPID_PRIVATE_KEY = Deno.env.get('VAPID_PRIVATE_KEY');
 const VAPID_EMAIL = Deno.env.get('VAPID_EMAIL') || 'mailto:nexaesportsmail@gmail.com';
 
-webpush.setVapidDetails(VAPID_EMAIL, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
+// Validate VAPID configuration
+if (!VAPID_PUBLIC_KEY || !VAPID_PRIVATE_KEY) {
+  console.error('VAPID keys not configured. Push notifications will fail.');
+}
+
+// Set VAPID details for web-push library
+if (VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY) {
+  webpush.setVapidDetails(VAPID_EMAIL, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
+}
 
 Deno.serve(async (req) => {
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
 
   try {
+    // Validate VAPID configuration
+    if (!VAPID_PUBLIC_KEY || !VAPID_PRIVATE_KEY) {
+      console.error('VAPID keys not configured');
+      return new Response(
+        JSON.stringify({ error: 'Push notification service not properly configured' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+      )
+    }
+
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
@@ -26,6 +54,14 @@ Deno.serve(async (req) => {
 
     const { notification, userIds } = await req.json()
     console.log('Push notification request:', { notification, userIds })
+
+    // Validate notification payload
+    if (!notification || !notification.title) {
+      return new Response(
+        JSON.stringify({ error: 'Invalid notification payload - title is required' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+      )
+    }
 
     let targetUserIds = userIds
 
@@ -74,9 +110,20 @@ Deno.serve(async (req) => {
 
     console.log(`Sending push notifications to ${subscriptions.length} subscribers`)
 
+    // Track subscriptions to clean up (expired or invalid)
+    const subscriptionsToDelete: string[] = [];
+
     const results = await Promise.allSettled(
       subscriptions.map(async (sub) => {
         try {
+          // Validate subscription data
+          if (!sub.endpoint || !sub.p256dh_key || !sub.auth_key) {
+            console.warn(`Invalid subscription for user ${sub.user_id}: missing required fields`);
+            subscriptionsToDelete.push(sub.user_id);
+            return { success: false, userId: sub.user_id, error: 'Invalid subscription data' };
+          }
+
+          // Build push subscription object for web-push library
           const pushSubscription = {
             endpoint: sub.endpoint,
             keys: {
@@ -85,50 +132,89 @@ Deno.serve(async (req) => {
             },
           };
 
+          // Build notification payload following Web Push API spec
+          // Reference: https://developer.mozilla.org/en-US/docs/Web/API/Push_API
           const payload = JSON.stringify({
             title: notification.title,
-            body: notification.message,
-            icon: '/nexa-logo.jpg',
-            badge: '/nexa-logo.jpg',
-            tag: 'nexa-notification',
+            body: notification.message || notification.body || '',
+            icon: notification.icon || '/nexa-logo.jpg',
+            badge: '/pwa-192x192.png', // Small monochrome icon for notification tray
+            tag: notification.tag || `nexa-${Date.now()}`,
             data: {
               ...notification.data,
               url: notification.data?.url || '/dashboard',
               timestamp: Date.now(),
               appName: 'Nexa Esports'
             },
-            actions: [
-              {
-                action: 'open',
-                title: 'Open App',
-                icon: '/nexa-logo.jpg'
-              }
+            // Notification actions
+            // Reference: https://developer.mozilla.org/en-US/docs/Web/API/Notification/actions
+            actions: notification.actions || [
+              { action: 'open', title: 'Open' },
+              { action: 'dismiss', title: 'Dismiss' }
             ],
-            requireInteraction: false,
-            silent: false
+            // Vibration pattern for mobile devices
+            // Reference: https://developer.mozilla.org/en-US/docs/Web/API/Vibration_API
+            vibrate: notification.vibrate || [100, 50, 100],
+            requireInteraction: notification.requireInteraction ?? false,
+            silent: notification.silent ?? false,
+            renotify: notification.renotify ?? true,
+            timestamp: Date.now()
           });
 
+          // Send push notification
           await webpush.sendNotification(pushSubscription, payload);
 
           console.log(`Push notification sent to user ${sub.user_id}`);
           return { success: true, userId: sub.user_id };
-        } catch (pushError) {
-          console.error(`Failed to send push notification to user ${sub.user_id}:`, pushError)
+        } catch (pushError: unknown) {
+          console.error(`Failed to send push notification to user ${sub.user_id}:`, pushError);
+          
+          // Type guard for web-push errors
+          const isWebPushError = (err: unknown): err is WebPushError => {
+            return err instanceof Error && 'statusCode' in err;
+          };
+          
           const errorMessage = pushError instanceof Error ? pushError.message : 'Unknown error';
-          return { success: false, userId: sub.user_id, error: errorMessage };
+          const statusCode = isWebPushError(pushError) ? pushError.statusCode : undefined;
+          
+          // Handle expired/invalid subscriptions (410 Gone or 404 Not Found)
+          // Reference: https://developer.mozilla.org/en-US/docs/Web/API/Push_API/Best_Practices#handling_expired_subscriptions
+          if (statusCode === 410 || statusCode === 404) {
+            console.log(`Subscription expired for user ${sub.user_id}, marking for deletion`);
+            subscriptionsToDelete.push(sub.user_id);
+          }
+          
+          return { success: false, userId: sub.user_id, error: errorMessage, statusCode };
         }
       })
     );
 
-    const successCount = results.filter(r => r.status === 'fulfilled' && r.value.success).length
-    console.log(`Push notifications sent successfully to ${successCount} out of ${subscriptions.length} subscribers`)
+    // Clean up expired subscriptions
+    if (subscriptionsToDelete.length > 0) {
+      console.log(`Cleaning up ${subscriptionsToDelete.length} expired subscriptions`);
+      const { error: deleteError } = await supabaseClient
+        .from('push_subscriptions')
+        .delete()
+        .in('user_id', subscriptionsToDelete);
+      
+      if (deleteError) {
+        console.error('Error deleting expired subscriptions:', deleteError);
+      }
+    }
+
+    const successCount = results.filter(r => r.status === 'fulfilled' && (r.value as any).success).length;
+    const failedCount = results.length - successCount;
+
+    console.log(`Push notifications: ${successCount} succeeded, ${failedCount} failed out of ${subscriptions.length} subscribers`);
 
     return new Response(
       JSON.stringify({
         message: `Push notifications processed for ${subscriptions.length} subscribers`,
         successCount,
+        failedCount,
         totalSubscriptions: subscriptions.length,
-        results: results.map(r => r.status === 'fulfilled' ? r.value : { success: false })
+        expiredSubscriptionsRemoved: subscriptionsToDelete.length,
+        results: results.map(r => r.status === 'fulfilled' ? r.value : { success: false, error: 'Promise rejected' })
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
