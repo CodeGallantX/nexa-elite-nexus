@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect } from "react";
 import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { arrayBufferToBase64, urlBase64ToUint8Array } from "@/lib/pushUtils";
 
 interface UserProfile {
   id: string;
@@ -217,16 +218,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       // Handle push subscription for VAPID-based web push
       // Reference: https://developer.mozilla.org/en-US/docs/Web/API/PushManager
       if ("PushManager" in window) {
-        const arrayBufferToBase64 = (buffer: ArrayBuffer | null): string => {
-          if (!buffer) return "";
-          const bytes = new Uint8Array(buffer);
-          let binary = "";
-          for (let i = 0; i < bytes.byteLength; i++) {
-            binary += String.fromCharCode(bytes[i]);
-          }
-          return btoa(binary);
-        };
-
         let subscription = await registration.pushManager.getSubscription();
         
         // If no subscription exists, create one using VAPID key
@@ -236,20 +227,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
           if (vapidKey) {
             console.log("[Push] No existing subscription, creating new one with VAPID");
             try {
-              // Convert URL-safe Base64 VAPID key to Uint8Array
-              const urlBase64ToUint8Array = (base64String: string): Uint8Array => {
-                const padding = '='.repeat((4 - base64String.length % 4) % 4);
-                const base64 = (base64String + padding)
-                  .replace(/-/g, '+')
-                  .replace(/_/g, '/');
-                const rawData = atob(base64);
-                const outputArray = new Uint8Array(rawData.length);
-                for (let i = 0; i < rawData.length; ++i) {
-                  outputArray[i] = rawData.charCodeAt(i);
-                }
-                return outputArray;
-              };
-
               subscription = await registration.pushManager.subscribe({
                 userVisibleOnly: true,
                 applicationServerKey: urlBase64ToUint8Array(vapidKey)
