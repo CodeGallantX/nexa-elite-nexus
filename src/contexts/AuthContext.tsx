@@ -164,6 +164,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     };
   }, []);
 
+  /**
+   * Handle push notification setup on login
+   * This function:
+   * 1. Shows a welcome notification if permission is granted
+   * 2. Creates or updates the push subscription in the database
+   * 3. Subscribes to VAPID-based web push if not already subscribed
+   * 
+   * Reference: https://developer.mozilla.org/en-US/docs/Web/API/Push_API
+   */
   const handlePushNotificationSetup = async (userId: string) => {
     try {
       if (
@@ -171,19 +180,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         !("serviceWorker" in navigator) ||
         !("Notification" in window)
       ) {
+        console.log("[Push] Browser does not support push notifications");
         return;
       }
 
       // Check notification permission
       // Reference: https://developer.mozilla.org/en-US/docs/Web/API/Notification/permission
       if (Notification.permission !== "granted") {
-        console.log("Notification permission not granted, skipping welcome notification");
+        console.log("[Push] Notification permission not granted, skipping setup");
         return;
       }
 
       const registration = await navigator.serviceWorker.ready;
+      console.log("[Push] Service worker ready for push notifications");
       
-      // Show immediate local notification as greeting and test
+      // Show immediate local notification as greeting
       // Reference: https://developer.mozilla.org/en-US/docs/Web/API/ServiceWorkerRegistration/showNotification
       try {
         await registration.showNotification("Welcome Soldier! 🎮", {
@@ -198,45 +209,91 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
             timestamp: Date.now(),
           },
         });
-        console.log("Welcome notification shown successfully");
+        console.log("[Push] Welcome notification shown successfully");
       } catch (notifError) {
-        console.error("Failed to show welcome notification:", notifError);
+        console.error("[Push] Failed to show welcome notification:", notifError);
       }
 
-      // Also save push subscription if PushManager is available
-      // Note: PushManager is checked separately because local notifications work without it,
-      // and we want to show the greeting even if push subscriptions aren't supported
+      // Handle push subscription for VAPID-based web push
+      // Reference: https://developer.mozilla.org/en-US/docs/Web/API/PushManager
       if ("PushManager" in window) {
-        const existingSubscription = await registration.pushManager.getSubscription();
+        const arrayBufferToBase64 = (buffer: ArrayBuffer | null): string => {
+          if (!buffer) return "";
+          const bytes = new Uint8Array(buffer);
+          let binary = "";
+          for (let i = 0; i < bytes.byteLength; i++) {
+            binary += String.fromCharCode(bytes[i]);
+          }
+          return btoa(binary);
+        };
+
+        let subscription = await registration.pushManager.getSubscription();
         
-        if (existingSubscription) {
-          const arrayBufferToBase64 = (buffer: ArrayBuffer | null) => {
-            if (!buffer) return "";
-            const bytes = new Uint8Array(buffer);
-            let binary = "";
-            for (let i = 0; i < bytes.byteLength; i++) {
-              binary += String.fromCharCode(bytes[i]);
+        // If no subscription exists, create one using VAPID key
+        if (!subscription) {
+          const vapidKey = import.meta.env.VITE_VAPID_PUBLIC_KEY;
+          
+          if (vapidKey) {
+            console.log("[Push] No existing subscription, creating new one with VAPID");
+            try {
+              // Convert URL-safe Base64 VAPID key to Uint8Array
+              const urlBase64ToUint8Array = (base64String: string): Uint8Array => {
+                const padding = '='.repeat((4 - base64String.length % 4) % 4);
+                const base64 = (base64String + padding)
+                  .replace(/-/g, '+')
+                  .replace(/_/g, '/');
+                const rawData = atob(base64);
+                const outputArray = new Uint8Array(rawData.length);
+                for (let i = 0; i < rawData.length; ++i) {
+                  outputArray[i] = rawData.charCodeAt(i);
+                }
+                return outputArray;
+              };
+
+              subscription = await registration.pushManager.subscribe({
+                userVisibleOnly: true,
+                applicationServerKey: urlBase64ToUint8Array(vapidKey)
+              });
+              console.log("[Push] New subscription created successfully");
+            } catch (subscribeError) {
+              console.error("[Push] Failed to create subscription:", subscribeError);
             }
-            return btoa(binary);
-          };
-
-          const p256dh = existingSubscription.getKey?.("p256dh") ?? null;
-          const auth = existingSubscription.getKey?.("auth") ?? null;
-
-          const subscriptionData = {
-            user_id: userId,
-            endpoint: existingSubscription.endpoint,
-            p256dh_key: arrayBufferToBase64(p256dh as ArrayBuffer | null),
-            auth_key: arrayBufferToBase64(auth as ArrayBuffer | null),
-          };
-
-          await supabase
-            .from("push_subscriptions")
-            .upsert(subscriptionData, { onConflict: "user_id" });
+          } else {
+            console.warn("[Push] VAPID key not configured, cannot create subscription");
+          }
         }
+        
+        // Save subscription to database if we have one
+        if (subscription) {
+          const p256dh = subscription.getKey?.("p256dh") ?? null;
+          const auth = subscription.getKey?.("auth") ?? null;
+
+          if (p256dh && auth) {
+            const subscriptionData = {
+              user_id: userId,
+              endpoint: subscription.endpoint,
+              p256dh_key: arrayBufferToBase64(p256dh),
+              auth_key: arrayBufferToBase64(auth),
+            };
+
+            const { error } = await supabase
+              .from("push_subscriptions")
+              .upsert(subscriptionData, { onConflict: "user_id" });
+            
+            if (error) {
+              console.error("[Push] Failed to save subscription to database:", error);
+            } else {
+              console.log("[Push] Subscription saved to database successfully");
+            }
+          } else {
+            console.warn("[Push] Subscription keys not available");
+          }
+        }
+      } else {
+        console.log("[Push] PushManager not available in this browser");
       }
     } catch (err) {
-      console.error("Push notification setup error:", err);
+      console.error("[Push] Push notification setup error:", err);
     }
   };
 
