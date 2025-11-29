@@ -169,51 +169,69 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       if (
         typeof window === "undefined" ||
         !("serviceWorker" in navigator) ||
-        !("PushManager" in window)
+        !("Notification" in window)
       ) {
         return;
       }
 
+      // Check notification permission
+      // Reference: https://developer.mozilla.org/en-US/docs/Web/API/Notification/permission
+      if (Notification.permission !== "granted") {
+        console.log("Notification permission not granted, skipping welcome notification");
+        return;
+      }
+
       const registration = await navigator.serviceWorker.ready;
-      const existingSubscription = await registration.pushManager.getSubscription();
       
-      if (existingSubscription) {
-        const arrayBufferToBase64 = (buffer: ArrayBuffer | null) => {
-          if (!buffer) return "";
-          const bytes = new Uint8Array(buffer);
-          let binary = "";
-          for (let i = 0; i < bytes.byteLength; i++) {
-            binary += String.fromCharCode(bytes[i]);
-          }
-          return btoa(binary);
-        };
+      // Show immediate local notification as greeting and test
+      // Reference: https://developer.mozilla.org/en-US/docs/Web/API/ServiceWorkerRegistration/showNotification
+      try {
+        await registration.showNotification("Welcome Soldier! 🎮", {
+          body: "Onward to the frontline! Push notifications are working.",
+          icon: "/nexa-logo.jpg",
+          badge: "/pwa-192x192.png",
+          tag: "login-greeting",
+          vibrate: [100, 50, 100],
+          requireInteraction: false,
+          data: {
+            url: "/dashboard",
+            timestamp: Date.now(),
+          },
+        });
+        console.log("Welcome notification shown successfully");
+      } catch (notifError) {
+        console.error("Failed to show welcome notification:", notifError);
+      }
 
-        const p256dh = existingSubscription.getKey?.("p256dh") ?? null;
-        const auth = existingSubscription.getKey?.("auth") ?? null;
+      // Also save push subscription if available
+      if ("PushManager" in window) {
+        const existingSubscription = await registration.pushManager.getSubscription();
+        
+        if (existingSubscription) {
+          const arrayBufferToBase64 = (buffer: ArrayBuffer | null) => {
+            if (!buffer) return "";
+            const bytes = new Uint8Array(buffer);
+            let binary = "";
+            for (let i = 0; i < bytes.byteLength; i++) {
+              binary += String.fromCharCode(bytes[i]);
+            }
+            return btoa(binary);
+          };
 
-        const subscriptionData = {
-          user_id: userId,
-          endpoint: existingSubscription.endpoint,
-          p256dh_key: arrayBufferToBase64(p256dh as ArrayBuffer | null),
-          auth_key: arrayBufferToBase64(auth as ArrayBuffer | null),
-        };
+          const p256dh = existingSubscription.getKey?.("p256dh") ?? null;
+          const auth = existingSubscription.getKey?.("auth") ?? null;
 
-        await supabase
-          .from("push_subscriptions")
-          .upsert(subscriptionData, { onConflict: "user_id" });
+          const subscriptionData = {
+            user_id: userId,
+            endpoint: existingSubscription.endpoint,
+            p256dh_key: arrayBufferToBase64(p256dh as ArrayBuffer | null),
+            auth_key: arrayBufferToBase64(auth as ArrayBuffer | null),
+          };
 
-        // Send welcome notification
-        setTimeout(async () => {
-          try {
-            const { sendPushNotification } = await import('@/lib/pushNotifications');
-            await sendPushNotification([userId], {
-              title: "Welcome Soldier!",
-              message: "Onward to the frontline!",
-            });
-          } catch (err) {
-            console.error("Welcome push error:", err);
-          }
-        }, 2000);
+          await supabase
+            .from("push_subscriptions")
+            .upsert(subscriptionData, { onConflict: "user_id" });
+        }
       }
     } catch (err) {
       console.error("Push notification setup error:", err);
