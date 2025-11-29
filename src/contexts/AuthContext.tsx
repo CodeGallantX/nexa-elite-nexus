@@ -203,7 +203,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         console.error("Failed to show welcome notification:", notifError);
       }
 
-      // Also save push subscription if available
+      // Also save push subscription if PushManager is available
+      // Note: PushManager is checked separately because local notifications work without it,
+      // and we want to show the greeting even if push subscriptions aren't supported
       if ("PushManager" in window) {
         const existingSubscription = await registration.pushManager.getSubscription();
         
